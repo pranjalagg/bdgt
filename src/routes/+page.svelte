@@ -37,24 +37,24 @@
 
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Dashboard</h1>
     <MonthPicker />
   </div>
 
   <!-- Summary Cards -->
   <div class="grid gap-4 sm:grid-cols-3">
-    <button class="rounded-lg bg-white p-4 shadow cursor-pointer hover:shadow-md text-left" on:click={() => openModal('income')}>
-      <p class="text-sm text-gray-500">Income</p>
-      <p class="text-xl font-bold text-gray-800">{formatCurrency($currentMonthIncome)}</p>
+    <button class="rounded-lg bg-white p-4 shadow cursor-pointer hover:shadow-md text-left dark:bg-surface-dark" on:click={() => openModal('income')}>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Income</p>
+      <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency($currentMonthIncome)}</p>
     </button>
-    <div class="rounded-lg bg-white p-4 shadow">
-      <p class="text-sm text-gray-500">Allocated</p>
-      <p class="text-xl font-bold text-gray-800">
+    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Allocated</p>
+      <p class="text-xl font-bold text-gray-800 dark:text-gray-100">
         {formatCurrency($currentMonthIncome - $unallocated)}
       </p>
     </div>
-    <div class="rounded-lg bg-white p-4 shadow">
-      <p class="text-sm text-gray-500">Unallocated</p>
+    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Unallocated</p>
       <p class="text-xl font-bold" class:text-danger={$unallocated < 0} class:text-warning={$unallocated > 0} class:text-success={$unallocated === 0}>
         {formatCurrency($unallocated)}
       </p>
@@ -75,7 +75,7 @@
 
   <!-- Quick Add Button -->
   <button
-    class="w-full rounded-lg border-2 border-dashed border-gray-300 py-3 text-gray-500 transition hover:border-primary hover:text-primary"
+    class="w-full rounded-lg border-2 border-dashed border-gray-300 py-3 text-gray-500 transition hover:border-primary hover:text-primary dark:border-border-dark dark:text-gray-400"
     on:click={() => openModal('quick-entry')}
   >
     + Add Transaction
@@ -96,20 +96,20 @@
 <Modal id="income" title="Manage Income">
   <form on:submit|preventDefault={handleAddIncome} class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700">Amount</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount</label>
       <input
         type="text"
         bind:value={incomeAmount}
-        class="mt-1 w-full rounded-lg border px-3 py-2"
+        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
         placeholder="0.00"
       />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700">Note (optional)</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Note (optional)</label>
       <input
         type="text"
         bind:value={incomeNote}
-        class="mt-1 w-full rounded-lg border px-3 py-2"
+        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
       />
     </div>
     <button
@@ -121,13 +121,13 @@
   </form>
 
   {#if $currentMonthIncomes.length > 0}
-    <div class="mt-4 border-t pt-4">
-      <h3 class="mb-2 font-medium text-gray-700">This Month's Income</h3>
+    <div class="mt-4 border-t border-gray-200 pt-4 dark:border-border-dark">
+      <h3 class="mb-2 font-medium text-gray-700 dark:text-gray-200">This Month's Income</h3>
       {#each $currentMonthIncomes as income}
         <div class="flex items-center justify-between py-2">
           <div>
-            <p class="font-medium">{formatCurrency(income.amount)}</p>
-            {#if income.note}<p class="text-sm text-gray-500">{income.note}</p>{/if}
+            <p class="font-medium dark:text-gray-100">{formatCurrency(income.amount)}</p>
+            {#if income.note}<p class="text-sm text-gray-500 dark:text-gray-400">{income.note}</p>{/if}
           </div>
           <button
             class="text-danger hover:underline"

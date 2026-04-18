@@ -19,7 +19,7 @@
 
 <div class="flex items-center gap-2">
   <button
-    class="rounded p-2 text-gray-600 hover:bg-gray-100"
+    class="rounded p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
     on:click={goToPrevious}
     aria-label="Previous month"
   >
@@ -29,7 +29,7 @@
   </button>
 
   <button
-    class="min-w-[140px] rounded px-3 py-1 text-center font-medium text-gray-800 hover:bg-gray-100"
+    class="min-w-[140px] rounded px-3 py-1 text-center font-medium text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
     on:click={goToCurrent}
     title="Go to current month"
   >
@@ -37,7 +37,7 @@
   </button>
 
   <button
-    class="rounded p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+    class="rounded p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800"
     on:click={goToNext}
     disabled={isCurrentMonth}
     aria-label="Next month"

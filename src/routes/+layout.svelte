@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { loadData, isLoading } from '$lib/stores/budgetStore';
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
+	import '$lib/stores/themeStore';
 
 	let { children } = $props();
 
@@ -20,8 +21,8 @@
 </svelte:head>
 
 {#if $isLoading}
-	<div class="flex h-screen items-center justify-center bg-background">
-		<p class="text-gray-500">Loading...</p>
+	<div class="flex h-screen items-center justify-center bg-background dark:bg-background-dark">
+		<p class="text-gray-500 dark:text-gray-400">Loading...</p>
 	</div>
 {:else}
 	<Layout>

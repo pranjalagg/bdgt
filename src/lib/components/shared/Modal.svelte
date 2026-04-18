@@ -29,13 +29,13 @@
     aria-labelledby="modal-title"
   >
     <div
-      class="w-full max-w-md rounded-lg bg-white shadow-xl"
+      class="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-surface-dark"
       transition:fly={{ y: 20, duration: 200 }}
     >
-      <div class="flex items-center justify-between border-b px-4 py-3">
-        <h2 id="modal-title" class="text-lg font-semibold text-gray-800">{title}</h2>
+      <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-border-dark">
+        <h2 id="modal-title" class="text-lg font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
         <button
-          class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
           on:click={closeModal}
           aria-label="Close modal"
         >

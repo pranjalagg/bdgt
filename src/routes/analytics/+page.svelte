@@ -36,20 +36,20 @@
 </script>
 
 <div class="space-y-8">
-  <h1 class="text-2xl font-bold text-gray-800">Analytics</h1>
+  <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Analytics</h1>
 
   <div class="grid gap-6 lg:grid-cols-2">
-    <div class="rounded-lg bg-white p-4 shadow">
-      <h2 class="mb-4 font-semibold text-gray-800">Spending by Category</h2>
+    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
+      <h2 class="mb-4 font-semibold text-gray-800 dark:text-gray-100">Spending by Category</h2>
       {#if spendingByCategory.length > 0}
         <DonutChart data={spendingByCategory} />
       {:else}
-        <p class="py-8 text-center text-gray-500">No spending data</p>
+        <p class="py-8 text-center text-gray-500 dark:text-gray-400">No spending data</p>
       {/if}
     </div>
 
-    <div class="rounded-lg bg-white p-4 shadow">
-      <h2 class="mb-4 font-semibold text-gray-800">Monthly Spending Trend</h2>
+    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
+      <h2 class="mb-4 font-semibold text-gray-800 dark:text-gray-100">Monthly Spending Trend</h2>
       <BarChart
         labels={monthLabels}
         datasets={[{ label: 'Spending', data: monthlySpending, color: '#ef4444' }]}
@@ -57,7 +57,7 @@
     </div>
 
     <div class="rounded-lg bg-white p-4 shadow lg:col-span-2">
-      <h2 class="mb-4 font-semibold text-gray-800">Income vs Spending</h2>
+      <h2 class="mb-4 font-semibold text-gray-800 dark:text-gray-100">Income vs Spending</h2>
       <LineChart
         labels={monthLabels}
         datasets={[

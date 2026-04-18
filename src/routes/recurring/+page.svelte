@@ -72,7 +72,7 @@
 
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Recurring</h1>
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Recurring</h1>
     <button
       class="rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600"
       on:click={handleAdd}
@@ -82,42 +82,42 @@
   </div>
 
   {#if sortedRecurring.length === 0}
-    <p class="py-8 text-center text-gray-500">No recurring transactions</p>
+    <p class="py-8 text-center text-gray-500 dark:text-gray-400">No recurring transactions</p>
   {:else}
     <div class="space-y-3">
       {#each sortedRecurring as rec}
         {@const bucket = $buckets.find((b) => b.id === rec.bucketId)}
-        <div class="flex items-center gap-4 rounded-lg bg-white p-4 shadow" class:opacity-50={!rec.isActive}>
+        <div class="flex items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-surface-dark" class:opacity-50={!rec.isActive}>
           <span
             class="h-3 w-3 rounded-full"
             style="background-color: {bucket?.color || '#ccc'}"
           />
           <div class="flex-1">
-            <p class="font-medium">{formatCurrency(rec.amount)}</p>
-            <p class="text-sm text-gray-500">
+            <p class="font-medium dark:text-gray-100">{formatCurrency(rec.amount)}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
               {bucket?.name || 'Unknown'} &middot; {rec.frequency}
               {#if rec.note} &middot; {rec.note}{/if}
             </p>
           </div>
           <div class="text-right">
-            <p class="text-sm text-gray-600">Next due</p>
-            <p class="text-sm font-medium">{formatDate(new Date(rec.nextDueDate))}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Next due</p>
+            <p class="text-sm font-medium dark:text-gray-200">{formatDate(new Date(rec.nextDueDate))}</p>
           </div>
           <div class="flex gap-1">
             <button
-              class="rounded px-2 py-1 text-sm hover:bg-gray-100"
+              class="rounded px-2 py-1 text-sm hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               on:click={() => toggleRecurring(rec.id)}
             >
               {rec.isActive ? 'Pause' : 'Resume'}
             </button>
             <button
-              class="rounded px-2 py-1 text-sm hover:bg-gray-100"
+              class="rounded px-2 py-1 text-sm hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               on:click={() => handleEdit(rec)}
             >
               Edit
             </button>
             <button
-              class="rounded px-2 py-1 text-sm text-danger hover:bg-red-50"
+              class="rounded px-2 py-1 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/30"
               on:click={() => handleDelete(rec.id)}
             >
               Delete
@@ -132,12 +132,12 @@
 <Modal id="recurring-form" title={editingId ? 'Edit Recurring' : 'Add Recurring'}>
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700">Amount</label>
-      <input type="text" bind:value={amount} class="mt-1 w-full rounded-lg border px-3 py-2" required />
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount</label>
+      <input type="text" bind:value={amount} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" required />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700">Bucket</label>
-      <select bind:value={bucketId} class="mt-1 w-full rounded-lg border px-3 py-2" required>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Bucket</label>
+      <select bind:value={bucketId} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" required>
         <option value="">Select bucket</option>
         {#each $buckets as bucket}
           <option value={bucket.id}>{bucket.name}</option>
@@ -145,20 +145,20 @@
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700">Frequency</label>
-      <select bind:value={frequency} class="mt-1 w-full rounded-lg border px-3 py-2">
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Frequency</label>
+      <select bind:value={frequency} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100">
         <option value="weekly">Weekly</option>
         <option value="biweekly">Bi-weekly</option>
         <option value="monthly">Monthly</option>
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700">Next Due Date</label>
-      <input type="date" bind:value={nextDueDate} class="mt-1 w-full rounded-lg border px-3 py-2" required />
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Next Due Date</label>
+      <input type="date" bind:value={nextDueDate} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" required />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700">Note (optional)</label>
-      <input type="text" bind:value={note} class="mt-1 w-full rounded-lg border px-3 py-2" />
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Note (optional)</label>
+      <input type="text" bind:value={note} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" />
     </div>
     <button type="submit" class="w-full rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600">
       {editingId ? 'Update' : 'Add'} Recurring

@@ -18,14 +18,14 @@
   }
 </script>
 
-<div class="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
+<div class="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm dark:bg-surface-dark">
   <div class="flex items-center gap-3">
     {#if showBucket && bucket}
       <span class="h-2 w-2 rounded-full" style="background-color: {bucket.color}" />
     {/if}
     <div>
-      <p class="font-medium text-gray-800">{formatCurrency(transaction.amount)}</p>
-      <p class="text-sm text-gray-500">
+      <p class="font-medium text-gray-800 dark:text-gray-100">{formatCurrency(transaction.amount)}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
         {formatDate(new Date(transaction.date))}
         {#if transaction.note}
           &middot; {transaction.note}
@@ -36,10 +36,10 @@
 
   <div class="flex items-center gap-2">
     {#if showBucket && bucket}
-      <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600">{bucket.name}</span>
+      <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">{bucket.name}</span>
     {/if}
     <button
-      class="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-danger disabled:opacity-50"
+      class="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-danger disabled:opacity-50 dark:hover:bg-red-900/30"
       on:click={handleDelete}
       disabled={isDeleting}
       aria-label="Delete transaction"

@@ -2,6 +2,7 @@
   import { exportToJson, exportToCsv, importFromJson, resetAllData, downloadFile } from '$lib/utils/export';
   import { loadData } from '$lib/stores/budgetStore';
   import { loadRecurring } from '$lib/stores/recurringStore';
+  import { themePreference, setTheme, type ThemePreference } from '$lib/stores/themeStore';
 
   let fileInput: HTMLInputElement;
   let isExporting = false;
@@ -59,13 +60,35 @@
     await loadRecurring();
     alert('All data has been reset.');
   }
+
+  function handleThemeChange(e: Event) {
+    const value = (e.target as HTMLSelectElement).value as ThemePreference;
+    setTheme(value);
+  }
 </script>
 
 <div class="space-y-8">
-  <h1 class="text-2xl font-bold text-gray-800">Settings</h1>
+  <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Settings</h1>
 
   <section class="space-y-4">
-    <h2 class="text-lg font-semibold text-gray-700">Export Data</h2>
+    <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Appearance</h2>
+    <div class="flex items-center gap-4">
+      <label for="theme" class="text-sm font-medium text-gray-700 dark:text-gray-200">Theme</label>
+      <select
+        id="theme"
+        value={$themePreference}
+        on:change={handleThemeChange}
+        class="rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+      >
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Export Data</h2>
     <div class="flex flex-wrap gap-3">
       <button
         class="rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
@@ -75,7 +98,7 @@
         Export JSON (Full Backup)
       </button>
       <button
-        class="rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 disabled:opacity-50"
+        class="rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 disabled:opacity-50 dark:border-border-dark dark:text-gray-200 dark:hover:bg-gray-800"
         on:click={handleExportCsv}
         disabled={isExporting}
       >
@@ -85,7 +108,7 @@
   </section>
 
   <section class="space-y-4">
-    <h2 class="text-lg font-semibold text-gray-700">Import Data</h2>
+    <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Import Data</h2>
     <div class="flex items-center gap-3">
       <input
         type="file"
@@ -95,24 +118,24 @@
         class="hidden"
       />
       <button
-        class="rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 disabled:opacity-50"
+        class="rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 disabled:opacity-50 dark:border-border-dark dark:text-gray-200 dark:hover:bg-gray-800"
         on:click={() => fileInput.click()}
         disabled={isImporting}
       >
         {isImporting ? 'Importing...' : 'Import JSON Backup'}
       </button>
     </div>
-    <p class="text-sm text-gray-500">Import a previously exported JSON backup file.</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400">Import a previously exported JSON backup file.</p>
   </section>
 
-  <section class="space-y-4 border-t pt-6">
+  <section class="space-y-4 border-t border-gray-200 pt-6 dark:border-border-dark">
     <h2 class="text-lg font-semibold text-danger">Danger Zone</h2>
     <button
-      class="rounded-lg border border-danger px-4 py-2 text-danger hover:bg-red-50"
+      class="rounded-lg border border-danger px-4 py-2 text-danger hover:bg-red-50 dark:hover:bg-red-900/30"
       on:click={handleReset}
     >
       Reset All Data
     </button>
-    <p class="text-sm text-gray-500">Permanently delete all your data. This cannot be undone.</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400">Permanently delete all your data. This cannot be undone.</p>
   </section>
 </div>

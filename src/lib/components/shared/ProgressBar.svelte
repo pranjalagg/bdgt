@@ -15,14 +15,14 @@
 </script>
 
 <div class="w-full">
-  <div class="h-2 overflow-hidden rounded-full bg-gray-200">
+  <div class="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
     <div
       class="h-full transition-all duration-300 {colorClass}"
       style="width: {percentage}%"
     />
   </div>
   {#if showLabel}
-    <p class="mt-1 text-xs text-gray-500">
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
       {Math.round(percentage)}% spent
     </p>
   {/if}

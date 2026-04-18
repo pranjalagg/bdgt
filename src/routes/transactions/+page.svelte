@@ -19,12 +19,12 @@
 
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Transactions</h1>
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Transactions</h1>
     <MonthPicker />
   </div>
 
   <div class="flex gap-4">
-    <select bind:value={filterBucketId} class="rounded-lg border px-3 py-2">
+    <select bind:value={filterBucketId} class="rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-surface-dark dark:text-gray-100">
       <option value="">All Buckets</option>
       {#each $buckets as bucket}
         <option value={bucket.id}>{bucket.name}</option>
@@ -37,7 +37,7 @@
   </div>
 
   {#if sortedTransactions.length === 0}
-    <p class="py-8 text-center text-gray-500">No transactions this month</p>
+    <p class="py-8 text-center text-gray-500 dark:text-gray-400">No transactions this month</p>
   {:else}
     <div class="space-y-2">
       {#each sortedTransactions as transaction (transaction.id)}
