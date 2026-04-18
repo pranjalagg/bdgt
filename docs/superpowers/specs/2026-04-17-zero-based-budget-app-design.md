@@ -161,7 +161,8 @@ New Month Rollover = Previous Month Remaining
    - Bucket-level drilldown
 
 6. **Settings**
-   - Export/import JSON backup
+   - Export/import JSON backup (full data restore)
+   - Export CSV (transactions, readable for spreadsheets)
    - Reset data (with confirmation)
    - Manage default buckets
 
@@ -290,7 +291,7 @@ Danger:      #ef4444 (red)
 
 ## Backup & Restore
 
-### Export (JSON)
+### Export (JSON) — Full Backup
 
 ```json
 {
@@ -306,11 +307,26 @@ Danger:      #ef4444 (red)
 }
 ```
 
-### Import
+### Export (CSV) — Readable Export
+
+Exports transactions in spreadsheet-friendly format:
+
+```csv
+Date,Bucket,Amount,Note
+2026-04-15,Grocery,45.23,Weekly groceries
+2026-04-14,Dining Out,32.50,Lunch with team
+```
+
+- Filterable by date range before export
+- Amounts displayed in dollars (not cents)
+- Useful for external analysis or record-keeping
+
+### Import (JSON only)
 
 - Validate JSON structure and version
 - Confirm before overwriting existing data
 - Handle version migrations if schema changes
+- CSV import not supported (JSON is the canonical format)
 
 ## Budget Period
 
