@@ -3,7 +3,7 @@ import { writable, derived, get } from 'svelte/store';
 import { db, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
 import { getMonthKey, getPreviousMonthKey, getMonthRange } from '$lib/utils/dates';
-import { calculateBucketRemaining, calculateUnallocated } from '$lib/utils/calculations';
+import { calculateBucketRemaining, computeAllocation, getTotalPercentage } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
 export const buckets = writable<Bucket[]>([]);
@@ -68,16 +68,31 @@ export const currentSnapshot = derived(
     }
 );
 
+export const computedAllocations = derived(
+  [buckets, currentMonthIncome],
+  ([$buckets, $income]) => {
+    const allocations: Record<string, number> = {};
+    for (const bucket of $buckets) {
+      allocations[bucket.id] = computeAllocation(bucket, $income);
+    }
+    return allocations;
+  }
+);
+
+export const totalPercentage = derived(buckets, ($buckets) => getTotalPercentage($buckets));
+
 export const bucketStatuses = derived(
-  [buckets, currentSnapshot, currentMonthTransactions],
-  ([$buckets, $snapshot, $transactions]) => {
+  [buckets, currentSnapshot, currentMonthTransactions, computedAllocations],
+  ([$buckets, $snapshot, $transactions, $computed]) => {
     const spent: Record<string, number> = {};
     for (const t of $transactions) {
       spent[t.bucketId] = (spent[t.bucketId] || 0) + t.amount;
     }
 
     return $buckets.map((bucket): BucketStatus => {
-      const allocated = $snapshot.allocations[bucket.id] || 0;
+      const allocated = bucket.allocationType === 'fixed'
+        ? ($snapshot.allocations[bucket.id] || 0)
+        : $computed[bucket.id];
       const bucketSpent = spent[bucket.id] || 0;
       const rollover = $snapshot.rollovers[bucket.id] || 0;
       const remaining = calculateBucketRemaining(allocated, bucketSpent, rollover);
@@ -88,8 +103,11 @@ export const bucketStatuses = derived(
 );
 
 export const unallocated = derived(
-  [currentMonthIncome, currentSnapshot],
-  ([$income, $snapshot]) => calculateUnallocated($income, $snapshot.allocations)
+  [currentMonthIncome, bucketStatuses],
+  ([$income, $statuses]) => {
+    const totalAllocated = $statuses.reduce((sum, s) => sum + s.allocated, 0);
+    return $income - totalAllocated;
+  }
 );
 
 // Actions
@@ -167,4 +185,20 @@ export async function setAllocation(bucketId: string, amount: number): Promise<v
     }
     return [...s, snapshot!];
   });
+}
+
+export async function updateBucketAllocation(
+  id: string,
+  allocationType: 'fixed' | 'percentage' | 'hybrid',
+  fixedAmount: number,
+  percentageAmount: number
+): Promise<void> {
+  await db.buckets.update(id, { allocationType, fixedAmount, percentageAmount });
+  buckets.update((b) =>
+    b.map((bucket) =>
+      bucket.id === id
+        ? { ...bucket, allocationType, fixedAmount, percentageAmount }
+        : bucket
+    )
+  );
 }
