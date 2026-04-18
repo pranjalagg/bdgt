@@ -3,11 +3,13 @@
   import BucketCard from '$lib/components/shared/BucketCard.svelte';
   import QuickEntry from '$lib/components/shared/QuickEntry.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
-  import { bucketStatuses, currentMonthIncome, unallocated } from '$lib/stores/budgetStore';
+  import { bucketStatuses, currentMonthIncome, currentMonthIncomes, unallocated, addIncome, deleteIncome } from '$lib/stores/budgetStore';
   import { openModal, closeModal } from '$lib/stores/uiStore';
-  import { formatCurrency } from '$lib/utils/currency';
+  import { formatCurrency, parseCurrency } from '$lib/utils/currency';
 
   let selectedBucketId: string | undefined;
+  let incomeAmount = '';
+  let incomeNote = '';
 
   function handleBucketClick(bucketId: string) {
     selectedBucketId = bucketId;
@@ -17,6 +19,19 @@
   function handleEntryComplete() {
     closeModal();
     selectedBucketId = undefined;
+  }
+
+  async function handleAddIncome() {
+    if (!incomeAmount) return;
+    await addIncome({
+      amount: parseCurrency(incomeAmount),
+      date: new Date(),
+      note: incomeNote || undefined,
+      isRecurring: false,
+    });
+    incomeAmount = '';
+    incomeNote = '';
+    closeModal();
   }
 </script>
 
@@ -28,10 +43,10 @@
 
   <!-- Summary Cards -->
   <div class="grid gap-4 sm:grid-cols-3">
-    <div class="rounded-lg bg-white p-4 shadow">
+    <button class="rounded-lg bg-white p-4 shadow cursor-pointer hover:shadow-md text-left" on:click={() => openModal('income')}>
       <p class="text-sm text-gray-500">Income</p>
       <p class="text-xl font-bold text-gray-800">{formatCurrency($currentMonthIncome)}</p>
-    </div>
+    </button>
     <div class="rounded-lg bg-white p-4 shadow">
       <p class="text-sm text-gray-500">Allocated</p>
       <p class="text-xl font-bold text-gray-800">
@@ -76,4 +91,52 @@
 
 <Modal id="quick-entry" title="Add Transaction">
   <QuickEntry preselectedBucketId={selectedBucketId} onComplete={handleEntryComplete} />
+</Modal>
+
+<Modal id="income" title="Manage Income">
+  <form on:submit|preventDefault={handleAddIncome} class="space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Amount</label>
+      <input
+        type="text"
+        bind:value={incomeAmount}
+        class="mt-1 w-full rounded-lg border px-3 py-2"
+        placeholder="0.00"
+      />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Note (optional)</label>
+      <input
+        type="text"
+        bind:value={incomeNote}
+        class="mt-1 w-full rounded-lg border px-3 py-2"
+      />
+    </div>
+    <button
+      type="submit"
+      class="w-full rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600"
+    >
+      Add Income
+    </button>
+  </form>
+
+  {#if $currentMonthIncomes.length > 0}
+    <div class="mt-4 border-t pt-4">
+      <h3 class="mb-2 font-medium text-gray-700">This Month's Income</h3>
+      {#each $currentMonthIncomes as income}
+        <div class="flex items-center justify-between py-2">
+          <div>
+            <p class="font-medium">{formatCurrency(income.amount)}</p>
+            {#if income.note}<p class="text-sm text-gray-500">{income.note}</p>{/if}
+          </div>
+          <button
+            class="text-danger hover:underline"
+            on:click={() => deleteIncome(income.id)}
+          >
+            Delete
+          </button>
+        </div>
+      {/each}
+    </div>
+  {/if}
 </Modal>
