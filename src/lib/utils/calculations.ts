@@ -30,3 +30,22 @@ export function calculateTotalSpent(spent: Record<string, number>): number {
 export function calculateTotalAllocated(allocations: Record<string, number>): number {
   return Object.values(allocations).reduce((sum, val) => sum + val, 0);
 }
+
+import type { Bucket } from '$lib/types';
+
+export function computeAllocation(bucket: Bucket, totalIncome: number): number {
+  const fixed = bucket.fixedAmount || 0;
+  const pct = bucket.percentageAmount || 0;
+  const fromPercentage = Math.round((pct / 100) * totalIncome);
+
+  switch (bucket.allocationType) {
+    case 'fixed': return fixed;
+    case 'percentage': return fromPercentage;
+    case 'hybrid': return fixed + fromPercentage;
+    default: return fixed;
+  }
+}
+
+export function getTotalPercentage(buckets: Bucket[]): number {
+  return buckets.reduce((sum, b) => sum + (b.percentageAmount || 0), 0);
+}

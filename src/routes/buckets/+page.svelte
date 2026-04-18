@@ -36,6 +36,9 @@
         color: newBucketColor,
         order: $buckets.length,
         isDefault: false,
+        allocationType: 'fixed',
+        fixedAmount: 0,
+        percentageAmount: 0,
       });
     }
     closeModal();

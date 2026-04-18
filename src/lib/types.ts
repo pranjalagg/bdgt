@@ -1,5 +1,7 @@
 // src/lib/types.ts
 
+export type AllocationType = 'fixed' | 'percentage' | 'hybrid';
+
 export interface Income {
   id: string;
   amount: number; // cents
@@ -14,6 +16,9 @@ export interface Bucket {
   color: string;
   order: number;
   isDefault: boolean;
+  allocationType: AllocationType;
+  fixedAmount: number;      // cents
+  percentageAmount: number; // 0-100
 }
 
 export interface Transaction {
