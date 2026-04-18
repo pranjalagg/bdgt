@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot } from '$lib/types';
+import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal } from '$lib/types';
 
 export class BudgetDatabase extends Dexie {
   buckets!: Table<Bucket, string>;
@@ -7,6 +7,7 @@ export class BudgetDatabase extends Dexie {
   recurringTransactions!: Table<RecurringTransaction, string>;
   incomes!: Table<Income, string>;
   monthSnapshots!: Table<MonthSnapshot, string>;
+  savingsGoals!: Table<SavingsGoal, string>;
 
   constructor() {
     super('BudgetDB');

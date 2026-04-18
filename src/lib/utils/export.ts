@@ -4,18 +4,19 @@ import { formatDate } from './dates';
 import type { ExportData } from '$lib/types';
 
 export async function exportToJson(): Promise<string> {
-  const [buckets, transactions, recurringTransactions, incomes, monthSnapshots] = await Promise.all([
+  const [buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals] = await Promise.all([
     db.buckets.toArray(),
     db.transactions.toArray(),
     db.recurringTransactions.toArray(),
     db.incomes.toArray(),
     db.monthSnapshots.toArray(),
+    db.savingsGoals.toArray(),
   ]);
 
   const data: ExportData = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots },
+    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals },
   };
 
   return JSON.stringify(data, null, 2);
@@ -43,28 +44,33 @@ export async function importFromJson(json: string): Promise<void> {
     throw new Error('Unsupported backup version');
   }
 
-  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots], async () => {
+  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals], async () => {
     await db.buckets.clear();
     await db.transactions.clear();
     await db.recurringTransactions.clear();
     await db.incomes.clear();
     await db.monthSnapshots.clear();
+    await db.savingsGoals.clear();
 
     await db.buckets.bulkAdd(data.data.buckets);
     await db.transactions.bulkAdd(data.data.transactions);
     await db.recurringTransactions.bulkAdd(data.data.recurringTransactions);
     await db.incomes.bulkAdd(data.data.incomes);
     await db.monthSnapshots.bulkAdd(data.data.monthSnapshots);
+    if (data.data.savingsGoals) {
+      await db.savingsGoals.bulkAdd(data.data.savingsGoals);
+    }
   });
 }
 
 export async function resetAllData(): Promise<void> {
-  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots], async () => {
+  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals], async () => {
     await db.buckets.clear();
     await db.transactions.clear();
     await db.recurringTransactions.clear();
     await db.incomes.clear();
     await db.monthSnapshots.clear();
+    await db.savingsGoals.clear();
   });
 }
 

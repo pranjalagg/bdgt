@@ -57,6 +57,17 @@ export interface BucketStatus {
   remaining: number;
 }
 
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  bucketId: string;
+  targetAmount: number;          // cents
+  targetDate?: Date;             // optional: user-set deadline
+  monthlyContribution?: number;  // optional: user-set monthly (cents)
+  createdAt: Date;
+  startingBalance: number;       // cents
+}
+
 export type ExportData = {
   version: number;
   exportedAt: string;
@@ -66,5 +77,6 @@ export type ExportData = {
     recurringTransactions: RecurringTransaction[];
     incomes: Income[];
     monthSnapshots: MonthSnapshot[];
+    savingsGoals: SavingsGoal[];
   };
 };
