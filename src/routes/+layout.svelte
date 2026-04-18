@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { loadData, isLoading } from '$lib/stores/budgetStore';
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
+	import { loadGoals } from '$lib/stores/goalsStore';
 	import '$lib/stores/themeStore';
 
 	let { children } = $props();
@@ -12,6 +13,7 @@
 	onMount(async () => {
 		await loadData();
 		await loadRecurring();
+		await loadGoals();
 		await processRecurring();
 	});
 </script>
