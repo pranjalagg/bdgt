@@ -201,4 +201,8 @@ export async function updateBucketAllocation(
         : bucket
     )
   );
+
+  if (allocationType === 'fixed' || allocationType === 'hybrid') {
+    await setAllocation(id, fixedAmount);
+  }
 }
