@@ -17,8 +17,10 @@
   }[status];
 
   $: labelText = spent < 0
-    ? `${Math.round((Math.abs(spent) / allocated) * 100)}% owed back`
-    : `${Math.round(allocated > 0 ? (spent / allocated) * 100 : 0)}% spent`;
+    ? allocated > 0
+      ? `${Math.round((Math.abs(spent) / allocated) * 100)}% owed back`
+      : 'owed back'
+    : `${Math.round(percentage)}% spent`;
 </script>
 
 <div class="w-full">
