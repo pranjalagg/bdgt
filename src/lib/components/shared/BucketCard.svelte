@@ -29,19 +29,22 @@
 
   <ProgressBar {allocated} {spent} showLabel={false} />
 
+  {#if spent < 0}
+    <div class="mt-2 flex items-center gap-1.5">
+      <span class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-primary dark:bg-blue-900/30">
+        ↩ {formatCurrency(Math.abs(spent))} owed back
+      </span>
+    </div>
+  {/if}
+
   <div class="mt-3 flex justify-between text-sm">
     <div>
       <p class="text-gray-500 dark:text-gray-400">Remaining</p>
       <p class="font-semibold {remainingColor}">{formatCurrency(remaining)}</p>
     </div>
     <div class="text-right">
-      {#if spent < 0}
-        <p class="text-primary">Owed back</p>
-        <p class="font-semibold text-primary">{formatCurrency(Math.abs(spent))}</p>
-      {:else}
-        <p class="text-gray-500 dark:text-gray-400">Spent</p>
-        <p class="text-gray-700 dark:text-gray-200">{formatCurrency(spent)}</p>
-      {/if}
+      <p class="text-gray-500 dark:text-gray-400">Spent</p>
+      <p class="text-gray-700 dark:text-gray-200">{formatCurrency(Math.max(spent, 0))}</p>
     </div>
   </div>
 

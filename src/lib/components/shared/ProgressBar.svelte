@@ -6,16 +6,10 @@
   export let showLabel = true;
 
   $: status = getBucketStatus(allocated, spent);
-
-  $: spentPct = allocated > 0 && spent > 0
-    ? Math.min((spent / allocated) * 50, 50)
+  $: percentage = allocated > 0 && spent > 0
+    ? Math.min((spent / allocated) * 100, 100)
     : 0;
-
-  $: creditPct = allocated > 0 && spent < 0
-    ? Math.min((Math.abs(spent) / allocated) * 50, 50)
-    : 0;
-
-  $: spentColorClass = {
+  $: colorClass = {
     success: 'bg-success',
     warning: 'bg-warning',
     danger: 'bg-danger',
@@ -28,23 +22,11 @@
 </script>
 
 <div class="w-full">
-  <div class="relative h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-    <!-- Center marker -->
-    <div class="absolute left-1/2 top-0 z-10 h-full w-0.5 -translate-x-1/2 rounded-full bg-gray-400 dark:bg-gray-500" />
-
-    <!-- Credit fill (left of center, grows leftward) -->
-    {#if creditPct > 0}
+  <div class="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+    {#if percentage > 0}
       <div
-        class="absolute top-0 h-full rounded-l-full bg-primary transition-all duration-300"
-        style="right: 50%; width: {creditPct}%"
-      />
-    {/if}
-
-    <!-- Spending fill (right of center, grows rightward) -->
-    {#if spentPct > 0}
-      <div
-        class="absolute left-1/2 top-0 h-full rounded-r-full transition-all duration-300 {spentColorClass}"
-        style="width: {spentPct}%"
+        class="h-full transition-all duration-300 {colorClass}"
+        style="width: {percentage}%"
       />
     {/if}
   </div>
