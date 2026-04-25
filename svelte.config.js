@@ -5,6 +5,9 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
   preprocess: vitePreprocess(),
   kit: {
+    paths: {
+      base: process.env.GITHUB_ACTIONS ? '/bdgt' : ''
+    },
     adapter: adapter({
       pages: 'build',
       assets: 'build',
