@@ -89,8 +89,8 @@
   </div>
 
   {#if $unallocated !== 0}
-    <div class="rounded-lg border-l-4 p-4" class:border-warning={$unallocated > 0} class:bg-amber-50={$unallocated > 0} class:border-danger={$unallocated < 0} class:bg-red-50={$unallocated < 0}>
-      <p class="text-sm">
+    <div class="rounded-lg border-l-4 p-4 {$unallocated > 0 ? 'border-warning bg-amber-50 dark:bg-amber-900/20' : 'border-danger bg-red-50 dark:bg-red-900/20'}">
+      <p class="text-sm text-gray-700 dark:text-gray-200">
         {#if $unallocated > 0}
           You have {formatCurrency($unallocated)} unallocated. Assign it to buckets!
         {:else}
