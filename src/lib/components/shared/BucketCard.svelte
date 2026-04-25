@@ -13,6 +13,7 @@
     success: 'text-success',
     warning: 'text-warning',
     danger: 'text-danger',
+    credit: 'text-primary',
   }[budgetStatus];
 </script>
 
@@ -34,8 +35,13 @@
       <p class="font-semibold {remainingColor}">{formatCurrency(remaining)}</p>
     </div>
     <div class="text-right">
-      <p class="text-gray-500 dark:text-gray-400">Spent</p>
-      <p class="text-gray-700 dark:text-gray-200">{formatCurrency(spent)}</p>
+      {#if spent < 0}
+        <p class="text-primary">Owed back</p>
+        <p class="font-semibold text-primary">{formatCurrency(Math.abs(spent))}</p>
+      {:else}
+        <p class="text-gray-500 dark:text-gray-400">Spent</p>
+        <p class="text-gray-700 dark:text-gray-200">{formatCurrency(spent)}</p>
+      {/if}
     </div>
   </div>
 

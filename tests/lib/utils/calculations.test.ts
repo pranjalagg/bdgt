@@ -33,19 +33,47 @@ describe('budget calculations', () => {
     it('handles negative remaining (overspent)', () => {
       expect(calculateBucketRemaining(10000, 12000, 0)).toBe(-2000);
     });
+
+    it('handles negative spending (credit increases remaining beyond allocation)', () => {
+      expect(calculateBucketRemaining(10000, -3000, 0)).toBe(13000);
+    });
+
+    it('handles negative spending with rollover', () => {
+      expect(calculateBucketRemaining(10000, -2000, 500)).toBe(12500);
+    });
   });
 
   describe('getBucketStatus', () => {
-    it('returns green for healthy budget', () => {
+    it('returns success for healthy budget', () => {
       expect(getBucketStatus(10000, 3000)).toBe('success');
     });
 
-    it('returns warning when near zero', () => {
+    it('returns success when nothing spent', () => {
+      expect(getBucketStatus(10000, 0)).toBe('success');
+    });
+
+    it('returns warning when near budget limit', () => {
       expect(getBucketStatus(10000, 9500)).toBe('warning');
+    });
+
+    it('returns warning at exactly 90%', () => {
+      expect(getBucketStatus(10000, 9000)).toBe('warning');
     });
 
     it('returns danger when overspent', () => {
       expect(getBucketStatus(10000, 12000)).toBe('danger');
+    });
+
+    it('returns credit when spending is negative', () => {
+      expect(getBucketStatus(10000, -3000)).toBe('credit');
+    });
+
+    it('returns credit for any negative amount', () => {
+      expect(getBucketStatus(10000, -100)).toBe('credit');
+    });
+
+    it('returns credit even with zero allocation', () => {
+      expect(getBucketStatus(0, -5000)).toBe('credit');
     });
   });
 

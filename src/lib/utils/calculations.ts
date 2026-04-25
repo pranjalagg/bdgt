@@ -17,7 +17,8 @@ export function calculateBucketRemaining(
 export function getBucketStatus(
   allocated: number,
   spent: number
-): 'success' | 'warning' | 'danger' {
+): 'success' | 'warning' | 'danger' | 'credit' {
+  if (spent < 0) return 'credit';
   if (spent > allocated) return 'danger';
   if (allocated > 0 && spent >= allocated * 0.9) return 'warning';
   return 'success';
