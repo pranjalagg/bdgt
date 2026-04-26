@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { base } from '$app/paths';
 
   const navItems = [
     { href: '/', label: 'Dashboard', icon: 'home' },
@@ -11,6 +12,15 @@
   ];
 
   $: currentPath = $page.url.pathname;
+
+  function getHref(path: string): string {
+    return path === '/' ? base || '/' : `${base}${path}`;
+  }
+
+  function isActive(path: string): boolean {
+    const fullPath = path === '/' ? base || '/' : `${base}${path}`;
+    return currentPath === fullPath || currentPath === fullPath + '/';
+  }
 </script>
 
 <!-- Desktop sidebar -->
@@ -22,11 +32,11 @@
     {#each navItems as item}
       <li>
         <a
-          href={item.href}
+          href={getHref(item.href)}
           class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-          class:bg-blue-50={currentPath === item.href}
-          class:dark:bg-blue-900={currentPath === item.href}
-          class:text-primary={currentPath === item.href}
+          class:bg-blue-50={isActive(item.href)}
+          class:dark:bg-blue-900={isActive(item.href)}
+          class:text-primary={isActive(item.href)}
         >
           <span class="h-5 w-5">{item.label.slice(0, 1)}</span>
           <span>{item.label}</span>
@@ -42,9 +52,9 @@
     {#each navItems.slice(0, 5) as item}
       <li class="flex-1">
         <a
-          href={item.href}
+          href={getHref(item.href)}
           class="flex flex-col items-center gap-1 py-2 text-gray-600 dark:text-gray-300"
-          class:text-primary={currentPath === item.href}
+          class:text-primary={isActive(item.href)}
         >
           <span class="text-xs">{item.label.slice(0, 1)}</span>
           <span class="text-xs">{item.label}</span>
