@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrency, parseCurrency, centsToDollars, dollarsToCents, isValidCurrency } from '$lib/utils/currency';
+import { formatCurrency, parseCurrency, centsToDollars, dollarsToCents, isValidCurrency, evaluateExpression, isExpression } from '$lib/utils/currency';
 
 describe('currency utils', () => {
   describe('centsToDollars', () => {
@@ -43,6 +43,19 @@ describe('currency utils', () => {
       expect(parseCurrency('$12.34')).toBe(1234);
       expect(parseCurrency('1')).toBe(100);
       expect(parseCurrency('')).toBe(0);
+    });
+
+    it('parses addition expressions to cents', () => {
+      expect(parseCurrency('12.04 + 20.34')).toBe(3238);
+      expect(parseCurrency('10 + 5')).toBe(1500);
+    });
+
+    it('parses subtraction expressions to cents', () => {
+      expect(parseCurrency('50 - 12.50')).toBe(3750);
+    });
+
+    it('parses mixed expressions to cents', () => {
+      expect(parseCurrency('100 + 20 - 5.50')).toBe(11450);
     });
   });
 
@@ -96,6 +109,106 @@ describe('currency utils', () => {
 
     it('accepts single decimal place', () => {
       expect(isValidCurrency('12.5')).toBe(true);
+    });
+
+    it('accepts addition expressions', () => {
+      expect(isValidCurrency('12.04 + 20.34')).toBe(true);
+      expect(isValidCurrency('10 + 5 + 3')).toBe(true);
+    });
+
+    it('accepts subtraction expressions', () => {
+      expect(isValidCurrency('50 - 12.50')).toBe(true);
+    });
+
+    it('accepts mixed expressions', () => {
+      expect(isValidCurrency('100 + 20 - 5.50')).toBe(true);
+    });
+
+    it('rejects expressions with result zero or negative', () => {
+      expect(isValidCurrency('10 - 10')).toBe(false);
+      expect(isValidCurrency('5 - 10')).toBe(false);
+    });
+
+    it('rejects expressions with invalid operands', () => {
+      expect(isValidCurrency('10 + abc')).toBe(false);
+      expect(isValidCurrency('abc + 10')).toBe(false);
+      expect(isValidCurrency('+ 10')).toBe(false);
+      expect(isValidCurrency('10 +')).toBe(false);
+    });
+  });
+
+  describe('evaluateExpression', () => {
+    it('evaluates single numbers', () => {
+      expect(evaluateExpression('12.34')).toBe(12.34);
+      expect(evaluateExpression('100')).toBe(100);
+    });
+
+    it('evaluates addition', () => {
+      expect(evaluateExpression('12.04 + 20.34')).toBe(32.38);
+      expect(evaluateExpression('1 + 2 + 3')).toBe(6);
+    });
+
+    it('evaluates subtraction', () => {
+      expect(evaluateExpression('50 - 12.50')).toBe(37.50);
+      expect(evaluateExpression('100 - 25 - 10')).toBe(65);
+    });
+
+    it('evaluates mixed operations', () => {
+      expect(evaluateExpression('100 + 20 - 5.50')).toBe(114.50);
+      expect(evaluateExpression('10 - 3 + 7')).toBe(14);
+    });
+
+    it('handles spaces flexibly', () => {
+      expect(evaluateExpression('10+5')).toBe(15);
+      expect(evaluateExpression('10 +5')).toBe(15);
+      expect(evaluateExpression('10+ 5')).toBe(15);
+      expect(evaluateExpression(' 10 + 5 ')).toBe(15);
+    });
+
+    it('strips currency symbols', () => {
+      expect(evaluateExpression('$10 + $5')).toBe(15);
+      expect(evaluateExpression('$1,000 + 500')).toBe(1500);
+    });
+
+    it('returns null for invalid expressions', () => {
+      expect(evaluateExpression('')).toBeNull();
+      expect(evaluateExpression('abc')).toBeNull();
+      expect(evaluateExpression('10 + abc')).toBeNull();
+      expect(evaluateExpression('+ 10')).toBeNull();
+      expect(evaluateExpression('10 +')).toBeNull();
+      expect(evaluateExpression('10 * 5')).toBeNull();
+    });
+
+    it('returns null for operands with too many decimal places', () => {
+      expect(evaluateExpression('10.123 + 5')).toBeNull();
+    });
+
+    it('handles negative results', () => {
+      expect(evaluateExpression('5 - 10')).toBe(-5);
+    });
+
+    it('rounds result to two decimal places', () => {
+      expect(evaluateExpression('10.10 + 20.20')).toBe(30.30);
+    });
+  });
+
+  describe('isExpression', () => {
+    it('detects addition expressions', () => {
+      expect(isExpression('10 + 5')).toBe(true);
+      expect(isExpression('10+5')).toBe(true);
+    });
+
+    it('detects subtraction expressions', () => {
+      expect(isExpression('50 - 12')).toBe(true);
+    });
+
+    it('returns false for plain numbers', () => {
+      expect(isExpression('12.34')).toBe(false);
+      expect(isExpression('100')).toBe(false);
+    });
+
+    it('returns false for empty strings', () => {
+      expect(isExpression('')).toBe(false);
     });
   });
 });

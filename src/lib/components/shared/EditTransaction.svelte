@@ -1,7 +1,7 @@
 <script lang="ts">
   import { buckets, updateTransaction } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, centsToDollars } from '$lib/utils/currency';
+  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, centsToDollars } from '$lib/utils/currency';
   import type { Transaction } from '$lib/types';
 
   export let transaction: Transaction;
@@ -15,10 +15,13 @@
   let amountTouched = false;
 
   $: amountError = amountTouched && amount && !isValidCurrency(amount)
-    ? 'Please enter a valid positive amount (e.g. 12.50)'
+    ? 'Please enter a valid positive amount (e.g. 12.50 or 10 + 5.25)'
     : '';
 
   $: canSubmit = !!amount && !!bucketId && !!date && !amountError && isValidCurrency(amount);
+
+  $: showPreview = isExpression(amount) && isValidCurrency(amount);
+  $: previewValue = showPreview ? evaluateExpression(amount) : null;
 
   function handleAmountInput() {
     amountTouched = true;
@@ -62,6 +65,8 @@
     </div>
     {#if amountError}
       <p class="mt-1 text-sm text-danger">{amountError}</p>
+    {:else if showPreview && previewValue !== null}
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= ${previewValue.toFixed(2)}</p>
     {/if}
   </div>
 
