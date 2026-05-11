@@ -7,7 +7,7 @@
   import { centsToDollars, formatCurrency } from '$lib/utils/currency';
   import { getMonthKey, formatMonthYear, getPreviousMonthKey } from '$lib/utils/dates';
 
-  let excludedCategories: Set<string> = new Set();
+  let excludedCategories: Set<string> = new Set(['Rent/Mortgage']);
 
   function toggleCategory(label: string) {
     if (excludedCategories.has(label)) {
