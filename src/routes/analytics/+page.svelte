@@ -3,7 +3,7 @@
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
-  import { bucketStatuses, monthSnapshots, buckets, transactions, incomes } from '$lib/stores/budgetStore';
+  import { bucketStatuses, monthSnapshots, buckets, transactions, incomes, currentMonthIncome } from '$lib/stores/budgetStore';
   import { centsToDollars, formatCurrency } from '$lib/utils/currency';
   import { getMonthKey, formatMonthYear, getPreviousMonthKey } from '$lib/utils/dates';
 
@@ -33,6 +33,8 @@
 
   $: totalSpending = allSpendingByCategory.reduce((sum, s) => sum + s.cents, 0);
 
+  $: netIncome = $currentMonthIncome - totalSpending;
+
   $: last6Months = Array.from({ length: 6 }, (_, i) => {
     let month = getMonthKey(new Date());
     for (let j = 0; j < 5 - i; j++) month = getPreviousMonthKey(month);
@@ -55,6 +57,24 @@
 
 <div class="space-y-8">
   <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Analytics</h1>
+
+  <!-- Monthly Summary -->
+  <div class="grid gap-4 sm:grid-cols-3">
+    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Income</p>
+      <p class="text-xl font-bold text-success">{formatCurrency($currentMonthIncome)}</p>
+    </div>
+    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Total Spent</p>
+      <p class="text-xl font-bold text-danger">{formatCurrency(totalSpending)}</p>
+    </div>
+    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Net</p>
+      <p class="text-xl font-bold" class:text-success={netIncome >= 0} class:text-danger={netIncome < 0}>
+        {formatCurrency(netIncome)}
+      </p>
+    </div>
+  </div>
 
   <div class="grid gap-6 lg:grid-cols-2">
     <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
