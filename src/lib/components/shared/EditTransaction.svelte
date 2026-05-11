@@ -1,23 +1,24 @@
 <script lang="ts">
-  import { buckets, addTransaction } from '$lib/stores/budgetStore';
-  import { parseCurrency, isValidCurrency } from '$lib/utils/currency';
+  import { buckets, updateTransaction } from '$lib/stores/budgetStore';
+  import { closeModal } from '$lib/stores/uiStore';
+  import { parseCurrency, isValidCurrency, centsToDollars } from '$lib/utils/currency';
+  import type { Transaction } from '$lib/types';
 
-  export let preselectedBucketId: string | undefined = undefined;
+  export let transaction: Transaction;
   export let onComplete: (() => void) | undefined = undefined;
 
-  let amount = '';
-  let bucketId = preselectedBucketId || '';
-  let note = '';
+  let amount = centsToDollars(transaction.amount).toString();
+  let bucketId = transaction.bucketId;
+  let note = transaction.note || '';
+  let date = new Date(transaction.date).toISOString().split('T')[0];
   let isSubmitting = false;
   let amountTouched = false;
-
-  $: if (preselectedBucketId) bucketId = preselectedBucketId;
 
   $: amountError = amountTouched && amount && !isValidCurrency(amount)
     ? 'Please enter a valid positive amount (e.g. 12.50)'
     : '';
 
-  $: canSubmit = !!amount && !!bucketId && !amountError && isValidCurrency(amount);
+  $: canSubmit = !!amount && !!bucketId && !!date && !amountError && isValidCurrency(amount);
 
   function handleAmountInput() {
     amountTouched = true;
@@ -29,16 +30,13 @@
 
     isSubmitting = true;
     try {
-      await addTransaction({
+      await updateTransaction(transaction.id, {
         amount: parseCurrency(amount),
         bucketId,
-        date: new Date(),
+        date: new Date(date + 'T12:00:00'),
         note: note || undefined,
       });
-      amount = '';
-      note = '';
-      amountTouched = false;
-      if (!preselectedBucketId) bucketId = '';
+      closeModal();
       onComplete?.();
     } finally {
       isSubmitting = false;
@@ -48,11 +46,11 @@
 
 <form on:submit|preventDefault={handleSubmit} class="space-y-3">
   <div>
-    <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount</label>
+    <label for="edit-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount</label>
     <div class="relative mt-1">
       <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
       <input
-        id="amount"
+        id="edit-amount"
         type="text"
         inputmode="decimal"
         bind:value={amount}
@@ -68,9 +66,9 @@
   </div>
 
   <div>
-    <label for="bucket" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Bucket</label>
+    <label for="edit-bucket" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Bucket</label>
     <select
-      id="bucket"
+      id="edit-bucket"
       bind:value={bucketId}
       class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
       required
@@ -83,9 +81,20 @@
   </div>
 
   <div>
-    <label for="note" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Note (optional)</label>
+    <label for="edit-date" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Date</label>
     <input
-      id="note"
+      id="edit-date"
+      type="date"
+      bind:value={date}
+      class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+      required
+    />
+  </div>
+
+  <div>
+    <label for="edit-note" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Note (optional)</label>
+    <input
+      id="edit-note"
       type="text"
       bind:value={note}
       placeholder="Add a note..."
@@ -98,6 +107,6 @@
     disabled={isSubmitting || !canSubmit}
     class="w-full rounded-lg bg-primary px-4 py-2 font-medium text-white transition hover:bg-blue-600 disabled:opacity-50"
   >
-    {isSubmitting ? 'Adding...' : 'Add Transaction'}
+    {isSubmitting ? 'Saving...' : 'Save Changes'}
   </button>
 </form>

@@ -1,12 +1,20 @@
 <script lang="ts">
   import TransactionRow from '$lib/components/shared/TransactionRow.svelte';
   import QuickEntry from '$lib/components/shared/QuickEntry.svelte';
+  import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import { currentMonthTransactions, buckets } from '$lib/stores/budgetStore';
   import { openModal } from '$lib/stores/uiStore';
+  import type { Transaction } from '$lib/types';
 
   let filterBucketId = '';
+  let editingTransaction: Transaction | null = null;
+
+  function handleEdit(transaction: Transaction) {
+    editingTransaction = transaction;
+    openModal('edit-transaction');
+  }
 
   $: filteredTransactions = filterBucketId
     ? $currentMonthTransactions.filter((t) => t.bucketId === filterBucketId)
@@ -41,7 +49,7 @@
   {:else}
     <div class="space-y-2">
       {#each sortedTransactions as transaction (transaction.id)}
-        <TransactionRow {transaction} />
+        <TransactionRow {transaction} onEdit={handleEdit} />
       {/each}
     </div>
   {/if}
@@ -49,4 +57,12 @@
 
 <Modal id="add-transaction" title="Add Transaction">
   <QuickEntry />
+</Modal>
+
+<Modal id="edit-transaction" title="Edit Transaction">
+  {#if editingTransaction}
+    {#key editingTransaction.id}
+      <EditTransaction transaction={editingTransaction} />
+    {/key}
+  {/if}
 </Modal>

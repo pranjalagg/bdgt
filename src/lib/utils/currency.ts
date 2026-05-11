@@ -20,3 +20,10 @@ export function parseCurrency(value: string): number {
   if (!cleaned) return 0;
   return dollarsToCents(parseFloat(cleaned));
 }
+
+export function isValidCurrency(value: string): boolean {
+  const cleaned = value.replace(/[$,]/g, '').trim();
+  if (!cleaned) return false;
+  const num = parseFloat(cleaned);
+  return !isNaN(num) && isFinite(num) && num > 0 && /^\d+(\.\d{0,2})?$/.test(cleaned);
+}

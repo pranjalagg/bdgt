@@ -1,7 +1,8 @@
 <!-- src/lib/components/charts/DonutChart.svelte -->
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js';
+  import { resolvedTheme } from '$lib/stores/themeStore';
 
   Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
@@ -9,15 +10,11 @@
 
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
+  let unsubscribe: (() => void) | null = null;
 
-  $: if (chart && data) {
-    chart.data.labels = data.map((d) => d.label);
-    chart.data.datasets[0].data = data.map((d) => d.value);
-    chart.data.datasets[0].backgroundColor = data.map((d) => d.color);
-    chart.update();
-  }
-
-  onMount(() => {
+  function createChart(theme: string) {
+    if (chart) chart.destroy();
+    const legendColor = theme === 'dark' ? '#d1d5db' : '#374151';
     chart = new Chart(canvas, {
       type: 'doughnut',
       data: {
@@ -31,12 +28,31 @@
       options: {
         responsive: true,
         plugins: {
-          legend: { position: 'bottom' },
+          legend: {
+            position: 'bottom',
+            labels: { color: legendColor },
+          },
         },
       },
     });
+  }
 
-    return () => chart?.destroy();
+  $: if (chart && data) {
+    chart.data.labels = data.map((d) => d.label);
+    chart.data.datasets[0].data = data.map((d) => d.value);
+    chart.data.datasets[0].backgroundColor = data.map((d) => d.color);
+    chart.update();
+  }
+
+  onMount(() => {
+    unsubscribe = resolvedTheme.subscribe((theme) => {
+      if (canvas) createChart(theme);
+    });
+  });
+
+  onDestroy(() => {
+    chart?.destroy();
+    unsubscribe?.();
   });
 </script>
 

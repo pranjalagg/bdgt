@@ -6,6 +6,7 @@
 
   export let transaction: Transaction;
   export let showBucket = true;
+  export let onEdit: ((transaction: Transaction) => void) | undefined = undefined;
 
   $: bucket = $buckets.find((b) => b.id === transaction.bucketId);
 
@@ -37,6 +38,17 @@
   <div class="flex items-center gap-2">
     {#if showBucket && bucket}
       <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">{bucket.name}</span>
+    {/if}
+    {#if onEdit}
+      <button
+        class="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-primary dark:hover:bg-blue-900/30"
+        on:click={() => onEdit?.(transaction)}
+        aria-label="Edit transaction"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      </button>
     {/if}
     <button
       class="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-danger disabled:opacity-50 dark:hover:bg-red-900/30"

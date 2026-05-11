@@ -56,7 +56,7 @@
       />
     </div>
 
-    <div class="rounded-lg bg-white p-4 shadow lg:col-span-2">
+    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark lg:col-span-2">
       <h2 class="mb-4 font-semibold text-gray-800 dark:text-gray-100">Income vs Spending</h2>
       <LineChart
         labels={monthLabels}

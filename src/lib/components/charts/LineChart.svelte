@@ -1,7 +1,8 @@
 <!-- src/lib/components/charts/LineChart.svelte -->
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { Chart, LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+  import { resolvedTheme } from '$lib/stores/themeStore';
 
   Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -10,21 +11,20 @@
 
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
+  let unsubscribe: (() => void) | null = null;
 
-  $: if (chart && labels && datasets) {
-    chart.data.labels = labels;
-    chart.data.datasets = datasets.map((ds) => ({
-      label: ds.label,
-      data: ds.data,
-      borderColor: ds.color,
-      backgroundColor: ds.color + '20',
-      fill: true,
-      tension: 0.3,
-    }));
-    chart.update();
+  function getThemeColors(theme: string) {
+    const isDark = theme === 'dark';
+    return {
+      tickColor: isDark ? '#d1d5db' : '#374151',
+      gridColor: isDark ? '#374151' : '#e5e7eb',
+      legendColor: isDark ? '#d1d5db' : '#374151',
+    };
   }
 
-  onMount(() => {
+  function createChart(theme: string) {
+    if (chart) chart.destroy();
+    const colors = getThemeColors(theme);
     chart = new Chart(canvas, {
       type: 'line',
       data: {
@@ -41,12 +41,47 @@
       options: {
         responsive: true,
         scales: {
-          y: { beginAtZero: true },
+          y: {
+            beginAtZero: true,
+            ticks: { color: colors.tickColor },
+            grid: { color: colors.gridColor },
+          },
+          x: {
+            ticks: { color: colors.tickColor },
+            grid: { color: colors.gridColor },
+          },
+        },
+        plugins: {
+          legend: {
+            labels: { color: colors.legendColor },
+          },
         },
       },
     });
+  }
 
-    return () => chart?.destroy();
+  $: if (chart && labels && datasets) {
+    chart.data.labels = labels;
+    chart.data.datasets = datasets.map((ds) => ({
+      label: ds.label,
+      data: ds.data,
+      borderColor: ds.color,
+      backgroundColor: ds.color + '20',
+      fill: true,
+      tension: 0.3,
+    }));
+    chart.update();
+  }
+
+  onMount(() => {
+    unsubscribe = resolvedTheme.subscribe((theme) => {
+      if (canvas) createChart(theme);
+    });
+  });
+
+  onDestroy(() => {
+    chart?.destroy();
+    unsubscribe?.();
   });
 </script>
 
