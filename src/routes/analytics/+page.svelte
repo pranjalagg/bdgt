@@ -3,9 +3,9 @@
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
-  import { bucketStatuses, monthSnapshots, currentMonthIncome } from '$lib/stores/budgetStore';
+  import { bucketStatuses, transactions, incomes, currentMonthIncome } from '$lib/stores/budgetStore';
   import { centsToDollars, formatCurrency, dollarsToCents } from '$lib/utils/currency';
-  import { getMonthKey, formatMonthYear, getPreviousMonthKey } from '$lib/utils/dates';
+  import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange } from '$lib/utils/dates';
 
   let thresholdInput = '500';
 
@@ -47,14 +47,26 @@
   });
 
   $: monthlySpending = last6Months.map((month) => {
-    const snapshot = $monthSnapshots.find((s) => s.month === month);
-    const spent = snapshot ? Object.values(snapshot.spent).reduce((a, b) => a + b, 0) : 0;
+    const { start, end } = getMonthRange(month);
+    const spent = $transactions
+      .filter((t) => {
+        const date = new Date(t.date);
+        return date >= start && date <= end;
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
     return centsToDollars(spent);
   });
 
   $: monthlyIncome = last6Months.map((month) => {
-    const snapshot = $monthSnapshots.find((s) => s.month === month);
-    return centsToDollars(snapshot?.incomeTotal || 0);
+    const { start, end } = getMonthRange(month);
+    return centsToDollars(
+      $incomes
+        .filter((i) => {
+          const date = new Date(i.date);
+          return date >= start && date <= end;
+        })
+        .reduce((sum, i) => sum + i.amount, 0)
+    );
   });
 
   $: monthLabels = last6Months.map((m) => formatMonthYear(m).split(' ')[0]);
