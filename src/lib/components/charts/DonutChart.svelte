@@ -14,6 +14,17 @@
   let unsubscribe: (() => void) | null = null;
   let currentTheme = 'light';
 
+  export function toggleVisibility(index: number) {
+    if (!chart) return;
+    chart.toggleDataVisibility(index);
+    chart.update();
+  }
+
+  export function isVisible(index: number): boolean {
+    if (!chart) return true;
+    return chart.getDataVisibility(index);
+  }
+
   function createChart(theme: string) {
     if (chart) chart.destroy();
     const legendColor = theme === 'dark' ? '#d1d5db' : '#374151';

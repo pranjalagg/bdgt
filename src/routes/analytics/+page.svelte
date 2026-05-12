@@ -9,6 +9,22 @@
   import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange } from '$lib/utils/dates';
 
   let thresholdInput = '500';
+  let bigDonutChart: DonutChart;
+  let smallDonutChart: DonutChart;
+  let hiddenBig: Record<number, boolean> = {};
+  let hiddenSmall: Record<number, boolean> = {};
+
+  function toggleBig(index: number) {
+    bigDonutChart?.toggleVisibility(index);
+    hiddenBig[index] = !hiddenBig[index];
+    hiddenBig = hiddenBig;
+  }
+
+  function toggleSmall(index: number) {
+    smallDonutChart?.toggleVisibility(index);
+    hiddenSmall[index] = !hiddenSmall[index];
+    hiddenSmall = hiddenSmall;
+  }
 
   $: thresholdCents = (() => {
     const n = parseFloat(thresholdInput);
@@ -142,17 +158,21 @@
               Big Purchases (&ge; ${thresholdInput || '500'})
             </h3>
             {#if bigChartData.length > 0}
-              <DonutChart data={bigChartData} showLegend={false} />
+              <DonutChart bind:this={bigDonutChart} data={bigChartData} showLegend={false} />
               <div class="mt-3 space-y-1">
-                {#each bigPurchases as cat (cat.bucketId)}
+                {#each bigPurchases as cat, i (cat.bucketId)}
                   {@const pct = bigTotal > 0 ? ((cat.cents / bigTotal) * 100).toFixed(1) : '0.0'}
-                  <div class="flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}"></span>
-                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-200">{cat.label}</span>
+                  <button
+                    class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    class:opacity-40={hiddenBig[i]}
+                    on:click={() => toggleBig(i)}
+                  >
+                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenBig[i]}></span>
+                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenBig[i]}>{cat.label}</span>
                     <span class="text-sm tabular-nums text-muted">
                       {formatCurrency(cat.cents)} ({pct}%)
                     </span>
-                  </div>
+                  </button>
                 {/each}
               </div>
             {:else}
@@ -165,17 +185,21 @@
               Small Purchases (&lt; ${thresholdInput || '500'})
             </h3>
             {#if smallChartData.length > 0}
-              <DonutChart data={smallChartData} showLegend={false} />
+              <DonutChart bind:this={smallDonutChart} data={smallChartData} showLegend={false} />
               <div class="mt-3 space-y-1">
-                {#each smallPurchases as cat (cat.bucketId)}
+                {#each smallPurchases as cat, i (cat.bucketId)}
                   {@const pct = smallTotal > 0 ? ((cat.cents / smallTotal) * 100).toFixed(1) : '0.0'}
-                  <div class="flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}"></span>
-                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-200">{cat.label}</span>
+                  <button
+                    class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    class:opacity-40={hiddenSmall[i]}
+                    on:click={() => toggleSmall(i)}
+                  >
+                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenSmall[i]}></span>
+                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenSmall[i]}>{cat.label}</span>
                     <span class="text-sm tabular-nums text-muted">
                       {formatCurrency(cat.cents)} ({pct}%)
                     </span>
-                  </div>
+                  </button>
                 {/each}
               </div>
             {:else}
