@@ -14,7 +14,7 @@
   $: if (preselectedBucketId) bucketId = preselectedBucketId;
 
   $: amountError = amountTouched && amount && !isValidCurrency(amount)
-    ? 'Please enter a valid positive amount (e.g. 12.50 or 10 + 5.25)'
+    ? 'Please enter a valid amount (e.g. 12.50, -5, or 10 + 5.25)'
     : '';
 
   $: canSubmit = !!amount && !!bucketId && !amountError && isValidCurrency(amount);

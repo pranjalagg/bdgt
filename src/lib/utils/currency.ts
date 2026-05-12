@@ -16,8 +16,10 @@ export function formatCurrency(cents: number): string {
 }
 
 export function parseCurrency(value: string): number {
+  const cleaned = value.replace(/[$,]/g, '').trim();
+  if (!cleaned) return 0;
   const result = evaluateExpression(value);
-  if (result === null) return 0;
+  if (result === null) return NaN;
   return dollarsToCents(result);
 }
 
@@ -28,14 +30,22 @@ function isValidToken(token: string): boolean {
 }
 
 export function evaluateExpression(value: string): number | null {
-  const cleaned = value.replace(/[$,]/g, '').trim();
+  let cleaned = value.replace(/[$,]/g, '').trim();
   if (!cleaned) return null;
+
+  let negateFirst = false;
+  if (cleaned.startsWith('-')) {
+    negateFirst = true;
+    cleaned = cleaned.substring(1).trim();
+    if (!cleaned) return null;
+  }
 
   const tokens = cleaned.split(/\s*([\+\-])\s*/);
   if (tokens.length === 0) return null;
 
   if (!isValidToken(tokens[0])) return null;
   let result = parseFloat(tokens[0]);
+  if (negateFirst) result = -result;
 
   for (let i = 1; i < tokens.length; i += 2) {
     const op = tokens[i];
@@ -53,10 +63,10 @@ export function evaluateExpression(value: string): number | null {
 
 export function isExpression(value: string): boolean {
   const cleaned = value.replace(/[$,]/g, '').trim();
-  return /[\+\-]/.test(cleaned) && cleaned.length > 1;
+  return /[\d\.]\s*[\+\-]\s*[\d\.]/.test(cleaned);
 }
 
 export function isValidCurrency(value: string): boolean {
   const result = evaluateExpression(value);
-  return result !== null && result > 0;
+  return result !== null && result !== 0;
 }

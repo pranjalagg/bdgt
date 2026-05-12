@@ -7,20 +7,31 @@
   import { centsToDollars, formatCurrency } from '$lib/utils/currency';
   import { getMonthKey, formatMonthYear, getPreviousMonthKey } from '$lib/utils/dates';
 
-  let excludedCategories: Set<string> = new Set(['Rent/Mortgage']);
+  let excludedBucketIds: Set<string> = new Set();
+  let defaultsInitialized = false;
 
-  function toggleCategory(label: string) {
-    if (excludedCategories.has(label)) {
-      excludedCategories.delete(label);
-    } else {
-      excludedCategories.add(label);
+  $: if (!defaultsInitialized && $buckets.length > 0) {
+    const rentBucket = $buckets.find(b => b.name === 'Rent/Mortgage');
+    if (rentBucket) {
+      excludedBucketIds = new Set([rentBucket.id]);
     }
-    excludedCategories = excludedCategories;
+    defaultsInitialized = true;
+  }
+
+  function toggleCategory(bucketId: string) {
+    const next = new Set(excludedBucketIds);
+    if (next.has(bucketId)) {
+      next.delete(bucketId);
+    } else {
+      next.add(bucketId);
+    }
+    excludedBucketIds = next;
   }
 
   $: allSpendingByCategory = $bucketStatuses
     .filter((s) => s.spent > 0)
     .map((s) => ({
+      bucketId: s.bucket.id,
       label: s.bucket.name,
       value: centsToDollars(s.spent),
       cents: s.spent,
@@ -28,7 +39,7 @@
     }));
 
   $: spendingByCategory = allSpendingByCategory
-    .filter((s) => !excludedCategories.has(s.label))
+    .filter((s) => !excludedBucketIds.has(s.bucketId))
     .map(({ label, value, color }) => ({ label, value, color }));
 
   $: totalSpending = allSpendingByCategory.reduce((sum, s) => sum + s.cents, 0);
@@ -86,25 +97,26 @@
           <p class="py-8 text-center text-gray-500 dark:text-gray-400">All categories excluded</p>
         {/if}
         <div class="mt-4 space-y-1.5">
-          {#each allSpendingByCategory as cat}
+          {#each allSpendingByCategory as cat (cat.bucketId)}
             {@const pct = totalSpending > 0 ? ((cat.cents / totalSpending) * 100).toFixed(1) : '0.0'}
+            {@const excluded = excludedBucketIds.has(cat.bucketId)}
             <label
               class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 transition hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               <input
                 type="checkbox"
-                checked={!excludedCategories.has(cat.label)}
-                on:change={() => toggleCategory(cat.label)}
+                checked={!excluded}
+                on:change={() => toggleCategory(cat.bucketId)}
                 class="sr-only"
               />
               <span
-                class="h-3 w-3 flex-shrink-0 rounded-full border-2 transition {excludedCategories.has(cat.label) ? 'border-gray-300 bg-transparent dark:border-gray-600' : ''}"
-                style={excludedCategories.has(cat.label) ? '' : `background-color: ${cat.color}; border-color: ${cat.color}`}
+                class="h-3 w-3 flex-shrink-0 rounded-full border-2 transition {excluded ? 'border-gray-300 bg-transparent dark:border-gray-600' : ''}"
+                style={excluded ? '' : `background-color: ${cat.color}; border-color: ${cat.color}`}
               />
-              <span class="flex-1 text-sm {excludedCategories.has(cat.label) ? 'text-gray-400 line-through dark:text-gray-500' : 'text-gray-700 dark:text-gray-200'}">
+              <span class="flex-1 text-sm {excluded ? 'text-gray-400 line-through dark:text-gray-500' : 'text-gray-700 dark:text-gray-200'}">
                 {cat.label}
               </span>
-              <span class="text-sm tabular-nums {excludedCategories.has(cat.label) ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-300'}">
+              <span class="text-sm tabular-nums {excluded ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-300'}">
                 {formatCurrency(cat.cents)} ({pct}%)
               </span>
             </label>

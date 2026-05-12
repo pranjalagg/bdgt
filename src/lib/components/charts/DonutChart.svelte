@@ -55,6 +55,9 @@
     chart.data.labels = data.map((d) => d.label);
     chart.data.datasets[0].data = data.map((d) => d.value);
     chart.data.datasets[0].backgroundColor = data.map((d) => d.color);
+    if (chart.options.plugins?.legend) {
+      chart.options.plugins.legend.display = showLegend;
+    }
     chart.update();
   }
 

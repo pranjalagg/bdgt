@@ -57,6 +57,23 @@ describe('currency utils', () => {
     it('parses mixed expressions to cents', () => {
       expect(parseCurrency('100 + 20 - 5.50')).toBe(11450);
     });
+
+    it('parses negative amounts to cents', () => {
+      expect(parseCurrency('-5')).toBe(-500);
+      expect(parseCurrency('-12.34')).toBe(-1234);
+    });
+
+    it('returns NaN for invalid input', () => {
+      expect(parseCurrency('abc')).toBeNaN();
+      expect(parseCurrency('$abc')).toBeNaN();
+      expect(parseCurrency('10 + abc')).toBeNaN();
+    });
+
+    it('returns 0 for empty string', () => {
+      expect(parseCurrency('')).toBe(0);
+      expect(parseCurrency('  ')).toBe(0);
+      expect(parseCurrency('$')).toBe(0);
+    });
   });
 
   describe('isValidCurrency', () => {
@@ -98,14 +115,18 @@ describe('currency utils', () => {
       expect(isValidCurrency('$')).toBe(false);
     });
 
-    it('rejects negative amounts', () => {
-      expect(isValidCurrency('-5')).toBe(false);
-      expect(isValidCurrency('-12.34')).toBe(false);
+    it('accepts negative amounts', () => {
+      expect(isValidCurrency('-5')).toBe(true);
+      expect(isValidCurrency('-12.34')).toBe(true);
     });
 
     it('rejects zero', () => {
       expect(isValidCurrency('0')).toBe(false);
       expect(isValidCurrency('0.00')).toBe(false);
+    });
+
+    it('rejects expressions that evaluate to zero', () => {
+      expect(isValidCurrency('10 - 10')).toBe(false);
     });
 
     it('rejects amounts with more than two decimal places', () => {
@@ -130,9 +151,12 @@ describe('currency utils', () => {
       expect(isValidCurrency('100 + 20 - 5.50')).toBe(true);
     });
 
-    it('rejects expressions with result zero or negative', () => {
+    it('accepts expressions with negative result', () => {
+      expect(isValidCurrency('5 - 10')).toBe(true);
+    });
+
+    it('rejects expressions with result zero', () => {
       expect(isValidCurrency('10 - 10')).toBe(false);
-      expect(isValidCurrency('5 - 10')).toBe(false);
     });
 
     it('rejects expressions with invalid operands', () => {
@@ -195,8 +219,15 @@ describe('currency utils', () => {
       expect(evaluateExpression('10.123 + 5')).toBeNull();
     });
 
-    it('handles negative results', () => {
+    it('handles negative results from subtraction', () => {
       expect(evaluateExpression('5 - 10')).toBe(-5);
+    });
+
+    it('handles leading negative sign', () => {
+      expect(evaluateExpression('-5')).toBe(-5);
+      expect(evaluateExpression('-12.34')).toBe(-12.34);
+      expect(evaluateExpression('-10 + 3')).toBe(-7);
+      expect(evaluateExpression('- 5')).toBe(-5);
     });
 
     it('rounds result to two decimal places', () => {
@@ -221,6 +252,11 @@ describe('currency utils', () => {
 
     it('returns false for empty strings', () => {
       expect(isExpression('')).toBe(false);
+    });
+
+    it('returns false for negative numbers', () => {
+      expect(isExpression('-5')).toBe(false);
+      expect(isExpression('-12.34')).toBe(false);
     });
   });
 });
