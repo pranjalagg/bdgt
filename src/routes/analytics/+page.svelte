@@ -3,13 +3,16 @@
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
-  import { bucketStatuses, monthSnapshots, buckets, transactions, incomes, currentMonthIncome } from '$lib/stores/budgetStore';
+  import { bucketStatuses, monthSnapshots, currentMonthIncome } from '$lib/stores/budgetStore';
   import { centsToDollars, formatCurrency, dollarsToCents } from '$lib/utils/currency';
   import { getMonthKey, formatMonthYear, getPreviousMonthKey } from '$lib/utils/dates';
 
   let thresholdInput = '500';
 
-  $: thresholdCents = dollarsToCents(parseFloat(thresholdInput) || 500);
+  $: thresholdCents = (() => {
+    const n = parseFloat(thresholdInput);
+    return dollarsToCents(Number.isFinite(n) ? n : 500);
+  })();
 
   $: allSpendingByCategory = $bucketStatuses
     .filter((s) => s.spent > 0)
@@ -89,7 +92,7 @@
             <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">$</span>
             <input
               type="text"
-              inputmode="numeric"
+              inputmode="decimal"
               bind:value={thresholdInput}
               class="w-24 rounded border border-gray-300 bg-white py-1 pl-6 pr-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
             />
