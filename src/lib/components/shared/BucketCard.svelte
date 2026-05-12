@@ -27,6 +27,10 @@
     <h3 class="font-semibold text-gray-800 dark:text-gray-100">{bucket.name}</h3>
   </div>
 
+  <div class="mb-1 flex items-center justify-between text-xs tabular-nums">
+    <span class="text-muted">{formatCurrency(Math.max(spent, 0))} spent</span>
+    <span class="font-medium text-gray-600 dark:text-gray-300">{formatCurrency(allocated)}</span>
+  </div>
   <ProgressBar {allocated} {spent} showLabel={false} />
 
   {#if spent < 0}
@@ -37,15 +41,9 @@
     </div>
   {/if}
 
-  <div class="mt-3 flex justify-between text-sm">
-    <div>
-      <p class="metric-label">Remaining</p>
-      <p class="font-semibold tabular-nums {remainingColor}">{formatCurrency(remaining)}</p>
-    </div>
-    <div class="text-right">
-      <p class="metric-label">Spent</p>
-      <p class="tabular-nums text-gray-700 dark:text-gray-200">{formatCurrency(Math.max(spent, 0))}</p>
-    </div>
+  <div class="mt-3">
+    <p class="metric-label">Remaining</p>
+    <p class="font-semibold tabular-nums {remainingColor}">{formatCurrency(remaining)}</p>
   </div>
 
   {#if rollover !== 0}
