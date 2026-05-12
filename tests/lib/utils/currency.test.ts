@@ -67,6 +67,12 @@ describe('currency utils', () => {
       expect(isValidCurrency('100.99')).toBe(true);
     });
 
+    it('accepts shorthand decimals without leading zero', () => {
+      expect(isValidCurrency('.50')).toBe(true);
+      expect(isValidCurrency('.99')).toBe(true);
+      expect(isValidCurrency('.5')).toBe(true);
+    });
+
     it('accepts valid integer amounts', () => {
       expect(isValidCurrency('1')).toBe(true);
       expect(isValidCurrency('100')).toBe(true);
@@ -156,6 +162,12 @@ describe('currency utils', () => {
     it('evaluates mixed operations', () => {
       expect(evaluateExpression('100 + 20 - 5.50')).toBe(114.50);
       expect(evaluateExpression('10 - 3 + 7')).toBe(14);
+    });
+
+    it('evaluates shorthand decimals', () => {
+      expect(evaluateExpression('.50')).toBe(0.5);
+      expect(evaluateExpression('.50 + .25')).toBe(0.75);
+      expect(evaluateExpression('10 + .99')).toBe(10.99);
     });
 
     it('handles spaces flexibly', () => {

@@ -17,7 +17,6 @@
   function createChart(theme: string) {
     if (chart) chart.destroy();
     const legendColor = theme === 'dark' ? '#d1d5db' : '#374151';
-    const total = data.reduce((sum, d) => sum + d.value, 0);
     chart = new Chart(canvas, {
       type: 'doughnut',
       data: {
@@ -40,6 +39,8 @@
             callbacks: {
               label(context) {
                 const value = context.parsed as number;
+                const dataset = context.dataset.data as number[];
+                const total = dataset.reduce((a, b) => a + b, 0);
                 const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
                 return ` $${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${pct}%)`;
               },
@@ -50,8 +51,11 @@
     });
   }
 
-  $: if (canvas && data) {
-    createChart(currentTheme);
+  $: if (chart && data) {
+    chart.data.labels = data.map((d) => d.label);
+    chart.data.datasets[0].data = data.map((d) => d.value);
+    chart.data.datasets[0].backgroundColor = data.map((d) => d.color);
+    chart.update();
   }
 
   onMount(() => {

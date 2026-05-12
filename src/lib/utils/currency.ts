@@ -21,7 +21,7 @@ export function parseCurrency(value: string): number {
   return dollarsToCents(result);
 }
 
-const TOKEN_PATTERN = /^\d+(\.\d{0,2})?$/;
+const TOKEN_PATTERN = /^(?:\d+\.?\d{0,2}|\.\d{1,2})$/;
 
 function isValidToken(token: string): boolean {
   return TOKEN_PATTERN.test(token);

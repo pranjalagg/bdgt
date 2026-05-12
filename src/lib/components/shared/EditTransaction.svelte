@@ -10,7 +10,8 @@
   let amount = centsToDollars(transaction.amount).toString();
   let bucketId = transaction.bucketId;
   let note = transaction.note || '';
-  let date = new Date(transaction.date).toISOString().split('T')[0];
+  const d = new Date(transaction.date);
+  let date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   let isSubmitting = false;
   let amountTouched = false;
 
