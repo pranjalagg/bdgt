@@ -19,7 +19,8 @@
       value: centsToDollars(s.spent),
       cents: s.spent,
       color: s.bucket.color,
-    }));
+    }))
+    .sort((a, b) => b.cents - a.cents);
 
   $: bigPurchases = allSpendingByCategory.filter((s) => s.cents >= thresholdCents);
   $: smallPurchases = allSpendingByCategory.filter((s) => s.cents < thresholdCents);
