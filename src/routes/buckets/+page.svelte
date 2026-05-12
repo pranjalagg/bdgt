@@ -1,6 +1,7 @@
 <script lang="ts">
   import { buckets, bucketStatuses, addBucket, updateBucket, deleteBucket, setAllocation, updateBucketAllocation, totalPercentage, computedAllocations } from '$lib/stores/budgetStore';
   import { formatCurrency, parseCurrency } from '$lib/utils/currency';
+  import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { AllocationType } from '$lib/types';
@@ -82,12 +83,15 @@
 <div class="space-y-6">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Buckets</h1>
-    <button
-      class="rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600"
-      on:click={handleAddBucket}
-    >
-      + Add Bucket
-    </button>
+    <div class="flex items-center gap-3">
+      <MonthPicker />
+      <button
+        class="rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600"
+        on:click={handleAddBucket}
+      >
+        + Add Bucket
+      </button>
+    </div>
   </div>
 
   {#if $totalPercentage > 100}

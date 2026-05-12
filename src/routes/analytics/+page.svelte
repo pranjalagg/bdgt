@@ -1,5 +1,6 @@
 <!-- src/routes/analytics/+page.svelte -->
 <script lang="ts">
+  import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
@@ -73,7 +74,10 @@
 </script>
 
 <div class="space-y-8">
-  <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Analytics</h1>
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Analytics</h1>
+    <MonthPicker />
+  </div>
 
   <!-- Monthly Summary -->
   <div class="grid gap-4 sm:grid-cols-3">
