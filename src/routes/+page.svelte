@@ -14,7 +14,6 @@
   let incomeAmount = '';
   let incomeNote = '';
 
-  // Goal form state
   let goalName = '';
   let goalBucketId = '';
   let goalTargetAmount = '';
@@ -65,37 +64,52 @@
 
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Dashboard</h1>
+    <h1 class="page-title">Dashboard</h1>
     <MonthPicker />
   </div>
 
   <!-- Summary Cards -->
   <div class="grid gap-4 sm:grid-cols-3">
-    <button class="rounded-lg bg-white p-4 shadow cursor-pointer hover:shadow-md text-left dark:bg-surface-dark" on:click={() => openModal('income')}>
-      <p class="text-sm text-gray-500 dark:text-gray-400">Income</p>
-      <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency($currentMonthIncome)}</p>
+    <button class="card cursor-pointer p-5 text-left transition-all hover:border-primary/30 hover:shadow-sm" on:click={() => openModal('income')}>
+      <div class="mb-1 flex items-center gap-2">
+        <span class="flex h-6 w-6 items-center justify-center rounded-md bg-success/10 text-success">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </span>
+        <p class="metric-label">Income</p>
+      </div>
+      <p class="metric-value">{formatCurrency($currentMonthIncome)}</p>
     </button>
-    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
-      <p class="text-sm text-gray-500 dark:text-gray-400">Allocated</p>
-      <p class="text-xl font-bold text-gray-800 dark:text-gray-100">
+    <div class="card p-5">
+      <div class="mb-1 flex items-center gap-2">
+        <span class="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </span>
+        <p class="metric-label">Allocated</p>
+      </div>
+      <p class="metric-value">
         {formatCurrency($currentMonthIncome - $unallocated)}
       </p>
     </div>
-    <div class="rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
-      <p class="text-sm text-gray-500 dark:text-gray-400">Unallocated</p>
-      <p class="text-xl font-bold" class:text-danger={$unallocated < 0} class:text-warning={$unallocated > 0} class:text-success={$unallocated === 0}>
+    <div class="card p-5">
+      <div class="mb-1 flex items-center gap-2">
+        <span class="flex h-6 w-6 items-center justify-center rounded-md {$unallocated < 0 ? 'bg-danger/10 text-danger' : $unallocated > 0 ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'}">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+        </span>
+        <p class="metric-label">Unallocated</p>
+      </div>
+      <p class="metric-value" class:text-danger={$unallocated < 0} class:text-warning={$unallocated > 0} class:text-success={$unallocated === 0}>
         {formatCurrency($unallocated)}
       </p>
     </div>
   </div>
 
   {#if $unallocated !== 0}
-    <div class="rounded-lg border-l-4 p-4 {$unallocated > 0 ? 'border-warning bg-amber-50 dark:bg-amber-900/20' : 'border-danger bg-red-50 dark:bg-red-900/20'}">
+    <div class="flex items-center gap-3 rounded-xl border-l-4 p-4 {$unallocated > 0 ? 'border-warning bg-amber-50/50 dark:bg-amber-900/10' : 'border-danger bg-red-50/50 dark:bg-red-900/10'}">
       <p class="text-sm text-gray-700 dark:text-gray-200">
         {#if $unallocated > 0}
-          You have {formatCurrency($unallocated)} unallocated. Assign it to buckets!
+          You have <span class="font-semibold">{formatCurrency($unallocated)}</span> unallocated. Assign it to buckets!
         {:else}
-          You're {formatCurrency(Math.abs($unallocated))} over budget.
+          You're <span class="font-semibold">{formatCurrency(Math.abs($unallocated))}</span> over budget.
         {/if}
       </p>
     </div>
@@ -103,7 +117,7 @@
 
   <!-- Quick Add Button -->
   <button
-    class="w-full rounded-lg border-2 border-dashed border-gray-300 py-3 text-gray-500 transition hover:border-primary hover:text-primary dark:border-border-dark dark:text-gray-400"
+    class="w-full rounded-xl border-2 border-dashed border-gray-200 py-3.5 text-sm font-medium text-muted transition-colors hover:border-primary hover:text-primary dark:border-border-dark dark:text-gray-400"
     on:click={() => openModal('quick-entry')}
   >
     + Add Transaction
@@ -118,11 +132,11 @@
 
   <!-- Goals Section -->
   <div class="mt-8">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Savings Goals</h2>
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="section-title">Savings Goals</h2>
       {#if $goalStatuses.length > 0}
         <button
-          class="text-sm text-primary hover:underline"
+          class="text-sm font-medium text-primary hover:text-primary-hover transition-colors"
           on:click={() => openModal('add-goal')}
         >
           + Add Goal
@@ -132,7 +146,7 @@
 
     {#if $goalStatuses.length === 0}
       <button
-        class="w-full rounded-lg border-2 border-dashed border-gray-300 py-8 text-gray-500 transition hover:border-primary hover:text-primary dark:border-border-dark dark:text-gray-400"
+        class="w-full rounded-xl border-2 border-dashed border-gray-200 py-10 text-sm font-medium text-muted transition-colors hover:border-primary hover:text-primary dark:border-border-dark dark:text-gray-400"
         on:click={() => openModal('add-goal')}
       >
         Create Your First Savings Goal
@@ -154,47 +168,46 @@
 <Modal id="income" title="Manage Income">
   <form on:submit|preventDefault={handleAddIncome} class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount</label>
+      <label class="label">Amount</label>
       <input
         type="text"
         bind:value={incomeAmount}
-        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+        class="mt-1.5 input-base"
         placeholder="0.00"
       />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Note (optional)</label>
+      <label class="label">Note (optional)</label>
       <input
         type="text"
         bind:value={incomeNote}
-        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+        class="mt-1.5 input-base"
       />
     </div>
-    <button
-      type="submit"
-      class="w-full rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600"
-    >
+    <button type="submit" class="w-full btn-primary">
       Add Income
     </button>
   </form>
 
   {#if $currentMonthIncomes.length > 0}
-    <div class="mt-4 border-t border-gray-200 pt-4 dark:border-border-dark">
-      <h3 class="mb-2 font-medium text-gray-700 dark:text-gray-200">This Month's Income</h3>
-      {#each $currentMonthIncomes as income}
-        <div class="flex items-center justify-between py-2">
-          <div>
-            <p class="font-medium dark:text-gray-100">{formatCurrency(income.amount)}</p>
-            {#if income.note}<p class="text-sm text-gray-500 dark:text-gray-400">{income.note}</p>{/if}
+    <div class="mt-5 border-t border-gray-200 pt-5 dark:border-border-dark">
+      <h3 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">This Month's Income</h3>
+      <div class="space-y-2">
+        {#each $currentMonthIncomes as income}
+          <div class="flex items-center justify-between rounded-lg border border-gray-100 p-3 dark:border-border-dark">
+            <div>
+              <p class="font-semibold tabular-nums dark:text-gray-100">{formatCurrency(income.amount)}</p>
+              {#if income.note}<p class="text-sm text-muted">{income.note}</p>{/if}
+            </div>
+            <button
+              class="text-sm font-medium text-danger hover:underline"
+              on:click={() => deleteIncome(income.id)}
+            >
+              Delete
+            </button>
           </div>
-          <button
-            class="text-danger hover:underline"
-            on:click={() => deleteIncome(income.id)}
-          >
-            Delete
-          </button>
-        </div>
-      {/each}
+        {/each}
+      </div>
     </div>
   {/if}
 </Modal>
@@ -202,20 +215,17 @@
 <Modal id="add-goal" title="Add Savings Goal">
   <form on:submit|preventDefault={handleAddGoal} class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Goal Name</label>
+      <label class="label">Goal Name</label>
       <input
         type="text"
         bind:value={goalName}
-        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+        class="mt-1.5 input-base"
         placeholder="Emergency Fund"
       />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Linked Bucket</label>
-      <select
-        bind:value={goalBucketId}
-        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
-      >
+      <label class="label">Linked Bucket</label>
+      <select bind:value={goalBucketId} class="mt-1.5 select-base">
         <option value="">Select a bucket</option>
         {#each $buckets as bucket}
           <option value={bucket.id}>{bucket.name}</option>
@@ -223,60 +233,57 @@
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Target Amount</label>
+      <label class="label">Target Amount</label>
       <input
         type="text"
         bind:value={goalTargetAmount}
-        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+        class="mt-1.5 input-base"
         placeholder="1000.00"
       />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Starting Balance (optional)</label>
+      <label class="label">Starting Balance (optional)</label>
       <input
         type="text"
         bind:value={goalStartingBalance}
-        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+        class="mt-1.5 input-base"
         placeholder="0.00"
       />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Goal Mode</label>
+      <label class="label mb-2">Goal Mode</label>
       <div class="flex gap-4">
         <label class="flex items-center gap-2 cursor-pointer">
-          <input type="radio" bind:group={goalMode} value="deadline" class="text-primary" />
+          <input type="radio" bind:group={goalMode} value="deadline" class="accent-primary" />
           <span class="text-sm text-gray-700 dark:text-gray-200">Set deadline</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer">
-          <input type="radio" bind:group={goalMode} value="monthly" class="text-primary" />
+          <input type="radio" bind:group={goalMode} value="monthly" class="accent-primary" />
           <span class="text-sm text-gray-700 dark:text-gray-200">Set monthly contribution</span>
         </label>
       </div>
     </div>
     {#if goalMode === 'deadline'}
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Target Date</label>
+        <label class="label">Target Date</label>
         <input
           type="date"
           bind:value={goalTargetDate}
-          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+          class="mt-1.5 input-base"
         />
       </div>
     {:else}
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Monthly Contribution</label>
+        <label class="label">Monthly Contribution</label>
         <input
           type="text"
           bind:value={goalMonthlyContribution}
-          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+          class="mt-1.5 input-base"
           placeholder="100.00"
         />
       </div>
     {/if}
-    <button
-      type="submit"
-      class="w-full rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600"
-    >
+    <button type="submit" class="w-full btn-primary">
       Create Goal
     </button>
   </form>

@@ -67,49 +67,55 @@
   }
 </script>
 
-<div class="space-y-8">
-  <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Settings</h1>
+<div class="space-y-6">
+  <h1 class="page-title">Settings</h1>
 
-  <section class="space-y-4">
-    <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Appearance</h2>
-    <div class="flex items-center gap-4">
-      <label for="theme" class="text-sm font-medium text-gray-700 dark:text-gray-200">Theme</label>
+  <div class="card">
+    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <h2 class="section-title">Appearance</h2>
+    </div>
+    <div class="flex items-center gap-4 px-5 py-4">
+      <label for="theme" class="label">Theme</label>
       <select
         id="theme"
         value={$themePreference}
         on:change={handleThemeChange}
-        class="rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+        class="select-base max-w-[160px]"
       >
         <option value="system">System</option>
         <option value="light">Light</option>
         <option value="dark">Dark</option>
       </select>
     </div>
-  </section>
+  </div>
 
-  <section class="space-y-4">
-    <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Export Data</h2>
-    <div class="flex flex-wrap gap-3">
+  <div class="card">
+    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <h2 class="section-title">Export Data</h2>
+    </div>
+    <div class="flex flex-wrap gap-3 px-5 py-4">
       <button
-        class="rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+        class="btn-primary"
         on:click={handleExportJson}
         disabled={isExporting}
       >
         Export JSON (Full Backup)
       </button>
       <button
-        class="rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 disabled:opacity-50 dark:border-border-dark dark:text-gray-200 dark:hover:bg-gray-800"
+        class="btn-secondary"
         on:click={handleExportCsv}
         disabled={isExporting}
       >
         Export CSV (Transactions)
       </button>
     </div>
-  </section>
+  </div>
 
-  <section class="space-y-4">
-    <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Import Data</h2>
-    <div class="flex items-center gap-3">
+  <div class="card">
+    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <h2 class="section-title">Import Data</h2>
+    </div>
+    <div class="px-5 py-4">
       <input
         type="file"
         accept=".json"
@@ -118,24 +124,25 @@
         class="hidden"
       />
       <button
-        class="rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 disabled:opacity-50 dark:border-border-dark dark:text-gray-200 dark:hover:bg-gray-800"
+        class="btn-secondary"
         on:click={() => fileInput.click()}
         disabled={isImporting}
       >
         {isImporting ? 'Importing...' : 'Import JSON Backup'}
       </button>
+      <p class="mt-2 text-sm text-muted">Import a previously exported JSON backup file.</p>
     </div>
-    <p class="text-sm text-gray-500 dark:text-gray-400">Import a previously exported JSON backup file.</p>
-  </section>
+  </div>
 
-  <section class="space-y-4 border-t border-gray-200 pt-6 dark:border-border-dark">
-    <h2 class="text-lg font-semibold text-danger">Danger Zone</h2>
-    <button
-      class="rounded-lg border border-danger px-4 py-2 text-danger hover:bg-red-50 dark:hover:bg-red-900/30"
-      on:click={handleReset}
-    >
-      Reset All Data
-    </button>
-    <p class="text-sm text-gray-500 dark:text-gray-400">Permanently delete all your data. This cannot be undone.</p>
-  </section>
+  <div class="card border-danger/20">
+    <div class="border-b border-danger/10 px-5 py-4">
+      <h2 class="text-lg font-semibold text-danger">Danger Zone</h2>
+    </div>
+    <div class="px-5 py-4">
+      <button class="btn-danger" on:click={handleReset}>
+        Reset All Data
+      </button>
+      <p class="mt-2 text-sm text-muted">Permanently delete all your data. This cannot be undone.</p>
+    </div>
+  </div>
 </div>

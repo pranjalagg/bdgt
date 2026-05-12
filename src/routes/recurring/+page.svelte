@@ -92,55 +92,54 @@
 
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Recurring</h1>
-    <button
-      class="rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600"
-      on:click={handleAdd}
-    >
+    <h1 class="page-title">Recurring</h1>
+    <button class="btn-primary" on:click={handleAdd}>
       + Add Recurring
     </button>
   </div>
 
   {#if sortedRecurring.length === 0}
-    <p class="py-8 text-center text-gray-500 dark:text-gray-400">No recurring transactions</p>
+    <div class="card py-12 text-center text-muted">No recurring transactions</div>
   {:else}
-    <div class="space-y-3">
+    <div class="space-y-2">
       {#each sortedRecurring as rec}
         {@const bucket = $buckets.find((b) => b.id === rec.bucketId)}
-        <div class="flex items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-surface-dark" class:opacity-50={!rec.isActive}>
+        <div class="card flex items-center gap-4 p-4 transition-colors hover:border-gray-300 dark:hover:border-gray-600" class:opacity-50={!rec.isActive}>
           <span
-            class="h-3 w-3 rounded-full"
+            class="h-3.5 w-3.5 rounded-full ring-2 ring-white dark:ring-surface-dark"
             style="background-color: {bucket?.color || '#ccc'}"
-          />
-          <div class="flex-1">
-            <p class="font-medium dark:text-gray-100">{formatCurrency(rec.amount)}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
+          ></span>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold tabular-nums dark:text-gray-100">{formatCurrency(rec.amount)}</p>
+            <p class="text-sm text-muted">
               {bucket?.name || 'Unknown'} &middot; {rec.frequency}
               {#if rec.note} &middot; {rec.note}{/if}
             </p>
           </div>
           <div class="text-right">
-            <p class="text-sm text-gray-600 dark:text-gray-400">Next due</p>
-            <p class="text-sm font-medium dark:text-gray-200">{formatDate(new Date(rec.nextDueDate))}</p>
+            <p class="text-xs text-muted">Next due</p>
+            <p class="text-sm font-medium tabular-nums dark:text-gray-200">{formatDate(new Date(rec.nextDueDate))}</p>
           </div>
           <div class="flex gap-1">
             <button
-              class="rounded px-2 py-1 text-sm hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors {rec.isActive ? 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700' : 'bg-primary/10 text-primary hover:bg-primary/20'}"
               on:click={() => toggleRecurring(rec.id)}
             >
               {rec.isActive ? 'Pause' : 'Resume'}
             </button>
             <button
-              class="rounded px-2 py-1 text-sm hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              class="btn-icon !p-1.5"
               on:click={() => handleEdit(rec)}
+              aria-label="Edit recurring"
             >
-              Edit
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
             </button>
             <button
-              class="rounded px-2 py-1 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/30"
+              class="btn-icon !p-1.5 hover:!bg-red-50 hover:!text-danger dark:hover:!bg-red-900/30"
               on:click={() => handleDelete(rec.id)}
+              aria-label="Delete recurring"
             >
-              Delete
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           </div>
         </div>
@@ -152,28 +151,28 @@
 <Modal id="recurring-form" title={editingId ? 'Edit Recurring' : 'Add Recurring'}>
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount</label>
-      <div class="relative mt-1">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+      <label class="label">Amount</label>
+      <div class="relative mt-1.5">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
         <input
           type="text"
           inputmode="decimal"
           bind:value={amount}
           on:input={handleAmountInput}
           placeholder="0.00"
-          class="w-full rounded-lg border bg-white py-2 pl-7 pr-3 focus:outline-none focus:ring-1 dark:bg-gray-800 dark:text-gray-100 {amountError ? 'border-danger focus:border-danger focus:ring-danger' : 'border-gray-300 focus:border-primary focus:ring-primary dark:border-border-dark'}"
+          class="input-base pl-7 {amountError ? '!border-danger !focus:border-danger !focus:ring-danger/20' : ''}"
           required
         />
       </div>
       {#if amountError}
         <p class="mt-1 text-sm text-danger">{amountError}</p>
       {:else if showPreview && previewValue !== null}
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= ${previewValue.toFixed(2)}</p>
+        <p class="mt-1 text-sm text-muted">= ${previewValue.toFixed(2)}</p>
       {/if}
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Bucket</label>
-      <select bind:value={bucketId} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" required>
+      <label class="label">Bucket</label>
+      <select bind:value={bucketId} class="mt-1.5 select-base" required>
         <option value="">Select bucket</option>
         {#each $buckets as bucket}
           <option value={bucket.id}>{bucket.name}</option>
@@ -181,25 +180,25 @@
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Frequency</label>
-      <select bind:value={frequency} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100">
+      <label class="label">Frequency</label>
+      <select bind:value={frequency} class="mt-1.5 select-base">
         <option value="weekly">Weekly</option>
         <option value="biweekly">Bi-weekly</option>
         <option value="monthly">Monthly</option>
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Next Due Date</label>
-      <input type="date" bind:value={nextDueDate} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" required />
+      <label class="label">Next Due Date</label>
+      <input type="date" bind:value={nextDueDate} class="mt-1.5 input-base" required />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Note (optional)</label>
-      <input type="text" bind:value={note} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" />
+      <label class="label">Note (optional)</label>
+      <input type="text" bind:value={note} class="mt-1.5 input-base" />
     </div>
     <button
       type="submit"
       disabled={!canSubmit}
-      class="w-full rounded-lg bg-primary px-4 py-2 text-white transition hover:bg-blue-600 disabled:opacity-50"
+      class="w-full btn-primary"
     >
       {editingId ? 'Update' : 'Add'} Recurring
     </button>

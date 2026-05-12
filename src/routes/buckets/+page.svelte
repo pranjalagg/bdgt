@@ -82,69 +82,69 @@
 
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Buckets</h1>
+    <h1 class="page-title">Buckets</h1>
     <div class="flex items-center gap-3">
       <MonthPicker />
-      <button
-        class="rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600"
-        on:click={handleAddBucket}
-      >
+      <button class="btn-primary" on:click={handleAddBucket}>
         + Add Bucket
       </button>
     </div>
   </div>
 
   {#if $totalPercentage > 100}
-    <div class="rounded-lg bg-danger/10 border border-danger p-3 text-danger">
-      Warning: Total percentage allocation is {$totalPercentage}% (exceeds 100%)
+    <div class="flex items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+      <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Total percentage allocation is {$totalPercentage}% (exceeds 100%)
     </div>
   {/if}
 
-  <div class="space-y-3">
+  <div class="space-y-2">
     {#each $bucketStatuses as status}
-      <div class="flex items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-surface-dark">
+      <div class="card flex items-center gap-4 p-4 transition-colors hover:border-gray-300 dark:hover:border-gray-600">
         <span
-          class="h-4 w-4 rounded-full"
+          class="h-4 w-4 rounded-full ring-2 ring-white dark:ring-surface-dark"
           style="background-color: {status.bucket.color}"
-        />
-        <div class="flex-1">
-          <h3 class="font-medium text-gray-800 dark:text-gray-100">{status.bucket.name}</h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
+        ></span>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-semibold text-gray-800 dark:text-gray-100">{status.bucket.name}</h3>
+          <p class="text-sm text-muted">
             {formatAllocationDisplay(status.bucket, $computedAllocations[status.bucket.id])}
           </p>
           {#if status.rollover !== 0}
-            <p class="text-xs text-gray-400 dark:text-gray-500">Rollover: {formatCurrency(status.rollover)}</p>
+            <p class="text-xs text-muted">Rollover: {formatCurrency(status.rollover)}</p>
           {/if}
         </div>
         {#if status.bucket.allocationType === 'fixed'}
           <div class="flex items-center gap-2">
-            <span class="text-gray-500 dark:text-gray-400">$</span>
+            <span class="text-muted">$</span>
             <input
               type="text"
               value={(status.allocated / 100).toFixed(2)}
               on:change={(e) => handleAllocationChange(status.bucket.id, e.currentTarget.value)}
-              class="w-24 rounded border border-gray-300 bg-white px-2 py-1 text-right dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+              class="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-right text-sm transition-shadow focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-border-dark dark:bg-gray-800/50 dark:text-gray-100"
               placeholder="0.00"
             />
           </div>
         {:else}
-          <div class="text-right text-gray-600 dark:text-gray-300">
+          <div class="text-right tabular-nums text-muted">
             {formatCurrency(status.allocated)}
           </div>
         {/if}
         <div class="flex gap-1">
           <button
-            class="rounded p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+            class="btn-icon !p-1.5"
             on:click={() => handleEditBucket(status.bucket)}
+            aria-label="Edit bucket"
           >
-            Edit
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
           </button>
           {#if !status.bucket.isDefault}
             <button
-              class="rounded p-2 text-danger hover:bg-red-50 dark:hover:bg-red-900/30"
+              class="btn-icon !p-1.5 hover:!bg-red-50 hover:!text-danger dark:hover:!bg-red-900/30"
               on:click={() => handleDelete(status.bucket.id)}
+              aria-label="Delete bucket"
             >
-              Delete
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           {/if}
         </div>
@@ -156,35 +156,35 @@
 <Modal id="bucket-form" title={editingBucket ? 'Edit Bucket' : 'Add Bucket'}>
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">
     <div>
-      <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Name</label>
-      <input id="name" type="text" bind:value={newBucketName} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" required />
+      <label for="name" class="label">Name</label>
+      <input id="name" type="text" bind:value={newBucketName} class="mt-1.5 input-base" required />
     </div>
     <div>
-      <label for="color" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Color</label>
-      <input id="color" type="color" bind:value={newBucketColor} class="mt-1 h-10 w-full rounded-lg border border-gray-300 dark:border-border-dark" />
+      <label for="color" class="label">Color</label>
+      <input id="color" type="color" bind:value={newBucketColor} class="mt-1.5 h-10 w-full cursor-pointer rounded-lg border border-gray-300 dark:border-border-dark" />
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Allocation Type</label>
+      <label class="label mb-2">Allocation Type</label>
       <div class="flex gap-4">
-        <label class="flex items-center gap-2">
-          <input type="radio" bind:group={newAllocationType} value="fixed" class="text-primary" />
-          <span class="text-gray-700 dark:text-gray-200">Fixed</span>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" bind:group={newAllocationType} value="fixed" class="accent-primary" />
+          <span class="text-sm text-gray-700 dark:text-gray-200">Fixed</span>
         </label>
-        <label class="flex items-center gap-2">
-          <input type="radio" bind:group={newAllocationType} value="percentage" class="text-primary" />
-          <span class="text-gray-700 dark:text-gray-200">Percentage</span>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" bind:group={newAllocationType} value="percentage" class="accent-primary" />
+          <span class="text-sm text-gray-700 dark:text-gray-200">Percentage</span>
         </label>
-        <label class="flex items-center gap-2">
-          <input type="radio" bind:group={newAllocationType} value="hybrid" class="text-primary" />
-          <span class="text-gray-700 dark:text-gray-200">Hybrid</span>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" bind:group={newAllocationType} value="hybrid" class="accent-primary" />
+          <span class="text-sm text-gray-700 dark:text-gray-200">Hybrid</span>
         </label>
       </div>
     </div>
 
     {#if newAllocationType === 'fixed' || newAllocationType === 'hybrid'}
       <div>
-        <label for="fixedAmount" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Fixed Amount ($)</label>
+        <label for="fixedAmount" class="label">Fixed Amount ($)</label>
         <input
           id="fixedAmount"
           type="number"
@@ -192,14 +192,14 @@
           min="0"
           value={(newFixedAmount / 100).toFixed(2)}
           on:change={(e) => newFixedAmount = Math.round(parseFloat(e.currentTarget.value || '0') * 100)}
-          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+          class="mt-1.5 input-base"
         />
       </div>
     {/if}
 
     {#if newAllocationType === 'percentage' || newAllocationType === 'hybrid'}
       <div>
-        <label for="percentageAmount" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Percentage (%)</label>
+        <label for="percentageAmount" class="label">Percentage (%)</label>
         <input
           id="percentageAmount"
           type="number"
@@ -207,12 +207,12 @@
           min="0"
           max="100"
           bind:value={newPercentageAmount}
-          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+          class="mt-1.5 input-base"
         />
       </div>
     {/if}
 
-    <button type="submit" class="w-full rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600">
+    <button type="submit" class="w-full btn-primary">
       {editingBucket ? 'Update' : 'Add'} Bucket
     </button>
   </form>
