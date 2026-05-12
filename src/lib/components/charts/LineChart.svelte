@@ -1,10 +1,10 @@
 <!-- src/lib/components/charts/LineChart.svelte -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Chart, LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+  import { Chart, LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, Filler } from 'chart.js';
   import { resolvedTheme } from '$lib/stores/themeStore';
 
-  Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend);
+  Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, Filler);
 
   export let labels: string[];
   export let datasets: { label: string; data: number[]; color: string }[];
@@ -16,8 +16,8 @@
   function getThemeColors(theme: string) {
     const isDark = theme === 'dark';
     return {
-      tickColor: isDark ? '#d1d5db' : '#374151',
-      gridColor: isDark ? '#374151' : '#e5e7eb',
+      tickColor: isDark ? '#9ca3af' : '#6b7280',
+      gridColor: isDark ? '#2e2e42' : '#f3f4f6',
       legendColor: isDark ? '#d1d5db' : '#374151',
     };
   }
@@ -33,27 +33,46 @@
           label: ds.label,
           data: ds.data,
           borderColor: ds.color,
-          backgroundColor: ds.color + '20',
+          backgroundColor: ds.color + '15',
           fill: true,
-          tension: 0.3,
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: ds.color,
+          pointBorderColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
+          pointBorderWidth: 2,
+          borderWidth: 2.5,
         })),
       },
       options: {
         responsive: true,
+        interaction: { intersect: false, mode: 'index' },
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { color: colors.tickColor },
+            ticks: { color: colors.tickColor, font: { size: 11 } },
             grid: { color: colors.gridColor },
+            border: { display: false },
           },
           x: {
-            ticks: { color: colors.tickColor },
-            grid: { color: colors.gridColor },
+            ticks: { color: colors.tickColor, font: { size: 11 } },
+            grid: { display: false },
+            border: { display: false },
           },
         },
         plugins: {
           legend: {
-            labels: { color: colors.legendColor },
+            labels: { color: colors.legendColor, usePointStyle: true, pointStyle: 'circle', padding: 16, font: { size: 12 } },
+          },
+          tooltip: {
+            backgroundColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
+            titleColor: theme === 'dark' ? '#e5e7eb' : '#111827',
+            bodyColor: theme === 'dark' ? '#d1d5db' : '#374151',
+            borderColor: theme === 'dark' ? '#2e2e42' : '#e5e7eb',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
+            boxPadding: 4,
           },
         },
       },
@@ -66,9 +85,15 @@
       label: ds.label,
       data: ds.data,
       borderColor: ds.color,
-      backgroundColor: ds.color + '20',
+      backgroundColor: ds.color + '15',
       fill: true,
-      tension: 0.3,
+      tension: 0.4,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: ds.color,
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 2,
+      borderWidth: 2.5,
     }));
     chart.update();
   }
@@ -85,4 +110,6 @@
   });
 </script>
 
-<canvas bind:this={canvas}></canvas>
+<div class="p-1">
+  <canvas bind:this={canvas}></canvas>
+</div>

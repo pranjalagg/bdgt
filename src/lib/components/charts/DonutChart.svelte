@@ -24,18 +24,34 @@
         datasets: [{
           data: data.map((d) => d.value),
           backgroundColor: data.map((d) => d.color),
-          borderWidth: 0,
+          borderWidth: 2,
+          borderColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
+          hoverBorderColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
         }],
       },
       options: {
         responsive: true,
+        cutout: '65%',
         plugins: {
           legend: {
             display: showLegend,
             position: 'bottom',
-            labels: { color: legendColor },
+            labels: {
+              color: legendColor,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: 16,
+              font: { size: 12 },
+            },
           },
           tooltip: {
+            backgroundColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
+            titleColor: theme === 'dark' ? '#e5e7eb' : '#111827',
+            bodyColor: theme === 'dark' ? '#d1d5db' : '#374151',
+            borderColor: theme === 'dark' ? '#2e2e42' : '#e5e7eb',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
             callbacks: {
               label(context) {
                 const value = context.parsed as number;
@@ -74,4 +90,6 @@
   });
 </script>
 
-<canvas bind:this={canvas}></canvas>
+<div class="p-1">
+  <canvas bind:this={canvas}></canvas>
+</div>
