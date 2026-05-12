@@ -6,8 +6,9 @@
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import { bucketStatuses, currentMonthIncome, currentMonthIncomes, unallocated, addIncome, deleteIncome, buckets } from '$lib/stores/budgetStore';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
-  import { openModal, closeModal } from '$lib/stores/uiStore';
+  import { currentMonthKey, openModal, closeModal } from '$lib/stores/uiStore';
   import { formatCurrency, parseCurrency } from '$lib/utils/currency';
+  import { parseMonthKey } from '$lib/utils/dates';
 
   let selectedBucketId: string | undefined;
   let incomeAmount = '';
@@ -52,7 +53,7 @@
     if (!incomeAmount) return;
     await addIncome({
       amount: parseCurrency(incomeAmount),
-      date: new Date(),
+      date: parseMonthKey($currentMonthKey),
       note: incomeNote || undefined,
       isRecurring: false,
     });
