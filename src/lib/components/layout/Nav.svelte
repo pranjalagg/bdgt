@@ -18,10 +18,7 @@
     return path === '/' ? base || '/' : `${base}${path}`;
   }
 
-  function isActive(path: string): boolean {
-    const fullPath = path === '/' ? base || '/' : `${base}${path}`;
-    return currentPath === fullPath || currentPath === fullPath + '/';
-  }
+
 </script>
 
 <!-- Desktop sidebar -->
@@ -37,11 +34,12 @@
 
   <ul class="flex-1 space-y-0.5 px-3 pt-2">
     {#each mainNavItems as item}
+      {@const active = currentPath === getHref(item.href) || currentPath === getHref(item.href) + '/'}
       <li>
         <a
           href={getHref(item.href)}
           class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
-                 {isActive(item.href)
+                 {active
                    ? 'bg-primary/10 text-primary dark:bg-primary/15'
                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200'}"
         >
@@ -68,7 +66,7 @@
     <a
       href={getHref(settingsItem.href)}
       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
-             {isActive(settingsItem.href)
+             {currentPath === getHref(settingsItem.href) || currentPath === getHref(settingsItem.href) + '/'
                ? 'bg-primary/10 text-primary dark:bg-primary/15'
                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200'}"
     >
@@ -86,11 +84,12 @@
 <nav class="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-sm dark:border-border-dark dark:bg-surface-dark/95 md:hidden">
   <ul class="flex justify-around">
     {#each mainNavItems as item}
+      {@const active = currentPath === getHref(item.href) || currentPath === getHref(item.href) + '/'}
       <li class="flex-1">
         <a
           href={getHref(item.href)}
           class="flex flex-col items-center gap-0.5 py-2.5 transition-colors
-                 {isActive(item.href)
+                 {active
                    ? 'text-primary'
                    : 'text-gray-500 dark:text-gray-400'}"
         >
