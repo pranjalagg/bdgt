@@ -1,6 +1,6 @@
 <script lang="ts">
   import { buckets, bucketStatuses, addBucket, updateBucket, deleteBucket, setAllocation, updateBucketAllocation, totalPercentage, computedAllocations } from '$lib/stores/budgetStore';
-  import { formatCurrency, parseCurrency } from '$lib/utils/currency';
+  import { formatCurrency, parseCurrency, evaluateExpression } from '$lib/utils/currency';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
@@ -61,7 +61,13 @@
     await deleteBucket(id);
   }
 
-  async function handleAllocationChange(bucketId: string, value: string) {
+  async function handleAllocationChange(bucketId: string, value: string, inputEl: HTMLInputElement) {
+    const parsed = evaluateExpression(value);
+    if (parsed === null || !isFinite(parsed) || parsed < 0) {
+      inputEl.classList.add('!border-danger');
+      return;
+    }
+    inputEl.classList.remove('!border-danger');
     const cents = parseCurrency(value);
     await setAllocation(bucketId, cents);
   }
@@ -120,7 +126,7 @@
             <input
               type="text"
               value={(status.allocated / 100).toFixed(2)}
-              on:change={(e) => handleAllocationChange(status.bucket.id, e.currentTarget.value)}
+              on:change={(e) => handleAllocationChange(status.bucket.id, e.currentTarget.value, e.currentTarget)}
               class="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-right text-sm transition-shadow focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-border-dark dark:bg-gray-800/50 dark:text-gray-100"
               placeholder="0.00"
             />

@@ -7,12 +7,13 @@
   import { bucketStatuses, currentMonthIncome, currentMonthIncomes, unallocated, addIncome, deleteIncome, buckets } from '$lib/stores/budgetStore';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, openModal, closeModal } from '$lib/stores/uiStore';
-  import { formatCurrency, parseCurrency } from '$lib/utils/currency';
+  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
   import { parseMonthKey } from '$lib/utils/dates';
 
   let selectedBucketId: string | undefined;
   let incomeAmount = '';
   let incomeNote = '';
+  let incomeTouched = false;
 
   let goalName = '';
   let goalBucketId = '';
@@ -21,9 +22,33 @@
   let goalMode: 'deadline' | 'monthly' = 'deadline';
   let goalTargetDate = '';
   let goalMonthlyContribution = '';
+  let goalAmountTouched = false;
+  let goalContribTouched = false;
+
+  $: incomeError = incomeTouched && incomeAmount && !isValidCurrency(incomeAmount)
+    ? 'Please enter a valid amount (e.g. 5000, 2500 + 500)'
+    : '';
+  $: incomeCanSubmit = !!incomeAmount && !incomeError && isValidCurrency(incomeAmount);
+  $: incomePreview = isExpression(incomeAmount) && isValidCurrency(incomeAmount) ? evaluateExpression(incomeAmount) : null;
+
+  $: goalTargetError = goalAmountTouched && goalTargetAmount && !isValidCurrency(goalTargetAmount)
+    ? 'Please enter a valid amount'
+    : '';
+  $: goalBalanceError = goalStartingBalance && !isValidCurrency(goalStartingBalance) && evaluateExpression(goalStartingBalance) === null
+    ? 'Please enter a valid amount'
+    : '';
+  $: goalContribError = goalContribTouched && goalMonthlyContribution && !isValidCurrency(goalMonthlyContribution)
+    ? 'Please enter a valid amount'
+    : '';
+  $: goalCanSubmit = !!goalName && !!goalBucketId && !!goalTargetAmount
+    && !goalTargetError && isValidCurrency(goalTargetAmount)
+    && !goalBalanceError
+    && (goalMode !== 'monthly' || (!!goalMonthlyContribution && !goalContribError && isValidCurrency(goalMonthlyContribution)));
 
   async function handleAddGoal() {
-    if (!goalName || !goalBucketId || !goalTargetAmount) return;
+    goalAmountTouched = true;
+    goalContribTouched = true;
+    if (!goalCanSubmit) return;
     await addGoal({
       name: goalName,
       bucketId: goalBucketId,
@@ -35,6 +60,7 @@
     });
     goalName = ''; goalBucketId = ''; goalTargetAmount = ''; goalStartingBalance = '';
     goalTargetDate = ''; goalMonthlyContribution = '';
+    goalAmountTouched = false; goalContribTouched = false;
     closeModal();
   }
 
@@ -49,7 +75,8 @@
   }
 
   async function handleAddIncome() {
-    if (!incomeAmount) return;
+    incomeTouched = true;
+    if (!incomeCanSubmit) return;
     await addIncome({
       amount: parseCurrency(incomeAmount),
       date: parseMonthKey($currentMonthKey),
@@ -58,6 +85,7 @@
     });
     incomeAmount = '';
     incomeNote = '';
+    incomeTouched = false;
     closeModal();
   }
 </script>
@@ -169,12 +197,22 @@
   <form on:submit|preventDefault={handleAddIncome} class="space-y-4">
     <div>
       <label class="label">Amount</label>
-      <input
-        type="text"
-        bind:value={incomeAmount}
-        class="mt-1.5 input-base"
-        placeholder="0.00"
-      />
+      <div class="relative mt-1.5">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          bind:value={incomeAmount}
+          on:input={() => incomeTouched = true}
+          class="input-base pl-7 {incomeError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
+          placeholder="0.00"
+        />
+      </div>
+      {#if incomeError}
+        <p class="mt-1 text-sm text-danger">{incomeError}</p>
+      {:else if incomePreview !== null}
+        <p class="mt-1 text-sm text-muted">= ${incomePreview.toFixed(2)}</p>
+      {/if}
     </div>
     <div>
       <label class="label">Note (optional)</label>
@@ -184,7 +222,7 @@
         class="mt-1.5 input-base"
       />
     </div>
-    <button type="submit" class="w-full btn-primary">
+    <button type="submit" disabled={!incomeCanSubmit} class="w-full btn-primary">
       Add Income
     </button>
   </form>
@@ -234,21 +272,36 @@
     </div>
     <div>
       <label class="label">Target Amount</label>
-      <input
-        type="text"
-        bind:value={goalTargetAmount}
-        class="mt-1.5 input-base"
-        placeholder="1000.00"
-      />
+      <div class="relative mt-1.5">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          bind:value={goalTargetAmount}
+          on:input={() => goalAmountTouched = true}
+          class="input-base pl-7 {goalTargetError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
+          placeholder="1000.00"
+        />
+      </div>
+      {#if goalTargetError}
+        <p class="mt-1 text-sm text-danger">{goalTargetError}</p>
+      {/if}
     </div>
     <div>
       <label class="label">Starting Balance (optional)</label>
-      <input
-        type="text"
-        bind:value={goalStartingBalance}
-        class="mt-1.5 input-base"
-        placeholder="0.00"
-      />
+      <div class="relative mt-1.5">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          bind:value={goalStartingBalance}
+          class="input-base pl-7 {goalBalanceError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
+          placeholder="0.00"
+        />
+      </div>
+      {#if goalBalanceError}
+        <p class="mt-1 text-sm text-danger">{goalBalanceError}</p>
+      {/if}
     </div>
     <div>
       <label class="label mb-2">Goal Mode</label>
@@ -275,15 +328,23 @@
     {:else}
       <div>
         <label class="label">Monthly Contribution</label>
-        <input
-          type="text"
-          bind:value={goalMonthlyContribution}
-          class="mt-1.5 input-base"
-          placeholder="100.00"
-        />
+        <div class="relative mt-1.5">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+          <input
+            type="text"
+            inputmode="decimal"
+            bind:value={goalMonthlyContribution}
+            on:input={() => goalContribTouched = true}
+            class="input-base pl-7 {goalContribError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
+            placeholder="100.00"
+          />
+        </div>
+        {#if goalContribError}
+          <p class="mt-1 text-sm text-danger">{goalContribError}</p>
+        {/if}
       </div>
     {/if}
-    <button type="submit" class="w-full btn-primary">
+    <button type="submit" disabled={!goalCanSubmit} class="w-full btn-primary">
       Create Goal
     </button>
   </form>
