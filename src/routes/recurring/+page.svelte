@@ -2,7 +2,7 @@
 <script lang="ts">
   import { recurringTransactions, addRecurring, updateRecurring, deleteRecurring, toggleRecurring } from '$lib/stores/recurringStore';
   import { buckets } from '$lib/stores/budgetStore';
-  import { formatCurrency, parseCurrency } from '$lib/utils/currency';
+  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
   import { formatDate } from '$lib/utils/dates';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
@@ -12,16 +12,35 @@
   let amount = '';
   let bucketId = '';
   let frequency: RecurringTransaction['frequency'] = 'monthly';
-  let nextDueDate = new Date().toISOString().split('T')[0];
+  let nextDueDate = formatLocalDate(new Date());
   let note = '';
+  let amountTouched = false;
+
+  function formatLocalDate(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  $: amountError = amountTouched && amount && !isValidCurrency(amount)
+    ? 'Please enter a valid amount (e.g. 12.50, -5, or 10 + 5.25)'
+    : '';
+
+  $: canSubmit = !!amount && !!bucketId && !amountError && isValidCurrency(amount);
+
+  $: showPreview = isExpression(amount) && isValidCurrency(amount);
+  $: previewValue = showPreview ? evaluateExpression(amount) : null;
+
+  function handleAmountInput() {
+    amountTouched = true;
+  }
 
   function resetForm() {
     editingId = null;
     amount = '';
     bucketId = '';
     frequency = 'monthly';
-    nextDueDate = new Date().toISOString().split('T')[0];
+    nextDueDate = formatLocalDate(new Date());
     note = '';
+    amountTouched = false;
   }
 
   function handleAdd() {
@@ -34,13 +53,14 @@
     amount = (rec.amount / 100).toFixed(2);
     bucketId = rec.bucketId;
     frequency = rec.frequency;
-    nextDueDate = new Date(rec.nextDueDate).toISOString().split('T')[0];
+    nextDueDate = formatLocalDate(new Date(rec.nextDueDate));
     note = rec.note || '';
     openModal('recurring-form');
   }
 
   async function handleSubmit() {
-    if (!amount || !bucketId) return;
+    amountTouched = true;
+    if (!canSubmit) return;
 
     const data = {
       amount: parseCurrency(amount),
@@ -133,7 +153,23 @@
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount</label>
-      <input type="text" bind:value={amount} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" required />
+      <div class="relative mt-1">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          bind:value={amount}
+          on:input={handleAmountInput}
+          placeholder="0.00"
+          class="w-full rounded-lg border bg-white py-2 pl-7 pr-3 focus:outline-none focus:ring-1 dark:bg-gray-800 dark:text-gray-100 {amountError ? 'border-danger focus:border-danger focus:ring-danger' : 'border-gray-300 focus:border-primary focus:ring-primary dark:border-border-dark'}"
+          required
+        />
+      </div>
+      {#if amountError}
+        <p class="mt-1 text-sm text-danger">{amountError}</p>
+      {:else if showPreview && previewValue !== null}
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= ${previewValue.toFixed(2)}</p>
+      {/if}
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Bucket</label>
@@ -160,7 +196,11 @@
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Note (optional)</label>
       <input type="text" bind:value={note} class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-border-dark dark:bg-gray-800 dark:text-gray-100" />
     </div>
-    <button type="submit" class="w-full rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-600">
+    <button
+      type="submit"
+      disabled={!canSubmit}
+      class="w-full rounded-lg bg-primary px-4 py-2 text-white transition hover:bg-blue-600 disabled:opacity-50"
+    >
       {editingId ? 'Update' : 'Add'} Recurring
     </button>
   </form>
