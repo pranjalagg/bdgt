@@ -9,9 +9,18 @@
   export let labels: string[];
   export let datasets: { label: string; data: number[]; color: string }[];
 
+  function withAlpha(hex: string, alpha: string): string {
+    if (hex.length === 4) {
+      const r = hex[1], g = hex[2], b = hex[3];
+      return `#${r}${r}${g}${g}${b}${b}${alpha}`;
+    }
+    return hex + alpha;
+  }
+
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
   let unsubscribe: (() => void) | null = null;
+  let currentTheme = 'light';
 
   function getThemeColors(theme: string) {
     const isDark = theme === 'dark';
@@ -29,20 +38,7 @@
       type: 'line',
       data: {
         labels,
-        datasets: datasets.map((ds) => ({
-          label: ds.label,
-          data: ds.data,
-          borderColor: ds.color,
-          backgroundColor: ds.color + '15',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: ds.color,
-          pointBorderColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
-          pointBorderWidth: 2,
-          borderWidth: 2.5,
-        })),
+        datasets: buildDatasets(theme),
       },
       options: {
         responsive: true,
@@ -79,27 +75,33 @@
     });
   }
 
-  $: if (chart && labels && datasets) {
-    chart.data.labels = labels;
-    chart.data.datasets = datasets.map((ds) => ({
+  function buildDatasets(theme: string) {
+    const borderClr = theme === 'dark' ? '#1e1e2e' : '#ffffff';
+    return datasets.map((ds) => ({
       label: ds.label,
       data: ds.data,
       borderColor: ds.color,
-      backgroundColor: ds.color + '15',
+      backgroundColor: withAlpha(ds.color, '15'),
       fill: true,
       tension: 0.4,
       pointRadius: 4,
       pointHoverRadius: 6,
       pointBackgroundColor: ds.color,
-      pointBorderColor: '#ffffff',
+      pointBorderColor: borderClr,
       pointBorderWidth: 2,
       borderWidth: 2.5,
     }));
+  }
+
+  $: if (chart && labels && datasets) {
+    chart.data.labels = labels;
+    chart.data.datasets = buildDatasets(currentTheme);
     chart.update();
   }
 
   onMount(() => {
     unsubscribe = resolvedTheme.subscribe((theme) => {
+      currentTheme = theme;
       if (canvas) createChart(theme);
     });
   });

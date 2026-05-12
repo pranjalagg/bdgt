@@ -34,7 +34,7 @@
   $: goalTargetError = goalAmountTouched && goalTargetAmount && !isValidCurrency(goalTargetAmount)
     ? 'Please enter a valid amount'
     : '';
-  $: goalBalanceError = goalStartingBalance && !isValidCurrency(goalStartingBalance) && evaluateExpression(goalStartingBalance) === null
+  $: goalBalanceError = goalStartingBalance && evaluateExpression(goalStartingBalance) === null
     ? 'Please enter a valid amount'
     : '';
   $: goalContribError = goalContribTouched && goalMonthlyContribution && !isValidCurrency(goalMonthlyContribution)

@@ -11,19 +11,20 @@
   let thresholdInput = '500';
   let bigDonutChart: DonutChart;
   let smallDonutChart: DonutChart;
-  let hiddenBig: Record<number, boolean> = {};
-  let hiddenSmall: Record<number, boolean> = {};
+  let hiddenBig: Record<string, boolean> = {};
+  let hiddenSmall: Record<string, boolean> = {};
 
-  function toggleBig(index: number) {
+  $: { bigPurchases; hiddenBig = {}; }
+  $: { smallPurchases; hiddenSmall = {}; }
+
+  function toggleBig(bucketId: string, index: number) {
     bigDonutChart?.toggleVisibility(index);
-    hiddenBig[index] = !hiddenBig[index];
-    hiddenBig = hiddenBig;
+    hiddenBig = { ...hiddenBig, [bucketId]: !hiddenBig[bucketId] };
   }
 
-  function toggleSmall(index: number) {
+  function toggleSmall(bucketId: string, index: number) {
     smallDonutChart?.toggleVisibility(index);
-    hiddenSmall[index] = !hiddenSmall[index];
-    hiddenSmall = hiddenSmall;
+    hiddenSmall = { ...hiddenSmall, [bucketId]: !hiddenSmall[bucketId] };
   }
 
   $: thresholdCents = (() => {
@@ -164,11 +165,11 @@
                   {@const pct = bigTotal > 0 ? ((cat.cents / bigTotal) * 100).toFixed(1) : '0.0'}
                   <button
                     class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                    class:opacity-40={hiddenBig[i]}
-                    on:click={() => toggleBig(i)}
+                    class:opacity-40={hiddenBig[cat.bucketId]}
+                    on:click={() => toggleBig(cat.bucketId, i)}
                   >
-                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenBig[i]}></span>
-                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenBig[i]}>{cat.label}</span>
+                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenBig[cat.bucketId]}></span>
+                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenBig[cat.bucketId]}>{cat.label}</span>
                     <span class="text-sm tabular-nums text-muted">
                       {formatCurrency(cat.cents)} ({pct}%)
                     </span>
@@ -191,11 +192,11 @@
                   {@const pct = smallTotal > 0 ? ((cat.cents / smallTotal) * 100).toFixed(1) : '0.0'}
                   <button
                     class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                    class:opacity-40={hiddenSmall[i]}
-                    on:click={() => toggleSmall(i)}
+                    class:opacity-40={hiddenSmall[cat.bucketId]}
+                    on:click={() => toggleSmall(cat.bucketId, i)}
                   >
-                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenSmall[i]}></span>
-                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenSmall[i]}>{cat.label}</span>
+                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenSmall[cat.bucketId]}></span>
+                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenSmall[cat.bucketId]}>{cat.label}</span>
                     <span class="text-sm tabular-nums text-muted">
                       {formatCurrency(cat.cents)} ({pct}%)
                     </span>

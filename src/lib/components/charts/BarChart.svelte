@@ -9,6 +9,14 @@
   export let labels: string[];
   export let datasets: { label: string; data: number[]; color: string }[];
 
+  function withAlpha(hex: string, alpha: string): string {
+    if (hex.length === 4) {
+      const r = hex[1], g = hex[2], b = hex[3];
+      return `#${r}${r}${g}${g}${b}${b}${alpha}`;
+    }
+    return hex + alpha;
+  }
+
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
   let unsubscribe: (() => void) | null = null;
@@ -31,7 +39,7 @@
         datasets: datasets.map((ds) => ({
           label: ds.label,
           data: ds.data,
-          backgroundColor: ds.color + '30',
+          backgroundColor: withAlpha(ds.color, '30'),
           borderColor: ds.color,
           borderWidth: 1.5,
           borderRadius: 6,
@@ -73,7 +81,7 @@
     chart.data.datasets = datasets.map((ds) => ({
       label: ds.label,
       data: ds.data,
-      backgroundColor: ds.color + '30',
+      backgroundColor: withAlpha(ds.color, '30'),
       borderColor: ds.color,
       borderWidth: 1.5,
       borderRadius: 6,

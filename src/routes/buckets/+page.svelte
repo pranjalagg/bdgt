@@ -1,6 +1,6 @@
 <script lang="ts">
   import { buckets, bucketStatuses, addBucket, updateBucket, deleteBucket, setAllocation, updateBucketAllocation, totalPercentage, computedAllocations } from '$lib/stores/budgetStore';
-  import { formatCurrency, parseCurrency, evaluateExpression } from '$lib/utils/currency';
+  import { formatCurrency, evaluateExpression } from '$lib/utils/currency';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
@@ -68,7 +68,7 @@
       return;
     }
     inputEl.classList.remove('!border-danger');
-    const cents = parseCurrency(value);
+    const cents = Math.round(parsed * 100);
     await setAllocation(bucketId, cents);
   }
 
