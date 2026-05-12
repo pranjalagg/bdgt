@@ -17,9 +17,9 @@
   $: isCurrentMonth = $currentMonthKey === getCurrentMonthKey();
 </script>
 
-<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-1 py-1 dark:border-border-dark dark:bg-surface-dark">
   <button
-    class="rounded p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+    class="btn-icon rounded-md p-1.5"
     on:click={goToPrevious}
     aria-label="Previous month"
   >
@@ -29,7 +29,7 @@
   </button>
 
   <button
-    class="min-w-[140px] rounded px-3 py-1 text-center font-medium text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
+    class="min-w-[140px] rounded-md px-3 py-1 text-center text-sm font-semibold text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
     on:click={goToCurrent}
     title="Go to current month"
   >
@@ -37,7 +37,7 @@
   </button>
 
   <button
-    class="rounded p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800"
+    class="btn-icon rounded-md p-1.5 disabled:opacity-50"
     on:click={goToNext}
     disabled={isCurrentMonth}
     aria-label="Next month"

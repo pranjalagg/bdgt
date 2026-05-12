@@ -5,10 +5,10 @@
   export let status: GoalStatusInfo;
   export let onClick: (() => void) | undefined = undefined;
 
-  $: statusColor = {
-    completed: 'text-success',
-    'on-track': 'text-success',
-    behind: 'text-warning',
+  $: statusStyle = {
+    completed: 'bg-success/10 text-success',
+    'on-track': 'bg-success/10 text-success',
+    behind: 'bg-warning/10 text-warning',
   }[status.status];
 
   $: statusLabel = {
@@ -24,37 +24,37 @@
 </script>
 
 <button
-  class="w-full rounded-lg bg-white dark:bg-surface-dark p-4 text-left shadow transition hover:shadow-md"
+  class="card w-full p-5 text-left transition-all hover:border-primary/30 hover:shadow-sm"
   on:click={onClick}
   type="button"
 >
-  <div class="mb-2 flex items-center justify-between">
-    <div class="flex items-center gap-2">
+  <div class="mb-3 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
       {#if status.bucket}
-        <span class="h-3 w-3 rounded-full" style="background-color: {status.bucket.color}" />
+        <span class="h-3.5 w-3.5 rounded-full ring-2 ring-white dark:ring-surface-dark" style="background-color: {status.bucket.color}"></span>
       {/if}
-      <h3 class="font-medium text-gray-800 dark:text-gray-100">{status.goal.name}</h3>
+      <h3 class="font-semibold text-gray-800 dark:text-gray-100">{status.goal.name}</h3>
     </div>
-    <span class="text-sm font-medium {statusColor}">{statusLabel}</span>
+    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {statusStyle}">{statusLabel}</span>
   </div>
 
-  <div class="mb-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-    <div class="h-full rounded-full bg-primary transition-all" style="width: {status.progress * 100}%" />
+  <div class="mb-3 h-2.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/50">
+    <div class="h-full rounded-full bg-primary transition-all duration-300" style="width: {status.progress * 100}%"></div>
   </div>
 
   <div class="flex justify-between text-sm">
     <div>
-      <p class="text-gray-500 dark:text-gray-400">Saved</p>
-      <p class="font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(status.currentAmount)}</p>
+      <p class="metric-label">Saved</p>
+      <p class="font-semibold tabular-nums text-gray-800 dark:text-gray-100">{formatCurrency(status.currentAmount)}</p>
     </div>
     <div class="text-right">
-      <p class="text-gray-500 dark:text-gray-400">Target</p>
-      <p class="text-gray-700 dark:text-gray-300">{formatCurrency(status.goal.targetAmount)}</p>
+      <p class="metric-label">Target</p>
+      <p class="tabular-nums text-gray-700 dark:text-gray-300">{formatCurrency(status.goal.targetAmount)}</p>
     </div>
   </div>
 
   {#if status.status !== 'completed'}
-    <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+    <div class="mt-2.5 text-xs text-muted">
       {#if status.goal.targetDate}
         Need {formatCurrency(status.monthlyNeeded)}/month to reach goal by {formatDate(status.goal.targetDate)}
       {:else if status.projectedDate}

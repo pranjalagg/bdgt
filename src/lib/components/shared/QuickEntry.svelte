@@ -53,7 +53,7 @@
 
 <form on:submit|preventDefault={handleSubmit} class="space-y-3">
   <div>
-    <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount</label>
+    <label for="amount" class="label">Amount</label>
     <div class="relative mt-1">
       <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
       <input
@@ -63,7 +63,7 @@
         bind:value={amount}
         on:input={handleAmountInput}
         placeholder="0.00"
-        class="w-full rounded-lg border bg-white py-2 pl-7 pr-3 focus:outline-none focus:ring-1 dark:bg-gray-800 dark:text-gray-100 {amountError ? 'border-danger focus:border-danger focus:ring-danger' : 'border-gray-300 focus:border-primary focus:ring-primary dark:border-border-dark'}"
+        class="input-base pl-7 {amountError ? '!border-danger focus:!border-danger focus:!ring-danger' : ''}"
         required
       />
     </div>
@@ -75,11 +75,11 @@
   </div>
 
   <div>
-    <label for="bucket" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Bucket</label>
+    <label for="bucket" class="label">Bucket</label>
     <select
       id="bucket"
       bind:value={bucketId}
-      class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+      class="mt-1 select-base"
       required
     >
       <option value="">Select a bucket</option>
@@ -90,20 +90,20 @@
   </div>
 
   <div>
-    <label for="note" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Note (optional)</label>
+    <label for="note" class="label">Note (optional)</label>
     <input
       id="note"
       type="text"
       bind:value={note}
       placeholder="Add a note..."
-      class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border-dark dark:bg-gray-800 dark:text-gray-100"
+      class="mt-1 input-base"
     />
   </div>
 
   <button
     type="submit"
     disabled={isSubmitting || !canSubmit}
-    class="w-full rounded-lg bg-primary px-4 py-2 font-medium text-white transition hover:bg-blue-600 disabled:opacity-50"
+    class="w-full btn-primary"
   >
     {isSubmitting ? 'Adding...' : 'Add Transaction'}
   </button>

@@ -24,16 +24,16 @@
 </script>
 
 <div class="w-full">
-  <div class="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+  <div class="h-2.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/50">
     {#if percentage > 0}
       <div
-        class="h-full transition-all duration-300 {colorClass}"
+        class="h-full rounded-full transition-all duration-300 {colorClass}"
         style="width: {percentage}%"
-      />
+      ></div>
     {/if}
   </div>
   {#if showLabel}
-    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+    <p class="mt-1 text-xs text-muted">
       {labelText}
     </p>
   {/if}

@@ -19,14 +19,14 @@
   }
 </script>
 
-<div class="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm dark:bg-surface-dark">
+<div class="flex items-center justify-between rounded-lg border border-gray-100 bg-white p-3.5 transition-colors hover:border-gray-200 dark:border-border-dark dark:bg-surface-dark dark:hover:border-gray-600">
   <div class="flex items-center gap-3">
     {#if showBucket && bucket}
-      <span class="h-2 w-2 rounded-full" style="background-color: {bucket.color}" />
+      <span class="h-2.5 w-2.5 rounded-full" style="background-color: {bucket.color}"></span>
     {/if}
     <div>
-      <p class="font-medium text-gray-800 dark:text-gray-100">{formatCurrency(transaction.amount)}</p>
-      <p class="text-sm text-gray-500 dark:text-gray-400">
+      <p class="font-semibold tabular-nums text-gray-800 dark:text-gray-100">{formatCurrency(transaction.amount)}</p>
+      <p class="text-sm text-muted dark:text-gray-400">
         {formatDate(new Date(transaction.date))}
         {#if transaction.note}
           &middot; {transaction.note}
@@ -37,11 +37,11 @@
 
   <div class="flex items-center gap-2">
     {#if showBucket && bucket}
-      <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">{bucket.name}</span>
+      <span class="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700/50 dark:text-gray-300">{bucket.name}</span>
     {/if}
     {#if onEdit}
       <button
-        class="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-primary dark:hover:bg-blue-900/30"
+        class="btn-icon !p-1.5"
         on:click={() => onEdit?.(transaction)}
         aria-label="Edit transaction"
       >
@@ -51,7 +51,7 @@
       </button>
     {/if}
     <button
-      class="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-danger disabled:opacity-50 dark:hover:bg-red-900/30"
+      class="btn-icon !p-1.5 hover:!bg-red-50 hover:!text-danger dark:hover:!bg-red-900/30"
       on:click={handleDelete}
       disabled={isDeleting}
       aria-label="Delete transaction"
