@@ -6,8 +6,12 @@
 
   export let status: BucketStatus;
   export let onClick: (() => void) | undefined = undefined;
+  export let fixedIncome: number = 0;
 
   $: ({ bucket, allocated, spent, rollover, remaining } = status);
+  $: incomePercent = fixedIncome > 0 && spent > 0
+    ? (Math.max(spent, 0) / fixedIncome * 100).toFixed(1)
+    : null;
   $: budgetStatus = getBucketStatus(allocated, spent);
   $: remainingColor = {
     success: 'text-success',
@@ -44,6 +48,9 @@
   <div class="mt-3">
     <p class="metric-label">Remaining</p>
     <p class="font-semibold tabular-nums {remainingColor}">{formatCurrency(remaining)}</p>
+    {#if incomePercent}
+      <p class="mt-0.5 text-xs text-muted">{incomePercent}% of fixed income</p>
+    {/if}
   </div>
 
   {#if rollover !== 0}

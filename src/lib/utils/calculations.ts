@@ -50,3 +50,18 @@ export function computeAllocation(bucket: Bucket, totalIncome: number): number {
 export function getTotalPercentage(buckets: Bucket[]): number {
   return buckets.reduce((sum, b) => sum + (b.percentageAmount || 0), 0);
 }
+
+import type { Income } from '$lib/types';
+
+export function filterFixedIncome(incomes: Income[]): Income[] {
+  return incomes.filter((i) => i.type === 'fixed');
+}
+
+export function sumIncome(incomes: Income[]): number {
+  return incomes.reduce((sum, i) => sum + i.amount, 0);
+}
+
+export function incomePercentage(spent: number, fixedIncome: number): number | null {
+  if (fixedIncome <= 0 || spent <= 0) return null;
+  return Math.round((spent / fixedIncome) * 1000) / 10;
+}

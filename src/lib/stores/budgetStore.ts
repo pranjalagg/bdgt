@@ -56,6 +56,10 @@ export const currentMonthIncome = derived(currentMonthIncomes, ($incomes) =>
   $incomes.reduce((sum, i) => sum + i.amount, 0)
 );
 
+export const currentMonthFixedIncome = derived(currentMonthIncomes, ($incomes) =>
+  $incomes.filter((i) => i.type === 'fixed').reduce((sum, i) => sum + i.amount, 0)
+);
+
 export const currentSnapshot = derived(
   [monthSnapshots, currentMonthKey],
   ([$snapshots, $month]) =>

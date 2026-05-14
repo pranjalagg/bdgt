@@ -3,8 +3,12 @@ import {
   calculateUnallocated,
   calculateBucketRemaining,
   getBucketStatus,
-  calculateTotalSpent
+  calculateTotalSpent,
+  filterFixedIncome,
+  sumIncome,
+  incomePercentage
 } from '$lib/utils/calculations';
+import type { Income } from '$lib/types';
 
 describe('budget calculations', () => {
   describe('calculateUnallocated', () => {
@@ -85,6 +89,99 @@ describe('budget calculations', () => {
 
     it('returns 0 for empty', () => {
       expect(calculateTotalSpent({})).toBe(0);
+    });
+  });
+
+  describe('filterFixedIncome', () => {
+    const makeIncome = (amount: number, type: 'fixed' | 'one-time'): Income => ({
+      id: crypto.randomUUID(),
+      amount,
+      date: new Date(),
+      isRecurring: false,
+      type,
+    });
+
+    it('filters only fixed income entries', () => {
+      const incomes = [
+        makeIncome(500000, 'fixed'),
+        makeIncome(100000, 'one-time'),
+        makeIncome(200000, 'fixed'),
+      ];
+      const result = filterFixedIncome(incomes);
+      expect(result).toHaveLength(2);
+      expect(result.every((i) => i.type === 'fixed')).toBe(true);
+    });
+
+    it('returns empty array when no fixed income', () => {
+      const incomes = [makeIncome(100000, 'one-time')];
+      expect(filterFixedIncome(incomes)).toHaveLength(0);
+    });
+
+    it('returns all when all are fixed', () => {
+      const incomes = [makeIncome(300000, 'fixed'), makeIncome(200000, 'fixed')];
+      expect(filterFixedIncome(incomes)).toHaveLength(2);
+    });
+
+    it('handles empty array', () => {
+      expect(filterFixedIncome([])).toHaveLength(0);
+    });
+
+    it('handles incomes without type field as non-fixed', () => {
+      const legacy = { id: '1', amount: 100000, date: new Date(), isRecurring: false } as Income;
+      expect(filterFixedIncome([legacy])).toHaveLength(0);
+    });
+  });
+
+  describe('sumIncome', () => {
+    const makeIncome = (amount: number, type: 'fixed' | 'one-time'): Income => ({
+      id: crypto.randomUUID(),
+      amount,
+      date: new Date(),
+      isRecurring: false,
+      type,
+    });
+
+    it('sums all income amounts', () => {
+      const incomes = [makeIncome(500000, 'fixed'), makeIncome(100000, 'one-time')];
+      expect(sumIncome(incomes)).toBe(600000);
+    });
+
+    it('returns 0 for empty array', () => {
+      expect(sumIncome([])).toBe(0);
+    });
+  });
+
+  describe('incomePercentage', () => {
+    it('calculates percentage of fixed income', () => {
+      expect(incomePercentage(30000, 500000)).toBe(6);
+    });
+
+    it('returns null when fixed income is 0', () => {
+      expect(incomePercentage(30000, 0)).toBeNull();
+    });
+
+    it('returns null when spent is 0', () => {
+      expect(incomePercentage(0, 500000)).toBeNull();
+    });
+
+    it('returns null when both are 0', () => {
+      expect(incomePercentage(0, 0)).toBeNull();
+    });
+
+    it('returns null for negative income', () => {
+      expect(incomePercentage(10000, -5000)).toBeNull();
+    });
+
+    it('returns null for negative spent', () => {
+      expect(incomePercentage(-5000, 500000)).toBeNull();
+    });
+
+    it('handles percentage over 100', () => {
+      expect(incomePercentage(600000, 500000)).toBe(120);
+    });
+
+    it('rounds to one decimal place', () => {
+      expect(incomePercentage(33333, 500000)).toBe(6.7);
     });
   });
 });

@@ -44,6 +44,11 @@ export async function importFromJson(json: string): Promise<void> {
     throw new Error('Unsupported backup version');
   }
 
+  const incomesWithType = data.data.incomes.map((i) => ({
+    ...i,
+    type: i.type || 'fixed',
+  }));
+
   await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals], async () => {
     await db.buckets.clear();
     await db.transactions.clear();
@@ -55,7 +60,7 @@ export async function importFromJson(json: string): Promise<void> {
     await db.buckets.bulkAdd(data.data.buckets);
     await db.transactions.bulkAdd(data.data.transactions);
     await db.recurringTransactions.bulkAdd(data.data.recurringTransactions);
-    await db.incomes.bulkAdd(data.data.incomes);
+    await db.incomes.bulkAdd(incomesWithType);
     await db.monthSnapshots.bulkAdd(data.data.monthSnapshots);
     if (data.data.savingsGoals) {
       await db.savingsGoals.bulkAdd(data.data.savingsGoals);

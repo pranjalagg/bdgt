@@ -34,6 +34,19 @@ export class BudgetDatabase extends Dexie {
         bucket.percentageAmount = 0;
       });
     });
+
+    this.version(3).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      monthSnapshots: 'month',
+      savingsGoals: 'id, bucketId'
+    }).upgrade(tx => {
+      return tx.table('incomes').toCollection().modify(income => {
+        if (!income.type) income.type = 'fixed';
+      });
+    });
   }
 }
 

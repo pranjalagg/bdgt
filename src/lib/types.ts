@@ -2,12 +2,15 @@
 
 export type AllocationType = 'fixed' | 'percentage' | 'hybrid';
 
+export type IncomeType = 'fixed' | 'one-time';
+
 export interface Income {
   id: string;
   amount: number; // cents
   date: Date;
   note?: string;
   isRecurring: boolean;
+  type: IncomeType;
 }
 
 export interface Bucket {

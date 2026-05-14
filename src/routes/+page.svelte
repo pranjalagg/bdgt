@@ -4,7 +4,8 @@
   import QuickEntry from '$lib/components/shared/QuickEntry.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
-  import { bucketStatuses, currentMonthIncome, currentMonthIncomes, unallocated, addIncome, deleteIncome, buckets } from '$lib/stores/budgetStore';
+  import { bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, deleteIncome, buckets } from '$lib/stores/budgetStore';
+  import type { IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, openModal, closeModal } from '$lib/stores/uiStore';
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
@@ -13,6 +14,7 @@
   let selectedBucketId: string | undefined;
   let incomeAmount = '';
   let incomeNote = '';
+  let incomeType: IncomeType = 'fixed';
   let incomeTouched = false;
 
   let goalName = '';
@@ -82,9 +84,11 @@
       date: parseMonthKey($currentMonthKey),
       note: incomeNote || undefined,
       isRecurring: false,
+      type: incomeType,
     });
     incomeAmount = '';
     incomeNote = '';
+    incomeType = 'fixed';
     incomeTouched = false;
     closeModal();
   }
@@ -154,7 +158,7 @@
   <!-- Bucket Grid -->
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {#each $bucketStatuses as status}
-      <BucketCard {status} onClick={() => handleBucketClick(status.bucket.id)} />
+      <BucketCard {status} fixedIncome={$currentMonthFixedIncome} onClick={() => handleBucketClick(status.bucket.id)} />
     {/each}
   </div>
 
@@ -196,6 +200,21 @@
 <Modal id="income" title="Manage Income">
   <form on:submit|preventDefault={handleAddIncome} class="space-y-4">
     <div>
+      <label class="label mb-1.5">Type</label>
+      <div class="flex rounded-lg border border-gray-200 dark:border-border-dark p-0.5">
+        <button
+          type="button"
+          class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors {incomeType === 'fixed' ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}"
+          on:click={() => incomeType = 'fixed'}
+        >Fixed</button>
+        <button
+          type="button"
+          class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors {incomeType === 'one-time' ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}"
+          on:click={() => incomeType = 'one-time'}
+        >One-time</button>
+      </div>
+    </div>
+    <div>
       <label class="label">Amount</label>
       <div class="relative mt-1.5">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
@@ -234,7 +253,12 @@
         {#each $currentMonthIncomes as income}
           <div class="flex items-center justify-between rounded-lg border border-gray-100 p-3 dark:border-border-dark">
             <div>
-              <p class="font-semibold tabular-nums dark:text-gray-100">{formatCurrency(income.amount)}</p>
+              <div class="flex items-center gap-2">
+                <p class="font-semibold tabular-nums dark:text-gray-100">{formatCurrency(income.amount)}</p>
+                <span class="rounded-full px-2 py-0.5 text-[10px] font-medium {income.type === 'fixed' ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning'}">
+                  {income.type === 'fixed' ? 'Fixed' : 'One-time'}
+                </span>
+              </div>
               {#if income.note}<p class="text-sm text-muted">{income.note}</p>{/if}
             </div>
             <button

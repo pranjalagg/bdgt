@@ -4,7 +4,7 @@
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
-  import { bucketStatuses, transactions, incomes, currentMonthIncome } from '$lib/stores/budgetStore';
+  import { bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome } from '$lib/stores/budgetStore';
   import { centsToDollars, formatCurrency, dollarsToCents } from '$lib/utils/currency';
   import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange } from '$lib/utils/dates';
 
@@ -97,10 +97,17 @@
   </div>
 
   <!-- Monthly Summary -->
-  <div class="grid gap-4 sm:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <div class="card p-5">
-      <p class="metric-label">Income</p>
+      <p class="metric-label">Fixed Income</p>
+      <p class="metric-value text-success">{formatCurrency($currentMonthFixedIncome)}</p>
+    </div>
+    <div class="card p-5">
+      <p class="metric-label">Total Income</p>
       <p class="metric-value text-success">{formatCurrency($currentMonthIncome)}</p>
+      {#if $currentMonthIncome !== $currentMonthFixedIncome}
+        <p class="mt-0.5 text-xs text-muted">{formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} one-time</p>
+      {/if}
     </div>
     <div class="card p-5">
       <p class="metric-label">Total Spent</p>
@@ -163,6 +170,7 @@
               <div class="mt-3 space-y-1">
                 {#each bigPurchases as cat, i (cat.bucketId)}
                   {@const pct = bigTotal > 0 ? ((cat.cents / bigTotal) * 100).toFixed(1) : '0.0'}
+                  {@const incomePct = $currentMonthFixedIncome > 0 ? ((cat.cents / $currentMonthFixedIncome) * 100).toFixed(1) : null}
                   <button
                     class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     class:opacity-40={hiddenBig[cat.bucketId]}
@@ -170,8 +178,8 @@
                   >
                     <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenBig[cat.bucketId]}></span>
                     <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenBig[cat.bucketId]}>{cat.label}</span>
-                    <span class="text-sm tabular-nums text-muted">
-                      {formatCurrency(cat.cents)} ({pct}%)
+                    <span class="text-right text-sm tabular-nums text-muted">
+                      {formatCurrency(cat.cents)} ({pct}%){#if incomePct} <span class="text-xs text-primary">{incomePct}% inc</span>{/if}
                     </span>
                   </button>
                 {/each}
@@ -190,6 +198,7 @@
               <div class="mt-3 space-y-1">
                 {#each smallPurchases as cat, i (cat.bucketId)}
                   {@const pct = smallTotal > 0 ? ((cat.cents / smallTotal) * 100).toFixed(1) : '0.0'}
+                  {@const incomePct = $currentMonthFixedIncome > 0 ? ((cat.cents / $currentMonthFixedIncome) * 100).toFixed(1) : null}
                   <button
                     class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     class:opacity-40={hiddenSmall[cat.bucketId]}
@@ -197,8 +206,8 @@
                   >
                     <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenSmall[cat.bucketId]}></span>
                     <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenSmall[cat.bucketId]}>{cat.label}</span>
-                    <span class="text-sm tabular-nums text-muted">
-                      {formatCurrency(cat.cents)} ({pct}%)
+                    <span class="text-right text-sm tabular-nums text-muted">
+                      {formatCurrency(cat.cents)} ({pct}%){#if incomePct} <span class="text-xs text-primary">{incomePct}% inc</span>{/if}
                     </span>
                   </button>
                 {/each}
