@@ -97,16 +97,21 @@
   </div>
 
   <!-- Monthly Summary -->
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="card p-5">
-      <p class="metric-label">Fixed Income</p>
-      <p class="metric-value text-success">{formatCurrency($currentMonthFixedIncome)}</p>
-    </div>
+  <div class="grid gap-4 sm:grid-cols-3">
     <div class="card p-5">
       <p class="metric-label">Total Income</p>
       <p class="metric-value text-success">{formatCurrency($currentMonthIncome)}</p>
-      {#if $currentMonthIncome !== $currentMonthFixedIncome}
-        <p class="mt-0.5 text-xs text-muted">{formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} one-time</p>
+      {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
+        <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
+          <span class="flex items-center gap-1">
+            <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+            {formatCurrency($currentMonthFixedIncome)} fixed
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
+            {formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} one-time
+          </span>
+        </div>
       {/if}
     </div>
     <div class="card p-5">
