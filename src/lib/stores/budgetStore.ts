@@ -159,6 +159,11 @@ export async function addIncome(income: Omit<Income, 'id'>): Promise<string> {
   return id;
 }
 
+export async function updateIncome(id: string, updates: Partial<Income>): Promise<void> {
+  await db.incomes.update(id, updates);
+  incomes.update((i) => i.map((inc) => (inc.id === id ? { ...inc, ...updates } : inc)));
+}
+
 export async function deleteIncome(id: string): Promise<void> {
   await db.incomes.delete(id);
   incomes.update((i) => i.filter((inc) => inc.id !== id));
