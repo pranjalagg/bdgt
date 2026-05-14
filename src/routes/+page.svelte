@@ -131,6 +131,18 @@
         <p class="metric-label">Income</p>
       </div>
       <p class="metric-value">{formatCurrency($currentMonthIncome)}</p>
+      {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
+        <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
+          <span class="flex items-center gap-1">
+            <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+            {formatCurrency($currentMonthFixedIncome)} fixed
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
+            {formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} one-time
+          </span>
+        </div>
+      {/if}
     </button>
     <div class="card p-5">
       <div class="mb-1 flex items-center gap-2">
