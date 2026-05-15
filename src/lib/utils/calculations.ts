@@ -70,3 +70,16 @@ export function calculateSavingsRate(income: number, spent: number): number | nu
   if (income <= 0) return null;
   return Math.round(((income - spent) / income) * 1000) / 10;
 }
+
+export function calculateProjectedSpend(
+  spent: number,
+  dayOfMonth: number,
+  daysInMonth: number
+): number {
+  if (dayOfMonth <= 0) return spent;
+  return Math.round((spent / dayOfMonth) * daysInMonth);
+}
+
+export function isProjectionReliable(dayOfMonth: number): boolean {
+  return dayOfMonth >= 7;
+}
