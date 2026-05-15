@@ -212,7 +212,7 @@
   <!-- Bucket Grid -->
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {#each $bucketStatuses as status}
-      <BucketCard {status} fixedIncome={$currentMonthFixedIncome} onClick={() => handleBucketClick(status.bucket.id)} />
+      <BucketCard {status} fixedIncome={$currentMonthFixedIncome} currentMonth={$currentMonthKey} onClick={() => handleBucketClick(status.bucket.id)} />
     {/each}
   </div>
 
