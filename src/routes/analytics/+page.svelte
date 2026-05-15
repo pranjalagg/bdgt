@@ -112,7 +112,7 @@
           </span>
           <span class="flex items-center gap-1">
             <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
-            {formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} one-time
+            {formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} variable
           </span>
         </div>
       {/if}

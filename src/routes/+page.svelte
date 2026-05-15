@@ -149,7 +149,7 @@
           </span>
           <span class="flex items-center gap-1">
             <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
-            {formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} one-time
+            {formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} variable
           </span>
         </div>
       {/if}
@@ -265,7 +265,7 @@
           type="button"
           class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors {incomeType === 'one-time' ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}"
           on:click={() => incomeType = 'one-time'}
-        >One-time</button>
+        >Variable</button>
       </div>
     </div>
     <div>
