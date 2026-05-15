@@ -1,12 +1,14 @@
 <script lang="ts">
   import { formatCurrency } from '$lib/utils/currency';
-  import { getBucketStatus } from '$lib/utils/calculations';
+  import { getBucketStatus, calculateProjectedSpend, isProjectionReliable } from '$lib/utils/calculations';
+  import { getDaysInMonth, getDayOfMonth, getMonthKey } from '$lib/utils/dates';
   import ProgressBar from './ProgressBar.svelte';
   import type { BucketStatus } from '$lib/types';
 
   export let status: BucketStatus;
   export let onClick: (() => void) | undefined = undefined;
   export let fixedIncome: number = 0;
+  export let currentMonth: string = getMonthKey(new Date());
 
   $: ({ bucket, allocated, spent, rollover, remaining } = status);
   $: incomePercent = fixedIncome > 0 && spent > 0
@@ -19,6 +21,12 @@
     danger: 'text-danger',
     credit: 'text-primary',
   }[budgetStatus];
+  $: today = new Date();
+  $: dayOfMonth = getDayOfMonth(today);
+  $: daysInMonth = getDaysInMonth(currentMonth);
+  $: projectedSpend = spent > 0 ? calculateProjectedSpend(spent, dayOfMonth, daysInMonth) : 0;
+  $: isReliable = isProjectionReliable(dayOfMonth);
+  $: projectedOverBudget = projectedSpend > allocated;
 </script>
 
 <button
@@ -36,6 +44,11 @@
     <span class="font-medium text-gray-600 dark:text-gray-300">{formatCurrency(allocated)}</span>
   </div>
   <ProgressBar {allocated} {spent} showLabel={false} />
+  {#if spent > 0 && allocated > 0}
+    <p class="mt-1.5 text-xs {projectedOverBudget ? 'text-danger' : 'text-muted'}">
+      Projected: {isReliable ? '' : '~'}{formatCurrency(projectedSpend)} / {formatCurrency(allocated)}
+    </p>
+  {/if}
 
   {#if spent < 0}
     <div class="mt-2.5 flex items-center gap-1.5">
