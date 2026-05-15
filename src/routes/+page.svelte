@@ -4,7 +4,7 @@
   import QuickEntry from '$lib/components/shared/QuickEntry.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
-  import { bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets } from '$lib/stores/budgetStore';
+  import { bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate } from '$lib/stores/budgetStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, openModal, closeModal } from '$lib/stores/uiStore';
@@ -47,6 +47,16 @@
     && !goalTargetError && isValidCurrency(goalTargetAmount)
     && !goalBalanceError
     && (goalMode !== 'monthly' || (!!goalMonthlyContribution && !goalContribError && isValidCurrency(goalMonthlyContribution)));
+
+  $: savingsRateColor = $savingsRate === null ? 'text-muted'
+    : $savingsRate >= 20 ? 'text-success'
+    : $savingsRate >= 10 ? 'text-warning'
+    : 'text-danger';
+
+  $: savingsRateIconBg = $savingsRate === null ? 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+    : $savingsRate >= 20 ? 'bg-success/10 text-success'
+    : $savingsRate >= 10 ? 'bg-warning/10 text-warning'
+    : 'bg-danger/10 text-danger';
 
   async function handleAddGoal() {
     goalAmountTouched = true;
@@ -122,7 +132,7 @@
   </div>
 
   <!-- Summary Cards -->
-  <div class="grid gap-4 sm:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <button class="card cursor-pointer p-5 text-left transition-all hover:border-primary/30 hover:shadow-sm" on:click={() => openModal('income')}>
       <div class="mb-1 flex items-center gap-2">
         <span class="flex h-6 w-6 items-center justify-center rounded-md bg-success/10 text-success">
@@ -164,6 +174,17 @@
       </div>
       <p class="metric-value" class:text-danger={$unallocated < 0} class:text-warning={$unallocated > 0} class:text-success={$unallocated === 0}>
         {formatCurrency($unallocated)}
+      </p>
+    </div>
+    <div class="card p-5">
+      <div class="mb-1 flex items-center gap-2">
+        <span class="flex h-6 w-6 items-center justify-center rounded-md {savingsRateIconBg}">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </span>
+        <p class="metric-label">Savings Rate</p>
+      </div>
+      <p class="metric-value {savingsRateColor}">
+        {$savingsRate !== null ? `${$savingsRate}%` : '—'}
       </p>
     </div>
   </div>
