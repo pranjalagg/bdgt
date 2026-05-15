@@ -16,7 +16,7 @@ export async function exportToJson(): Promise<string> {
   const data: ExportData = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals },
+    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots: [], investmentSells: [] },
   };
 
   return JSON.stringify(data, null, 2);
@@ -65,6 +65,13 @@ export async function importFromJson(json: string): Promise<void> {
     if (data.data.savingsGoals) {
       await db.savingsGoals.bulkAdd(data.data.savingsGoals);
     }
+    // Investment lots and sells are handled in Task 2 when database tables are added
+    // if (data.data.investmentLots) {
+    //   await db.investmentLots.bulkAdd(data.data.investmentLots);
+    // }
+    // if (data.data.investmentSells) {
+    //   await db.investmentSells.bulkAdd(data.data.investmentSells);
+    // }
   });
 }
 

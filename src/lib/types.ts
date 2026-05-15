@@ -71,6 +71,25 @@ export interface SavingsGoal {
   startingBalance: number;       // cents
 }
 
+export interface InvestmentLot {
+  id: string;
+  symbol: string;
+  shares: number;
+  pricePerShare: number;
+  purchaseDate: Date;
+  note?: string;
+  soldShares: number;
+}
+
+export interface InvestmentSell {
+  id: string;
+  lotId: string;
+  shares: number;
+  pricePerShare: number;
+  sellDate: Date;
+  note?: string;
+}
+
 export type ExportData = {
   version: number;
   exportedAt: string;
@@ -81,5 +100,7 @@ export type ExportData = {
     incomes: Income[];
     monthSnapshots: MonthSnapshot[];
     savingsGoals: SavingsGoal[];
+    investmentLots: InvestmentLot[];
+    investmentSells: InvestmentSell[];
   };
 };
