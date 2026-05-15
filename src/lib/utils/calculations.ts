@@ -65,3 +65,8 @@ export function incomePercentage(spent: number, fixedIncome: number): number | n
   if (fixedIncome <= 0 || spent <= 0) return null;
   return Math.round((spent / fixedIncome) * 1000) / 10;
 }
+
+export function calculateSavingsRate(income: number, spent: number): number | null {
+  if (income <= 0) return null;
+  return Math.round(((income - spent) / income) * 1000) / 10;
+}

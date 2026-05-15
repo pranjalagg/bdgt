@@ -6,7 +6,8 @@ import {
   calculateTotalSpent,
   filterFixedIncome,
   sumIncome,
-  incomePercentage
+  incomePercentage,
+  calculateSavingsRate
 } from '$lib/utils/calculations';
 import type { Income } from '$lib/types';
 
@@ -182,6 +183,32 @@ describe('budget calculations', () => {
 
     it('rounds to one decimal place', () => {
       expect(incomePercentage(33333, 500000)).toBe(6.7);
+    });
+  });
+
+  describe('calculateSavingsRate', () => {
+    it('calculates percentage saved', () => {
+      expect(calculateSavingsRate(100000, 70000)).toBe(30);
+    });
+
+    it('returns one decimal precision', () => {
+      expect(calculateSavingsRate(100000, 66666)).toBe(33.3);
+    });
+
+    it('returns null for zero income', () => {
+      expect(calculateSavingsRate(0, 5000)).toBeNull();
+    });
+
+    it('returns null for negative income', () => {
+      expect(calculateSavingsRate(-10000, 5000)).toBeNull();
+    });
+
+    it('handles overspending (negative rate)', () => {
+      expect(calculateSavingsRate(100000, 120000)).toBe(-20);
+    });
+
+    it('handles zero spending', () => {
+      expect(calculateSavingsRate(100000, 0)).toBe(100);
     });
   });
 });
