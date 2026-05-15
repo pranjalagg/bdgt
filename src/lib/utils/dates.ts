@@ -47,3 +47,22 @@ export function formatMonthYear(monthKey: string): string {
   const date = parseMonthKey(monthKey);
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
+
+export function getLast6Months(currentMonth?: string): string[] {
+  let month = currentMonth || getMonthKey(new Date());
+  const months: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    months.unshift(month);
+    month = getPreviousMonthKey(month);
+  }
+  return months;
+}
+
+export function getDaysInMonth(monthKey: string): number {
+  const date = parseMonthKey(monthKey);
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+}
+
+export function getDayOfMonth(date: Date): number {
+  return date.getDate();
+}

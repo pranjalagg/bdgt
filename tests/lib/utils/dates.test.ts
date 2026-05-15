@@ -7,7 +7,10 @@ import {
   getNextMonthKey,
   formatDate,
   isCurrentMonth,
-  getMonthRange
+  getMonthRange,
+  getLast6Months,
+  getDaysInMonth,
+  getDayOfMonth
 } from '$lib/utils/dates';
 
 describe('date utils', () => {
@@ -55,6 +58,48 @@ describe('date utils', () => {
       const result = formatDate(new Date(2026, 3, 15));
       expect(result).toContain('Apr');
       expect(result).toContain('15');
+    });
+  });
+
+  describe('getLast6Months', () => {
+    it('returns 6 month keys ending with current month', () => {
+      const months = getLast6Months('2026-05');
+      expect(months).toHaveLength(6);
+      expect(months[5]).toBe('2026-05');
+      expect(months[0]).toBe('2025-12');
+    });
+
+    it('handles year boundary', () => {
+      const months = getLast6Months('2026-02');
+      expect(months).toEqual(['2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02']);
+    });
+  });
+
+  describe('getDaysInMonth', () => {
+    it('returns 31 for January', () => {
+      expect(getDaysInMonth('2026-01')).toBe(31);
+    });
+
+    it('returns 28 for non-leap February', () => {
+      expect(getDaysInMonth('2026-02')).toBe(28);
+    });
+
+    it('returns 29 for leap year February', () => {
+      expect(getDaysInMonth('2024-02')).toBe(29);
+    });
+
+    it('returns 30 for April', () => {
+      expect(getDaysInMonth('2026-04')).toBe(30);
+    });
+  });
+
+  describe('getDayOfMonth', () => {
+    it('returns day number from date', () => {
+      expect(getDayOfMonth(new Date(2026, 4, 14))).toBe(14);
+    });
+
+    it('returns 1 for first of month', () => {
+      expect(getDayOfMonth(new Date(2026, 0, 1))).toBe(1);
     });
   });
 });
