@@ -6,8 +6,7 @@
   import LineChart from '$lib/components/charts/LineChart.svelte';
   import { bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome, savingsRateTrend } from '$lib/stores/budgetStore';
   import { centsToDollars, formatCurrency, dollarsToCents } from '$lib/utils/currency';
-  import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange, getDaysInMonth, getDayOfMonth } from '$lib/utils/dates';
-  import { calculateProjectedSpend, isProjectionReliable } from '$lib/utils/calculations';
+  import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange } from '$lib/utils/dates';
 
   let thresholdInput = '500';
   let bigDonutChart: DonutChart;
@@ -92,22 +91,6 @@
 
   $: savingsRateData = $savingsRateTrend.map(m => m.rate ?? 0);
   $: savingsRateLabels = $savingsRateTrend.map(m => formatMonthYear(m.month).split(' ')[0]);
-
-  $: today = new Date();
-  $: currentMonthKeyNow = getMonthKey(today);
-  $: dayOfMonth = getDayOfMonth(today);
-  $: daysInMonth = getDaysInMonth(currentMonthKeyNow);
-  $: isReliable = isProjectionReliable(dayOfMonth);
-
-  $: projectedOverspends = $bucketStatuses
-    .filter(s => s.spent > 0 && s.allocated > 0)
-    .map(s => {
-      const projected = calculateProjectedSpend(s.spent, dayOfMonth, daysInMonth);
-      const overage = projected - s.allocated;
-      return { bucket: s.bucket, projected, overage };
-    })
-    .filter(p => p.overage > 0)
-    .sort((a, b) => b.overage - a.overage);
 </script>
 
 <div class="space-y-6">
@@ -298,28 +281,4 @@
       />
     </div>
   </div>
-
-  {#if projectedOverspends.length > 0}
-    <div class="card">
-      <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
-        <h2 class="section-title">Projected Overspends</h2>
-        <p class="mt-0.5 text-xs text-muted">
-          {isReliable ? 'Based on current pace' : 'Early estimate — may change'}
-        </p>
-      </div>
-      <div class="divide-y divide-gray-100 dark:divide-border-dark">
-        {#each projectedOverspends as { bucket, projected, overage }}
-          <div class="flex items-center justify-between px-5 py-3">
-            <div class="flex items-center gap-2.5">
-              <span class="h-3 w-3 rounded-full" style="background-color: {bucket.color}"></span>
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{bucket.name}</span>
-            </div>
-            <span class="text-sm font-medium text-danger">
-              {isReliable ? '' : '~'}+{formatCurrency(overage)}
-            </span>
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
 </div>

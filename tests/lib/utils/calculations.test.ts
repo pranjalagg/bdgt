@@ -7,9 +7,7 @@ import {
   filterFixedIncome,
   sumIncome,
   incomePercentage,
-  calculateSavingsRate,
-  calculateProjectedSpend,
-  isProjectionReliable
+  calculateSavingsRate
 } from '$lib/utils/calculations';
 import type { Income } from '$lib/types';
 
@@ -211,45 +209,6 @@ describe('budget calculations', () => {
 
     it('handles zero spending', () => {
       expect(calculateSavingsRate(100000, 0)).toBe(100);
-    });
-  });
-
-  describe('calculateProjectedSpend', () => {
-    it('projects full month spend from current pace', () => {
-      // $300 spent by day 15 of 30 -> $600 projected
-      expect(calculateProjectedSpend(30000, 15, 30)).toBe(60000);
-    });
-
-    it('handles day 1', () => {
-      // $100 spent on day 1 of 31 -> $3100 projected
-      expect(calculateProjectedSpend(10000, 1, 31)).toBe(310000);
-    });
-
-    it('returns spent amount if dayOfMonth is 0 or negative', () => {
-      expect(calculateProjectedSpend(10000, 0, 30)).toBe(10000);
-      expect(calculateProjectedSpend(10000, -1, 30)).toBe(10000);
-    });
-
-    it('handles zero spending', () => {
-      expect(calculateProjectedSpend(0, 15, 30)).toBe(0);
-    });
-
-    it('rounds to nearest cent', () => {
-      // $333 spent by day 10 of 30 -> $999 projected
-      expect(calculateProjectedSpend(33300, 10, 30)).toBe(99900);
-    });
-  });
-
-  describe('isProjectionReliable', () => {
-    it('returns false for days 1-6', () => {
-      expect(isProjectionReliable(1)).toBe(false);
-      expect(isProjectionReliable(6)).toBe(false);
-    });
-
-    it('returns true for day 7+', () => {
-      expect(isProjectionReliable(7)).toBe(true);
-      expect(isProjectionReliable(15)).toBe(true);
-      expect(isProjectionReliable(30)).toBe(true);
     });
   });
 });
