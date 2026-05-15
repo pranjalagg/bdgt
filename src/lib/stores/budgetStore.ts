@@ -2,8 +2,8 @@
 import { writable, derived, get } from 'svelte/store';
 import { db, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
-import { getMonthKey, getPreviousMonthKey, getMonthRange } from '$lib/utils/dates';
-import { calculateBucketRemaining, computeAllocation, getTotalPercentage } from '$lib/utils/calculations';
+import { getMonthKey, getPreviousMonthKey, getMonthRange, getLast6Months } from '$lib/utils/dates';
+import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
 export const buckets = writable<Bucket[]>([]);
@@ -111,6 +111,37 @@ export const unallocated = derived(
   ([$income, $statuses]) => {
     const totalAllocated = $statuses.reduce((sum, s) => sum + s.allocated, 0);
     return $income - totalAllocated;
+  }
+);
+
+export const savingsRate = derived(
+  [currentMonthIncome, bucketStatuses],
+  ([$income, $statuses]) => {
+    const totalSpent = $statuses.reduce((sum, s) => sum + s.spent, 0);
+    return calculateSavingsRate($income, totalSpent);
+  }
+);
+
+export const savingsRateTrend = derived(
+  [transactions, incomes, currentMonthKey],
+  ([$transactions, $incomes, $currentMonth]) => {
+    const months = getLast6Months($currentMonth);
+    return months.map(month => {
+      const { start, end } = getMonthRange(month);
+      const monthIncome = $incomes
+        .filter(i => {
+          const date = new Date(i.date);
+          return date >= start && date <= end;
+        })
+        .reduce((sum, i) => sum + i.amount, 0);
+      const monthSpent = $transactions
+        .filter(t => {
+          const date = new Date(t.date);
+          return date >= start && date <= end;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+      return { month, rate: calculateSavingsRate(monthIncome, monthSpent) };
+    });
   }
 );
 
