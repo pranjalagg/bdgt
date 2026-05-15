@@ -4,7 +4,7 @@
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
-  import { bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome } from '$lib/stores/budgetStore';
+  import { bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome, savingsRateTrend } from '$lib/stores/budgetStore';
   import { centsToDollars, formatCurrency, dollarsToCents } from '$lib/utils/currency';
   import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange } from '$lib/utils/dates';
 
@@ -88,6 +88,9 @@
   });
 
   $: monthLabels = last6Months.map((m) => formatMonthYear(m).split(' ')[0]);
+
+  $: savingsRateData = $savingsRateTrend.map(m => m.rate ?? 0);
+  $: savingsRateLabels = $savingsRateTrend.map(m => formatMonthYear(m.month).split(' ')[0]);
 </script>
 
 <div class="space-y-6">
@@ -261,6 +264,21 @@
           ]}
         />
       </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <h2 class="section-title">Savings Rate Trend</h2>
+      <p class="mt-0.5 text-xs text-muted">Last 6 months</p>
+    </div>
+    <div class="p-5">
+      <LineChart
+        labels={savingsRateLabels}
+        datasets={[
+          { label: 'Savings Rate', data: savingsRateData, color: '#22c55e' },
+        ]}
+      />
     </div>
   </div>
 </div>
