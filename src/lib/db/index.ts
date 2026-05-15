@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal } from '$lib/types';
+import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal, InvestmentLot, InvestmentSell } from '$lib/types';
 
 export class BudgetDatabase extends Dexie {
   buckets!: Table<Bucket, string>;
@@ -8,6 +8,8 @@ export class BudgetDatabase extends Dexie {
   incomes!: Table<Income, string>;
   monthSnapshots!: Table<MonthSnapshot, string>;
   savingsGoals!: Table<SavingsGoal, string>;
+  investmentLots!: Table<InvestmentLot, string>;
+  investmentSells!: Table<InvestmentSell, string>;
 
   constructor() {
     super('BudgetDB');
@@ -46,6 +48,17 @@ export class BudgetDatabase extends Dexie {
       return tx.table('incomes').toCollection().modify(income => {
         if (!income.type) income.type = 'fixed';
       });
+    });
+
+    this.version(4).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      monthSnapshots: 'month',
+      savingsGoals: 'id, bucketId',
+      investmentLots: 'id, symbol, purchaseDate',
+      investmentSells: 'id, lotId, sellDate'
     });
   }
 }
