@@ -1,10 +1,107 @@
-import { writable, get } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import { db } from '$lib/db';
 import type { InvestmentLot, InvestmentSell } from '$lib/types';
+
+export interface Holding {
+  symbol: string;
+  totalShares: number;
+  avgCostBasis: number;
+  totalCost: number;
+  lots: InvestmentLot[];
+}
+
+export interface PortfolioSummary {
+  totalInvested: number;
+  holdingsCount: number;
+  topHoldings: Holding[];
+}
+
+export interface Activity {
+  type: 'buy' | 'sell';
+  symbol: string;
+  shares: number;
+  pricePerShare: number;
+  date: Date;
+  lotId?: string;
+}
 
 export const lots = writable<InvestmentLot[]>([]);
 export const sells = writable<InvestmentSell[]>([]);
 export const isLoadingInvestments = writable(true);
+
+export const holdings = derived(lots, ($lots) => {
+  const symbolMap = new Map<string, InvestmentLot[]>();
+
+  for (const lot of $lots) {
+    const existing = symbolMap.get(lot.symbol) || [];
+    existing.push(lot);
+    symbolMap.set(lot.symbol, existing);
+  }
+
+  const result: Holding[] = [];
+  for (const [symbol, symbolLots] of symbolMap) {
+    const totalShares = symbolLots.reduce((sum, l) => sum + (l.shares - l.soldShares), 0);
+    if (totalShares <= 0) continue;
+
+    const totalCost = symbolLots.reduce((sum, l) => {
+      const remainingShares = l.shares - l.soldShares;
+      return sum + remainingShares * l.pricePerShare;
+    }, 0);
+
+    const avgCostBasis = totalShares > 0 ? Math.round(totalCost / totalShares) : 0;
+
+    result.push({
+      symbol,
+      totalShares,
+      avgCostBasis,
+      totalCost,
+      lots: symbolLots.filter((l) => l.shares - l.soldShares > 0),
+    });
+  }
+
+  return result.sort((a, b) => b.totalCost - a.totalCost);
+});
+
+export const portfolioSummary = derived(holdings, ($holdings): PortfolioSummary => {
+  const totalInvested = $holdings.reduce((sum, h) => sum + h.totalCost, 0);
+  const holdingsCount = $holdings.length;
+  const topHoldings = $holdings.slice(0, 5);
+
+  return { totalInvested, holdingsCount, topHoldings };
+});
+
+export const recentActivity = derived([lots, sells], ([$lots, $sells]): Activity[] => {
+  const activities: Activity[] = [];
+
+  for (const lot of $lots) {
+    activities.push({
+      type: 'buy',
+      symbol: lot.symbol,
+      shares: lot.shares,
+      pricePerShare: lot.pricePerShare,
+      date: new Date(lot.purchaseDate),
+      lotId: lot.id,
+    });
+  }
+
+  for (const sell of $sells) {
+    const lot = $lots.find((l) => l.id === sell.lotId);
+    if (lot) {
+      activities.push({
+        type: 'sell',
+        symbol: lot.symbol,
+        shares: sell.shares,
+        pricePerShare: sell.pricePerShare,
+        date: new Date(sell.sellDate),
+        lotId: sell.lotId,
+      });
+    }
+  }
+
+  return activities
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 10);
+});
 
 export async function loadInvestments(): Promise<void> {
   isLoadingInvestments.set(true);
