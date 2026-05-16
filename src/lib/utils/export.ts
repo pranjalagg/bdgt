@@ -4,19 +4,21 @@ import { formatDate } from './dates';
 import type { ExportData } from '$lib/types';
 
 export async function exportToJson(): Promise<string> {
-  const [buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals] = await Promise.all([
+  const [buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells] = await Promise.all([
     db.buckets.toArray(),
     db.transactions.toArray(),
     db.recurringTransactions.toArray(),
     db.incomes.toArray(),
     db.monthSnapshots.toArray(),
     db.savingsGoals.toArray(),
+    db.investmentLots.toArray(),
+    db.investmentSells.toArray(),
   ]);
 
   const data: ExportData = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots: [], investmentSells: [] },
+    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells },
   };
 
   return JSON.stringify(data, null, 2);
@@ -49,13 +51,15 @@ export async function importFromJson(json: string): Promise<void> {
     type: i.type || 'fixed',
   }));
 
-  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals], async () => {
+  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals, db.investmentLots, db.investmentSells], async () => {
     await db.buckets.clear();
     await db.transactions.clear();
     await db.recurringTransactions.clear();
     await db.incomes.clear();
     await db.monthSnapshots.clear();
     await db.savingsGoals.clear();
+    await db.investmentLots.clear();
+    await db.investmentSells.clear();
 
     await db.buckets.bulkAdd(data.data.buckets);
     await db.transactions.bulkAdd(data.data.transactions);
@@ -65,24 +69,25 @@ export async function importFromJson(json: string): Promise<void> {
     if (data.data.savingsGoals) {
       await db.savingsGoals.bulkAdd(data.data.savingsGoals);
     }
-    // Investment lots and sells are handled in Task 2 when database tables are added
-    // if (data.data.investmentLots) {
-    //   await db.investmentLots.bulkAdd(data.data.investmentLots);
-    // }
-    // if (data.data.investmentSells) {
-    //   await db.investmentSells.bulkAdd(data.data.investmentSells);
-    // }
+    if (data.data.investmentLots) {
+      await db.investmentLots.bulkAdd(data.data.investmentLots);
+    }
+    if (data.data.investmentSells) {
+      await db.investmentSells.bulkAdd(data.data.investmentSells);
+    }
   });
 }
 
 export async function resetAllData(): Promise<void> {
-  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals], async () => {
+  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals, db.investmentLots, db.investmentSells], async () => {
     await db.buckets.clear();
     await db.transactions.clear();
     await db.recurringTransactions.clear();
     await db.incomes.clear();
     await db.monthSnapshots.clear();
     await db.savingsGoals.clear();
+    await db.investmentLots.clear();
+    await db.investmentSells.clear();
   });
 }
 
