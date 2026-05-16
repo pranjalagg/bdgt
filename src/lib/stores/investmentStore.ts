@@ -24,3 +24,20 @@ export async function addLot(lot: Omit<InvestmentLot, 'id'>): Promise<string> {
   lots.update((l) => [...l, newLot]);
   return id;
 }
+
+export async function updateLot(id: string, updates: Partial<InvestmentLot>): Promise<void> {
+  if (updates.symbol) {
+    updates.symbol = updates.symbol.toUpperCase();
+  }
+  await db.investmentLots.update(id, updates);
+  lots.update((l) => l.map((lot) => (lot.id === id ? { ...lot, ...updates } : lot)));
+}
+
+export async function deleteLot(id: string): Promise<void> {
+  const sellsForLot = await db.investmentSells.where('lotId').equals(id).toArray();
+  if (sellsForLot.length > 0) {
+    throw new Error('Cannot delete lot with existing sells');
+  }
+  await db.investmentLots.delete(id);
+  lots.update((l) => l.filter((lot) => lot.id !== id));
+}

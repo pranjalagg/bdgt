@@ -13,12 +13,16 @@ vi.mock('$lib/db', () => ({
     investmentSells: {
       add: vi.fn(),
       toArray: vi.fn().mockResolvedValue([]),
-      where: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }),
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([]),
+        }),
+      }),
     },
   },
 }));
 
-import { lots, sells, addLot, loadInvestments } from '$lib/stores/investmentStore';
+import { lots, sells, addLot, updateLot, deleteLot, loadInvestments } from '$lib/stores/investmentStore';
 import { db } from '$lib/db';
 
 describe('investmentStore', () => {
@@ -47,6 +51,42 @@ describe('investmentStore', () => {
       }));
       expect(get(lots)).toHaveLength(1);
       expect(get(lots)[0].symbol).toBe('AAPL');
+    });
+  });
+
+  describe('updateLot', () => {
+    it('updates lot in database and store', async () => {
+      const lot = {
+        symbol: 'AAPL',
+        shares: 10,
+        pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'),
+        soldShares: 0,
+      };
+      const id = await addLot(lot);
+
+      await updateLot(id, { shares: 15 });
+
+      expect(db.investmentLots.update).toHaveBeenCalledWith(id, { shares: 15 });
+      expect(get(lots)[0].shares).toBe(15);
+    });
+  });
+
+  describe('deleteLot', () => {
+    it('deletes lot from database and store', async () => {
+      const lot = {
+        symbol: 'AAPL',
+        shares: 10,
+        pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'),
+        soldShares: 0,
+      };
+      const id = await addLot(lot);
+
+      await deleteLot(id);
+
+      expect(db.investmentLots.delete).toHaveBeenCalledWith(id);
+      expect(get(lots)).toHaveLength(0);
     });
   });
 });
