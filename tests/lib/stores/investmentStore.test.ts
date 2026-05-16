@@ -88,5 +88,25 @@ describe('investmentStore', () => {
       expect(db.investmentLots.delete).toHaveBeenCalledWith(id);
       expect(get(lots)).toHaveLength(0);
     });
+
+    it('throws error if lot has sells', async () => {
+      const lot = {
+        symbol: 'AAPL',
+        shares: 10,
+        pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'),
+        soldShares: 0,
+      };
+      const id = await addLot(lot);
+
+      // Mock sells exist for this lot
+      vi.mocked(db.investmentSells.where).mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([{ id: 'sell-1', lotId: id }]),
+        }),
+      } as any);
+
+      await expect(deleteLot(id)).rejects.toThrow('Cannot delete lot with existing sells');
+    });
   });
 });
