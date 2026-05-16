@@ -22,7 +22,7 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { lots, sells, addLot, updateLot, deleteLot, loadInvestments } from '$lib/stores/investmentStore';
+import { lots, sells, addLot, updateLot, deleteLot, sellFromLot, loadInvestments } from '$lib/stores/investmentStore';
 import { db } from '$lib/db';
 
 describe('investmentStore', () => {
@@ -107,6 +107,62 @@ describe('investmentStore', () => {
       } as any);
 
       await expect(deleteLot(id)).rejects.toThrow('Cannot delete lot with existing sells');
+    });
+  });
+
+  describe('sellFromLot', () => {
+    it('creates sell record and updates lot soldShares', async () => {
+      vi.mocked(db.investmentLots.get).mockResolvedValue({
+        id: 'lot-1',
+        symbol: 'AAPL',
+        shares: 10,
+        pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'),
+        soldShares: 0,
+      });
+
+      const lot = {
+        symbol: 'AAPL',
+        shares: 10,
+        pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'),
+        soldShares: 0,
+      };
+      const lotId = await addLot(lot);
+
+      vi.mocked(db.investmentLots.get).mockResolvedValue({
+        ...lot,
+        id: lotId,
+      });
+
+      await sellFromLot(lotId, 3, 16000, new Date('2026-05-10'));
+
+      expect(db.investmentSells.add).toHaveBeenCalledWith(expect.objectContaining({
+        lotId,
+        shares: 3,
+        pricePerShare: 16000,
+      }));
+      expect(db.investmentLots.update).toHaveBeenCalledWith(lotId, { soldShares: 3 });
+      expect(get(sells)).toHaveLength(1);
+      expect(get(lots)[0].soldShares).toBe(3);
+    });
+
+    it('throws error if selling more than available', async () => {
+      const lot = {
+        symbol: 'AAPL',
+        shares: 10,
+        pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'),
+        soldShares: 8,
+      };
+      const lotId = await addLot(lot);
+
+      vi.mocked(db.investmentLots.get).mockResolvedValue({
+        ...lot,
+        id: lotId,
+      });
+
+      await expect(sellFromLot(lotId, 5, 16000, new Date('2026-05-10'))).rejects.toThrow('Cannot sell more shares than available');
     });
   });
 });

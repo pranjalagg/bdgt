@@ -41,3 +41,40 @@ export async function deleteLot(id: string): Promise<void> {
   await db.investmentLots.delete(id);
   lots.update((l) => l.filter((lot) => lot.id !== id));
 }
+
+export async function sellFromLot(
+  lotId: string,
+  shares: number,
+  pricePerShare: number,
+  sellDate: Date,
+  note?: string
+): Promise<string> {
+  const lot = await db.investmentLots.get(lotId);
+  if (!lot) {
+    throw new Error('Lot not found');
+  }
+
+  const availableShares = lot.shares - lot.soldShares;
+  if (shares > availableShares) {
+    throw new Error('Cannot sell more shares than available');
+  }
+
+  const id = crypto.randomUUID();
+  const newSell: InvestmentSell = {
+    id,
+    lotId,
+    shares,
+    pricePerShare,
+    sellDate,
+    note,
+  };
+
+  await db.investmentSells.add(newSell);
+  sells.update((s) => [...s, newSell]);
+
+  const newSoldShares = lot.soldShares + shares;
+  await db.investmentLots.update(lotId, { soldShares: newSoldShares });
+  lots.update((l) => l.map((lt) => (lt.id === lotId ? { ...lt, soldShares: newSoldShares } : lt)));
+
+  return id;
+}
