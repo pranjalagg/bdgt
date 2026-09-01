@@ -24,6 +24,11 @@ export async function exportToJson(): Promise<string> {
   return JSON.stringify(data, null, 2);
 }
 
+export function escapeCsvField(value: unknown): string {
+  const str = value == null ? '' : String(value);
+  return /[",\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
 export async function exportToCsv(): Promise<string> {
   const transactions = await db.transactions.toArray();
   const buckets = await db.buckets.toArray();
@@ -32,7 +37,14 @@ export async function exportToCsv(): Promise<string> {
   const rows = [
     'Date,Bucket,Amount,Note',
     ...transactions.map((t) =>
-      `${formatDate(new Date(t.date))},${bucketMap.get(t.bucketId) || 'Unknown'},${centsToDollars(t.amount)},${t.note || ''}`
+      [
+        formatDate(new Date(t.date)),
+        bucketMap.get(t.bucketId) || 'Unknown',
+        centsToDollars(t.amount),
+        t.note || '',
+      ]
+        .map(escapeCsvField)
+        .join(',')
     ),
   ];
 
