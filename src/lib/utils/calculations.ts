@@ -1,3 +1,5 @@
+import type { Bucket, Income } from '$lib/types';
+
 export function calculateUnallocated(
   income: number,
   allocations: Record<string, number>
@@ -32,8 +34,6 @@ export function calculateTotalAllocated(allocations: Record<string, number>): nu
   return Object.values(allocations).reduce((sum, val) => sum + val, 0);
 }
 
-import type { Bucket } from '$lib/types';
-
 export function computeAllocation(bucket: Bucket, totalIncome: number): number {
   const fixed = bucket.fixedAmount || 0;
   const pct = bucket.percentageAmount || 0;
@@ -50,8 +50,6 @@ export function computeAllocation(bucket: Bucket, totalIncome: number): number {
 export function getTotalPercentage(buckets: Bucket[]): number {
   return buckets.reduce((sum, b) => sum + (b.percentageAmount || 0), 0);
 }
-
-import type { Income } from '$lib/types';
 
 export function filterFixedIncome(incomes: Income[]): Income[] {
   return incomes.filter((i) => i.type === 'fixed');
