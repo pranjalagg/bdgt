@@ -3,7 +3,7 @@ import { writable, derived, get } from 'svelte/store';
 import { db, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
 import { getMonthKey, getPreviousMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey } from '$lib/utils/dates';
-import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings } from '$lib/utils/calculations';
+import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
 export const buckets = writable<Bucket[]>([]);
@@ -86,9 +86,40 @@ export const computedAllocations = derived(
 
 export const totalPercentage = derived(buckets, ($buckets) => getTotalPercentage($buckets));
 
+// Rollover carried into the viewed month, per bucket, derived live from
+// every prior month's allocation vs. spend. Nothing is persisted.
+export const bucketRollovers = derived(
+  [buckets, transactions, incomes, monthSnapshots, currentMonthKey],
+  ([$buckets, $transactions, $incomes, $snapshots, $month]) => {
+    const months = new Set<string>();
+    for (const s of $snapshots) months.add(s.month);
+    for (const t of $transactions) months.add(getMonthKey(new Date(t.date)));
+    for (const i of $incomes) months.add(getMonthKey(new Date(i.date)));
+    const monthsBefore = [...months].filter((m) => m < $month).sort();
+
+    const allocationOverrides: Record<string, Record<string, number>> = {};
+    for (const s of $snapshots) allocationOverrides[s.month] = s.allocations ?? {};
+
+    const incomeByMonth: Record<string, number> = {};
+    for (const i of $incomes) {
+      const m = getMonthKey(new Date(i.date));
+      incomeByMonth[m] = (incomeByMonth[m] ?? 0) + i.amount;
+    }
+
+    const spentByMonthBucket: Record<string, Record<string, number>> = {};
+    for (const t of $transactions) {
+      const m = getMonthKey(new Date(t.date));
+      (spentByMonthBucket[m] ??= {})[t.bucketId] =
+        (spentByMonthBucket[m][t.bucketId] ?? 0) + t.amount;
+    }
+
+    return accumulateRollovers(monthsBefore, $buckets, allocationOverrides, incomeByMonth, spentByMonthBucket);
+  }
+);
+
 export const bucketStatuses = derived(
-  [buckets, currentSnapshot, currentMonthTransactions, computedAllocations],
-  ([$buckets, $snapshot, $transactions, $computed]) => {
+  [buckets, currentSnapshot, currentMonthTransactions, computedAllocations, bucketRollovers],
+  ([$buckets, $snapshot, $transactions, $computed, $rollovers]) => {
     const spent: Record<string, number> = {};
     for (const t of $transactions) {
       spent[t.bucketId] = (spent[t.bucketId] || 0) + t.amount;
@@ -96,10 +127,10 @@ export const bucketStatuses = derived(
 
     return $buckets.map((bucket): BucketStatus => {
       const allocated = bucket.allocationType === 'fixed'
-        ? ($snapshot.allocations[bucket.id] || 0)
+        ? ($snapshot.allocations[bucket.id] ?? bucket.fixedAmount ?? 0)
         : $computed[bucket.id];
       const bucketSpent = spent[bucket.id] || 0;
-      const rollover = $snapshot.rollovers[bucket.id] || 0;
+      const rollover = $rollovers[bucket.id] || 0;
       const remaining = calculateBucketRemaining(allocated, bucketSpent, rollover);
 
       return { bucket, allocated, spent: bucketSpent, rollover, remaining };

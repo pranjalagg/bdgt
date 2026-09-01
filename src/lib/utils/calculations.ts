@@ -69,6 +69,37 @@ export function calculateSavingsRate(income: number, spent: number): number | nu
   return Math.round(((income - spent) / income) * 1000) / 10;
 }
 
+// Rollover carried into a month = everything allocated to a bucket in
+// every prior month minus everything spent from it in those months.
+// Because remaining telescopes (each month's leftover feeds the next),
+// this single running sum equals the previous month's remaining balance
+// without storing anything per month.
+export function accumulateRollovers(
+  monthsBefore: string[],
+  buckets: Bucket[],
+  allocationOverrides: Record<string, Record<string, number>>,
+  incomeByMonth: Record<string, number>,
+  spentByMonthBucket: Record<string, Record<string, number>>
+): Record<string, number> {
+  const rollovers: Record<string, number> = {};
+
+  for (const month of monthsBefore) {
+    const overrides = allocationOverrides[month] ?? {};
+    const monthIncome = incomeByMonth[month] ?? 0;
+    const spent = spentByMonthBucket[month] ?? {};
+
+    for (const bucket of buckets) {
+      const allocated = overrides[bucket.id] ?? computeAllocation(bucket, monthIncome);
+      const delta = allocated - (spent[bucket.id] ?? 0);
+      if (delta !== 0) {
+        rollovers[bucket.id] = (rollovers[bucket.id] ?? 0) + delta;
+      }
+    }
+  }
+
+  return rollovers;
+}
+
 // Total spent excluding transactions routed into savings-type buckets.
 // Money moved into savings is saved, not spent, so it must not depress
 // the savings rate.

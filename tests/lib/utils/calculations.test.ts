@@ -8,9 +8,10 @@ import {
   sumIncome,
   incomePercentage,
   calculateSavingsRate,
-  spentExcludingSavings
+  spentExcludingSavings,
+  accumulateRollovers
 } from '$lib/utils/calculations';
-import type { Income } from '$lib/types';
+import type { Bucket, Income } from '$lib/types';
 
 describe('budget calculations', () => {
   describe('calculateUnallocated', () => {
@@ -235,6 +236,69 @@ describe('budget calculations', () => {
 
     it('returns 0 for no transactions', () => {
       expect(spentExcludingSavings([], new Set(['savings']))).toBe(0);
+    });
+  });
+
+  describe('accumulateRollovers', () => {
+    const fixedBucket = (id: string, fixedAmount: number): Bucket => ({
+      id, name: id, color: '#000', order: 0, isDefault: false,
+      allocationType: 'fixed', fixedAmount, percentageAmount: 0, isSavings: false,
+    });
+    const pctBucket = (id: string, pct: number): Bucket => ({
+      id, name: id, color: '#000', order: 0, isDefault: false,
+      allocationType: 'percentage', fixedAmount: 0, percentageAmount: pct, isSavings: false,
+    });
+
+    it('carries unspent fixed allocation forward across months', () => {
+      const rollovers = accumulateRollovers(
+        ['2026-01', '2026-02'],
+        [fixedBucket('groceries', 50000)],
+        {},
+        {},
+        { '2026-01': { groceries: 30000 }, '2026-02': { groceries: 40000 } }
+      );
+      // Jan: 50000-30000=+20000, Feb: 50000-40000=+10000
+      expect(rollovers.groceries).toBe(30000);
+    });
+
+    it('carries an overspend forward as negative', () => {
+      const rollovers = accumulateRollovers(
+        ['2026-01'],
+        [fixedBucket('dining', 20000)],
+        {},
+        {},
+        { '2026-01': { dining: 35000 } }
+      );
+      expect(rollovers.dining).toBe(-15000);
+    });
+
+    it('prefers a per-month allocation override over the bucket default', () => {
+      const rollovers = accumulateRollovers(
+        ['2026-01'],
+        [fixedBucket('rent', 100000)],
+        { '2026-01': { rent: 120000 } },
+        {},
+        { '2026-01': { rent: 120000 } }
+      );
+      // override matches spend exactly -> no carry (absent key reads as 0)
+      expect(rollovers.rent ?? 0).toBe(0);
+    });
+
+    it('derives percentage-bucket allocation from that month\'s income', () => {
+      const rollovers = accumulateRollovers(
+        ['2026-01'],
+        [pctBucket('savings', 10)],
+        {},
+        { '2026-01': 500000 },
+        {}
+      );
+      // 10% of 5000.00 = 500.00 allocated, nothing spent
+      expect(rollovers.savings).toBe(50000);
+    });
+
+    it('is empty when there are no prior months', () => {
+      const rollovers = accumulateRollovers([], [fixedBucket('x', 1000)], {}, {}, {});
+      expect(rollovers).toEqual({});
     });
   });
 });

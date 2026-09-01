@@ -9,10 +9,11 @@
   export let fixedIncome: number = 0;
 
   $: ({ bucket, allocated, spent, rollover, remaining } = status);
+  $: available = allocated + rollover;
   $: incomePercent = fixedIncome > 0 && spent > 0
     ? (Math.max(spent, 0) / fixedIncome * 100).toFixed(1)
     : null;
-  $: budgetStatus = getBucketStatus(allocated, spent);
+  $: budgetStatus = getBucketStatus(available, spent);
   $: remainingColor = {
     success: 'text-success',
     warning: 'text-warning',
@@ -33,9 +34,9 @@
 
   <div class="mb-1 flex items-center justify-between text-xs tabular-nums">
     <span class="text-muted">{formatCurrency(Math.max(spent, 0))} spent</span>
-    <span class="font-medium text-gray-600 dark:text-gray-300">{formatCurrency(allocated)}</span>
+    <span class="font-medium text-gray-600 dark:text-gray-300">{formatCurrency(available)}</span>
   </div>
-  <ProgressBar {allocated} {spent} showLabel={false} />
+  <ProgressBar allocated={available} {spent} showLabel={false} />
 
   {#if spent < 0}
     <div class="mt-2.5 flex items-center gap-1.5">
