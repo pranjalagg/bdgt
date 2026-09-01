@@ -2,6 +2,8 @@
   import { exportToJson, exportToCsv, importFromJson, resetAllData, downloadFile } from '$lib/utils/export';
   import { loadData } from '$lib/stores/budgetStore';
   import { loadRecurring } from '$lib/stores/recurringStore';
+  import { loadGoals } from '$lib/stores/goalsStore';
+  import { loadInvestments } from '$lib/stores/investmentStore';
   import { themePreference, setTheme, type ThemePreference } from '$lib/stores/themeStore';
 
   let fileInput: HTMLInputElement;
@@ -42,6 +44,8 @@
       await importFromJson(text);
       await loadData();
       await loadRecurring();
+      await loadGoals();
+      await loadInvestments();
       alert('Data imported successfully!');
     } catch (e) {
       alert('Import failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
@@ -58,6 +62,8 @@
     await resetAllData();
     await loadData();
     await loadRecurring();
+    await loadGoals();
+    await loadInvestments();
     alert('All data has been reset.');
   }
 

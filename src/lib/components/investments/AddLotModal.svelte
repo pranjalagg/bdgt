@@ -3,6 +3,7 @@
   import { closeModal } from '$lib/stores/uiStore';
   import { addLot } from '$lib/stores/investmentStore';
   import { parseCurrency, isValidCurrency } from '$lib/utils/currency';
+  import { parseLocalDate } from '$lib/utils/dates';
 
   let symbol = '';
   let shares = '';
@@ -25,7 +26,7 @@
         symbol: symbol.trim().toUpperCase(),
         shares: parseFloat(shares),
         pricePerShare: parseCurrency(pricePerShare),
-        purchaseDate: new Date(purchaseDate),
+        purchaseDate: parseLocalDate(purchaseDate),
         note: note.trim() || undefined,
         soldShares: 0,
       });

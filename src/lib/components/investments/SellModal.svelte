@@ -3,6 +3,7 @@
   import { closeModal } from '$lib/stores/uiStore';
   import { lots, sellFromLot } from '$lib/stores/investmentStore';
   import { parseCurrency, isValidCurrency, formatCurrency } from '$lib/utils/currency';
+  import { parseLocalDate } from '$lib/utils/dates';
 
   export let lotId: string;
 
@@ -29,7 +30,7 @@
         lotId,
         sharesNum,
         parseCurrency(pricePerShare),
-        new Date(sellDate),
+        parseLocalDate(sellDate),
         note.trim() || undefined
       );
       closeModal();

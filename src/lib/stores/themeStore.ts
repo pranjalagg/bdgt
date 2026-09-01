@@ -21,12 +21,13 @@ function getSystemTheme(): ResolvedTheme {
 }
 
 export const themePreference = writable<ThemePreference>(getInitialPreference());
+export const systemTheme = writable<ResolvedTheme>(getSystemTheme());
 
-export const resolvedTheme = derived<typeof themePreference, ResolvedTheme>(
-  themePreference,
-  ($preference) => {
+export const resolvedTheme = derived(
+  [themePreference, systemTheme],
+  ([$preference, $system]) => {
     if ($preference === 'system') {
-      return getSystemTheme();
+      return $system;
     }
     return $preference;
   }
@@ -36,9 +37,9 @@ export const resolvedTheme = derived<typeof themePreference, ResolvedTheme>(
 if (browser) {
   themePreference.subscribe((preference) => {
     localStorage.setItem(STORAGE_KEY, preference);
+  });
 
-    const resolved = preference === 'system' ? getSystemTheme() : preference;
-
+  resolvedTheme.subscribe((resolved) => {
     if (resolved === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -48,13 +49,7 @@ if (browser) {
 
   // Listen for system theme changes
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    themePreference.update((current) => {
-      if (current === 'system') {
-        // Re-apply to trigger the subscription
-        return 'system';
-      }
-      return current;
-    });
+    systemTheme.set(e.matches ? 'dark' : 'light');
   });
 }
 

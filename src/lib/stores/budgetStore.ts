@@ -2,7 +2,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { db, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
-import { getMonthKey, getPreviousMonthKey, getMonthRange, getLast6Months } from '$lib/utils/dates';
+import { getMonthKey, getPreviousMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey } from '$lib/utils/dates';
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
@@ -27,6 +27,7 @@ export async function loadData(): Promise<void> {
   transactions.set(loadedTransactions);
   incomes.set(loadedIncomes);
   monthSnapshots.set(loadedSnapshots);
+  await syncMonthSnapshot(getCurrentMonthKey());
   isLoading.set(false);
 }
 
@@ -169,17 +170,33 @@ export async function addTransaction(transaction: Omit<Transaction, 'id'>): Prom
   const newTransaction = { ...transaction, id };
   await db.transactions.add(newTransaction);
   transactions.update((t) => [...t, newTransaction]);
+  await syncMonthSnapshot(getMonthKey(new Date(transaction.date)));
   return id;
 }
 
 export async function updateTransaction(id: string, updates: Partial<Transaction>): Promise<void> {
+  const existing = get(transactions).find((t) => t.id === id);
   await db.transactions.update(id, updates);
   transactions.update((t) => t.map((tx) => (tx.id === id ? { ...tx, ...updates } : tx)));
+  if (existing) {
+    const month = getMonthKey(new Date(existing.date));
+    await syncMonthSnapshot(month);
+    if (updates.date) {
+      const newMonth = getMonthKey(new Date(updates.date));
+      if (newMonth !== month) {
+        await syncMonthSnapshot(newMonth);
+      }
+    }
+  }
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
+  const existing = get(transactions).find((t) => t.id === id);
   await db.transactions.delete(id);
   transactions.update((t) => t.filter((tx) => tx.id !== id));
+  if (existing) {
+    await syncMonthSnapshot(getMonthKey(new Date(existing.date)));
+  }
 }
 
 export async function addIncome(income: Omit<Income, 'id'>): Promise<string> {
@@ -187,17 +204,33 @@ export async function addIncome(income: Omit<Income, 'id'>): Promise<string> {
   const newIncome = { ...income, id };
   await db.incomes.add(newIncome);
   incomes.update((i) => [...i, newIncome]);
+  await syncMonthSnapshot(getMonthKey(new Date(income.date)));
   return id;
 }
 
 export async function updateIncome(id: string, updates: Partial<Income>): Promise<void> {
+  const existing = get(incomes).find((i) => i.id === id);
   await db.incomes.update(id, updates);
   incomes.update((i) => i.map((inc) => (inc.id === id ? { ...inc, ...updates } : inc)));
+  if (existing) {
+    const month = getMonthKey(new Date(existing.date));
+    await syncMonthSnapshot(month);
+    if (updates.date) {
+      const newMonth = getMonthKey(new Date(updates.date));
+      if (newMonth !== month) {
+        await syncMonthSnapshot(newMonth);
+      }
+    }
+  }
 }
 
 export async function deleteIncome(id: string): Promise<void> {
+  const existing = get(incomes).find((i) => i.id === id);
   await db.incomes.delete(id);
   incomes.update((i) => i.filter((inc) => inc.id !== id));
+  if (existing) {
+    await syncMonthSnapshot(getMonthKey(new Date(existing.date)));
+  }
 }
 
 export async function setAllocation(bucketId: string, amount: number): Promise<void> {
@@ -217,14 +250,7 @@ export async function setAllocation(bucketId: string, amount: number): Promise<v
   snapshot.allocations[bucketId] = amount;
   await db.monthSnapshots.put(snapshot);
 
-  monthSnapshots.update((s) => {
-    const idx = s.findIndex((snap) => snap.month === $month);
-    if (idx >= 0) {
-      s[idx] = snapshot!;
-      return [...s];
-    }
-    return [...s, snapshot!];
-  });
+  await syncMonthSnapshot($month);
 }
 
 export async function updateBucketAllocation(
@@ -244,5 +270,66 @@ export async function updateBucketAllocation(
 
   if (allocationType === 'fixed' || allocationType === 'hybrid') {
     await setAllocation(id, fixedAmount);
+  } else {
+    const $month = get(currentMonthKey);
+    await syncMonthSnapshot($month);
   }
 }
+
+export async function syncMonthSnapshot(monthKey: string): Promise<void> {
+  const allIncomes = get(incomes);
+  const { start, end } = getMonthRange(monthKey);
+  const monthIncomes = allIncomes.filter((i) => {
+    const date = new Date(i.date);
+    return date >= start && date <= end;
+  });
+  const incomeTotal = monthIncomes.reduce((sum, i) => sum + i.amount, 0);
+
+  const allTransactions = get(transactions);
+  const monthTransactions = allTransactions.filter((t) => {
+    const date = new Date(t.date);
+    return date >= start && date <= end;
+  });
+  
+  const spent: Record<string, number> = {};
+  for (const t of monthTransactions) {
+    spent[t.bucketId] = (spent[t.bucketId] || 0) + t.amount;
+  }
+
+  let snapshot = await db.monthSnapshots.get(monthKey);
+  if (!snapshot) {
+    snapshot = {
+      month: monthKey,
+      incomeTotal: 0,
+      allocations: {},
+      spent: {},
+      rollovers: {},
+    };
+  }
+
+  snapshot.incomeTotal = incomeTotal;
+  snapshot.spent = spent;
+
+  const allBuckets = get(buckets);
+  for (const bucket of allBuckets) {
+    if (bucket.allocationType === 'fixed') {
+      if (snapshot.allocations[bucket.id] === undefined) {
+        snapshot.allocations[bucket.id] = bucket.fixedAmount || 0;
+      }
+    } else {
+      snapshot.allocations[bucket.id] = computeAllocation(bucket, incomeTotal);
+    }
+  }
+
+  await db.monthSnapshots.put(snapshot);
+
+  monthSnapshots.update((s) => {
+    const idx = s.findIndex((snap) => snap.month === monthKey);
+    if (idx >= 0) {
+      s[idx] = snapshot!;
+      return [...s];
+    }
+    return [...s, snapshot!];
+  });
+}
+

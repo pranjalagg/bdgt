@@ -5,8 +5,9 @@
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
   import { bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome, savingsRateTrend } from '$lib/stores/budgetStore';
+  import { currentMonthKey } from '$lib/stores/uiStore';
   import { centsToDollars, formatCurrency, dollarsToCents } from '$lib/utils/currency';
-  import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange } from '$lib/utils/dates';
+  import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange, getLast6Months } from '$lib/utils/dates';
 
   let thresholdInput = '500';
   let bigDonutChart: DonutChart;
@@ -58,11 +59,7 @@
 
   $: netIncome = $currentMonthIncome - totalSpending;
 
-  $: last6Months = Array.from({ length: 6 }, (_, i) => {
-    let month = getMonthKey(new Date());
-    for (let j = 0; j < 5 - i; j++) month = getPreviousMonthKey(month);
-    return month;
-  });
+  $: last6Months = getLast6Months($currentMonthKey);
 
   $: monthlySpending = last6Months.map((month) => {
     const { start, end } = getMonthRange(month);

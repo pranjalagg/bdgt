@@ -2,6 +2,7 @@
   import { buckets, updateTransaction } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
   import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, centsToDollars } from '$lib/utils/currency';
+  import { parseLocalDate } from '$lib/utils/dates';
   import type { Transaction } from '$lib/types';
 
   export let transaction: Transaction;
@@ -37,7 +38,7 @@
       await updateTransaction(transaction.id, {
         amount: parseCurrency(amount),
         bucketId,
-        date: new Date(date + 'T12:00:00'),
+        date: parseLocalDate(date),
         note: note || undefined,
       });
       closeModal();

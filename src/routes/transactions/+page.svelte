@@ -5,7 +5,7 @@
   import Modal from '$lib/components/shared/Modal.svelte';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import { currentMonthTransactions, buckets } from '$lib/stores/budgetStore';
-  import { openModal } from '$lib/stores/uiStore';
+  import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { Transaction } from '$lib/types';
 
   let filterBucketId = '';
@@ -56,7 +56,7 @@
 </div>
 
 <Modal id="add-transaction" title="Add Transaction">
-  <QuickEntry />
+  <QuickEntry onComplete={closeModal} />
 </Modal>
 
 <Modal id="edit-transaction" title="Edit Transaction">

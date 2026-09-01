@@ -3,7 +3,7 @@
   import { recurringTransactions, addRecurring, updateRecurring, deleteRecurring, toggleRecurring } from '$lib/stores/recurringStore';
   import { buckets } from '$lib/stores/budgetStore';
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
-  import { formatDate } from '$lib/utils/dates';
+  import { formatDate, parseLocalDate } from '$lib/utils/dates';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { RecurringTransaction } from '$lib/types';
@@ -66,7 +66,7 @@
       amount: parseCurrency(amount),
       bucketId,
       frequency,
-      nextDueDate: new Date(nextDueDate),
+      nextDueDate: parseLocalDate(nextDueDate),
       note: note || undefined,
       isActive: true,
     };

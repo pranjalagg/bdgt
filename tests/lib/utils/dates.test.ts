@@ -10,7 +10,8 @@ import {
   getMonthRange,
   getLast6Months,
   getDaysInMonth,
-  getDayOfMonth
+  getDayOfMonth,
+  parseLocalDate
 } from '$lib/utils/dates';
 
 describe('date utils', () => {
@@ -102,4 +103,14 @@ describe('date utils', () => {
       expect(getDayOfMonth(new Date(2026, 0, 1))).toBe(1);
     });
   });
+
+  describe('parseLocalDate', () => {
+    it('parses YYYY-MM-DD into local Date object', () => {
+      const date = parseLocalDate('2026-06-27');
+      expect(date.getFullYear()).toBe(2026);
+      expect(date.getMonth()).toBe(5); // June is 5 (0-indexed)
+      expect(date.getDate()).toBe(27);
+    });
+  });
 });
+
