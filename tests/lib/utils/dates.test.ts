@@ -52,6 +52,28 @@ describe('date utils', () => {
       expect(end.getDate()).toBe(30);
       expect(end.getMonth()).toBe(3);
     });
+
+    it('start is at the very beginning of the first day', () => {
+      const { start } = getMonthRange('2026-04');
+      expect(start.getHours()).toBe(0);
+      expect(start.getMinutes()).toBe(0);
+      expect(start.getSeconds()).toBe(0);
+      expect(start.getMilliseconds()).toBe(0);
+    });
+
+    it('end includes the entire last day of the month', () => {
+      const { end } = getMonthRange('2026-04');
+      expect(end.getHours()).toBe(23);
+      expect(end.getMinutes()).toBe(59);
+      expect(end.getSeconds()).toBe(59);
+      expect(end.getMilliseconds()).toBe(999);
+    });
+
+    it('a transaction late on the last day falls within range', () => {
+      const { start, end } = getMonthRange('2026-04');
+      const lateOnLastDay = new Date(2026, 3, 30, 18, 30);
+      expect(lateOnLastDay >= start && lateOnLastDay <= end).toBe(true);
+    });
   });
 
   describe('formatDate', () => {

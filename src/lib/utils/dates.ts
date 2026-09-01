@@ -27,7 +27,7 @@ export function getNextMonthKey(monthKey: string): string {
 
 export function getMonthRange(monthKey: string): { start: Date; end: Date } {
   const start = parseMonthKey(monthKey);
-  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0, 23, 59, 59, 999);
   return { start, end };
 }
 
