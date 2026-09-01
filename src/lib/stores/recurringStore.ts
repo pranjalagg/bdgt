@@ -45,6 +45,34 @@ function calculateNextDueDate(current: Date, frequency: RecurringTransaction['fr
   return next;
 }
 
+// Maximum occurrences generated in a single catch-up pass, so a very
+// stale weekly item can't spawn thousands of transactions at once.
+const MAX_CATCHUP = 366;
+
+// Every occurrence of a recurring item that is due on or before `until`,
+// plus the resulting next due date once all of them are consumed.
+export function dueOccurrences(
+  nextDueDate: Date,
+  frequency: RecurringTransaction['frequency'],
+  until: Date = new Date()
+): { occurrences: Date[]; nextDueDate: Date } {
+  const occurrences: Date[] = [];
+  let cursor = new Date(nextDueDate);
+
+  while (cursor <= until && occurrences.length < MAX_CATCHUP) {
+    occurrences.push(new Date(cursor));
+    cursor = calculateNextDueDate(cursor, frequency);
+  }
+
+  // Hit the cap while still behind: skip ahead so we don't re-process
+  // the same backlog on every load.
+  while (cursor <= until) {
+    cursor = calculateNextDueDate(cursor, frequency);
+  }
+
+  return { occurrences, nextDueDate: cursor };
+}
+
 export async function processRecurring(): Promise<number> {
   const now = new Date();
   now.setHours(23, 59, 59, 999);
@@ -56,17 +84,24 @@ export async function processRecurring(): Promise<number> {
   let processed = 0;
 
   for (const recurring of due) {
-    await addTransaction({
-      amount: recurring.amount,
-      bucketId: recurring.bucketId,
-      date: new Date(recurring.nextDueDate),
-      note: recurring.note,
-      recurringId: recurring.id,
-    });
+    const { occurrences, nextDueDate } = dueOccurrences(
+      new Date(recurring.nextDueDate),
+      recurring.frequency,
+      now
+    );
 
-    const nextDue = calculateNextDueDate(new Date(recurring.nextDueDate), recurring.frequency);
-    await db.recurringTransactions.update(recurring.id, { nextDueDate: nextDue });
-    processed++;
+    for (const occurrence of occurrences) {
+      await addTransaction({
+        amount: recurring.amount,
+        bucketId: recurring.bucketId,
+        date: occurrence,
+        note: recurring.note,
+        recurringId: recurring.id,
+      });
+      processed++;
+    }
+
+    await db.recurringTransactions.update(recurring.id, { nextDueDate });
   }
 
   if (processed > 0) {
