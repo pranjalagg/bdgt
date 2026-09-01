@@ -254,7 +254,7 @@
 <Modal id="income" title="Manage Income">
   <form on:submit|preventDefault={handleSubmitIncome} class="space-y-4">
     <div>
-      <label class="label mb-1.5">Type</label>
+      <span class="label mb-1.5 block">Type</span>
       <div class="flex rounded-lg border border-gray-200 dark:border-border-dark p-0.5">
         <button
           type="button"
@@ -269,10 +269,11 @@
       </div>
     </div>
     <div>
-      <label class="label">Amount</label>
+      <label for="income-amount" class="label">Amount</label>
       <div class="relative mt-1.5">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
         <input
+          id="income-amount"
           type="text"
           inputmode="decimal"
           bind:value={incomeAmount}
@@ -288,8 +289,9 @@
       {/if}
     </div>
     <div>
-      <label class="label">Note (optional)</label>
+      <label for="income-note" class="label">Note (optional)</label>
       <input
+        id="income-note"
         type="text"
         bind:value={incomeNote}
         class="mt-1.5 input-base"
@@ -346,8 +348,9 @@
 <Modal id="add-goal" title="Add Savings Goal">
   <form on:submit|preventDefault={handleAddGoal} class="space-y-4">
     <div>
-      <label class="label">Goal Name</label>
+      <label for="goal-name" class="label">Goal Name</label>
       <input
+        id="goal-name"
         type="text"
         bind:value={goalName}
         class="mt-1.5 input-base"
@@ -355,8 +358,8 @@
       />
     </div>
     <div>
-      <label class="label">Linked Bucket</label>
-      <select bind:value={goalBucketId} class="mt-1.5 select-base">
+      <label for="goal-bucket" class="label">Linked Bucket</label>
+      <select id="goal-bucket" bind:value={goalBucketId} class="mt-1.5 select-base">
         <option value="">Select a bucket</option>
         {#each $buckets as bucket}
           <option value={bucket.id}>{bucket.name}</option>
@@ -364,10 +367,11 @@
       </select>
     </div>
     <div>
-      <label class="label">Target Amount</label>
+      <label for="goal-target" class="label">Target Amount</label>
       <div class="relative mt-1.5">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
         <input
+          id="goal-target"
           type="text"
           inputmode="decimal"
           bind:value={goalTargetAmount}
@@ -381,10 +385,11 @@
       {/if}
     </div>
     <div>
-      <label class="label">Starting Balance (optional)</label>
+      <label for="goal-start" class="label">Starting Balance (optional)</label>
       <div class="relative mt-1.5">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
         <input
+          id="goal-start"
           type="text"
           inputmode="decimal"
           bind:value={goalStartingBalance}
@@ -397,7 +402,7 @@
       {/if}
     </div>
     <div>
-      <label class="label mb-2">Goal Mode</label>
+      <span class="label mb-2 block">Goal Mode</span>
       <div class="flex gap-4">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" bind:group={goalMode} value="deadline" class="accent-primary" />
@@ -411,8 +416,9 @@
     </div>
     {#if goalMode === 'deadline'}
       <div>
-        <label class="label">Target Date</label>
+        <label for="goal-date" class="label">Target Date</label>
         <input
+          id="goal-date"
           type="date"
           bind:value={goalTargetDate}
           class="mt-1.5 input-base"
@@ -420,10 +426,11 @@
       </div>
     {:else}
       <div>
-        <label class="label">Monthly Contribution</label>
+        <label for="goal-monthly" class="label">Monthly Contribution</label>
         <div class="relative mt-1.5">
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
           <input
+            id="goal-monthly"
             type="text"
             inputmode="decimal"
             bind:value={goalMonthlyContribution}

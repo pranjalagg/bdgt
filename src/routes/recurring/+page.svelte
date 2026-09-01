@@ -151,10 +151,11 @@
 <Modal id="recurring-form" title={editingId ? 'Edit Recurring' : 'Add Recurring'}>
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">
     <div>
-      <label class="label">Amount</label>
+      <label for="rec-amount" class="label">Amount</label>
       <div class="relative mt-1.5">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
         <input
+          id="rec-amount"
           type="text"
           inputmode="decimal"
           bind:value={amount}
@@ -171,8 +172,8 @@
       {/if}
     </div>
     <div>
-      <label class="label">Bucket</label>
-      <select bind:value={bucketId} class="mt-1.5 select-base" required>
+      <label for="rec-bucket" class="label">Bucket</label>
+      <select id="rec-bucket" bind:value={bucketId} class="mt-1.5 select-base" required>
         <option value="">Select bucket</option>
         {#each $buckets as bucket}
           <option value={bucket.id}>{bucket.name}</option>
@@ -180,20 +181,20 @@
       </select>
     </div>
     <div>
-      <label class="label">Frequency</label>
-      <select bind:value={frequency} class="mt-1.5 select-base">
+      <label for="rec-frequency" class="label">Frequency</label>
+      <select id="rec-frequency" bind:value={frequency} class="mt-1.5 select-base">
         <option value="weekly">Weekly</option>
         <option value="biweekly">Bi-weekly</option>
         <option value="monthly">Monthly</option>
       </select>
     </div>
     <div>
-      <label class="label">Next Due Date</label>
-      <input type="date" bind:value={nextDueDate} class="mt-1.5 input-base" required />
+      <label for="rec-date" class="label">Next Due Date</label>
+      <input id="rec-date" type="date" bind:value={nextDueDate} class="mt-1.5 input-base" required />
     </div>
     <div>
-      <label class="label">Note (optional)</label>
-      <input type="text" bind:value={note} class="mt-1.5 input-base" />
+      <label for="rec-note" class="label">Note (optional)</label>
+      <input id="rec-note" type="text" bind:value={note} class="mt-1.5 input-base" />
     </div>
     <button
       type="submit"

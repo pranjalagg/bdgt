@@ -185,7 +185,7 @@
     </div>
 
     <div>
-      <label class="label mb-2">Allocation Type</label>
+      <span class="label mb-2 block">Allocation Type</span>
       <div class="flex gap-4">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" bind:group={newAllocationType} value="fixed" class="accent-primary" />
