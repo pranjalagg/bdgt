@@ -6,12 +6,15 @@
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { AllocationType } from '$lib/types';
 
-  let editingBucket: { id: string; name: string; color: string; allocationType: AllocationType; fixedAmount: number; percentageAmount: number } | null = null;
+  type BucketFormData = { id: string; name: string; color: string; allocationType: AllocationType; fixedAmount: number; percentageAmount: number; isSavings: boolean };
+
+  let editingBucket: BucketFormData | null = null;
   let newBucketName = '';
   let newBucketColor = '#6366f1';
   let newAllocationType: AllocationType = 'fixed';
   let newFixedAmount = 0;
   let newPercentageAmount = 0;
+  let newIsSavings = false;
 
   function handleAddBucket() {
     editingBucket = null;
@@ -20,16 +23,18 @@
     newAllocationType = 'fixed';
     newFixedAmount = 0;
     newPercentageAmount = 0;
+    newIsSavings = false;
     openModal('bucket-form');
   }
 
-  function handleEditBucket(bucket: { id: string; name: string; color: string; allocationType: AllocationType; fixedAmount: number; percentageAmount: number }) {
+  function handleEditBucket(bucket: BucketFormData) {
     editingBucket = bucket;
     newBucketName = bucket.name;
     newBucketColor = bucket.color;
     newAllocationType = bucket.allocationType;
     newFixedAmount = bucket.fixedAmount;
     newPercentageAmount = bucket.percentageAmount;
+    newIsSavings = bucket.isSavings ?? false;
     openModal('bucket-form');
   }
 
@@ -40,6 +45,7 @@
       await updateBucket(editingBucket.id, {
         name: newBucketName,
         color: newBucketColor,
+        isSavings: newIsSavings,
       });
       await updateBucketAllocation(editingBucket.id, newAllocationType, newFixedAmount, newPercentageAmount);
     } else {
@@ -51,6 +57,7 @@
         allocationType: newAllocationType,
         fixedAmount: newFixedAmount,
         percentageAmount: newPercentageAmount,
+        isSavings: newIsSavings,
       });
     }
     closeModal();
@@ -217,6 +224,14 @@
         />
       </div>
     {/if}
+
+    <label class="flex items-start gap-2.5 cursor-pointer">
+      <input type="checkbox" bind:checked={newIsSavings} class="mt-0.5 accent-primary" />
+      <span class="text-sm text-gray-700 dark:text-gray-200">
+        Counts as savings
+        <span class="block text-xs text-muted">Money moved here is treated as saved, not spent, in your savings rate.</span>
+      </span>
+    </label>
 
     <button type="submit" class="w-full btn-primary">
       {editingBucket ? 'Update' : 'Add'} Bucket

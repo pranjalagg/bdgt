@@ -12,6 +12,7 @@ function createBucket(overrides: Partial<Bucket> = {}): Bucket {
     allocationType: 'fixed',
     fixedAmount: 0,
     percentageAmount: 0,
+    isSavings: false,
     ...overrides
   };
 }

@@ -3,7 +3,7 @@ import { writable, derived, get } from 'svelte/store';
 import { db, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
 import { getMonthKey, getPreviousMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey } from '$lib/utils/dates';
-import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate } from '$lib/utils/calculations';
+import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
 export const buckets = writable<Bucket[]>([]);
@@ -118,15 +118,19 @@ export const unallocated = derived(
 export const savingsRate = derived(
   [currentMonthIncome, bucketStatuses],
   ([$income, $statuses]) => {
-    const totalSpent = $statuses.reduce((sum, s) => sum + s.spent, 0);
+    const totalSpent = $statuses.reduce(
+      (sum, s) => (s.bucket.isSavings ? sum : sum + s.spent),
+      0
+    );
     return calculateSavingsRate($income, totalSpent);
   }
 );
 
 export const savingsRateTrend = derived(
-  [transactions, incomes, currentMonthKey],
-  ([$transactions, $incomes, $currentMonth]) => {
+  [transactions, incomes, buckets, currentMonthKey],
+  ([$transactions, $incomes, $buckets, $currentMonth]) => {
     const months = getLast6Months($currentMonth);
+    const savingsBucketIds = new Set($buckets.filter((b) => b.isSavings).map((b) => b.id));
     return months.map(month => {
       const { start, end } = getMonthRange(month);
       const monthIncome = $incomes
@@ -135,12 +139,11 @@ export const savingsRateTrend = derived(
           return date >= start && date <= end;
         })
         .reduce((sum, i) => sum + i.amount, 0);
-      const monthSpent = $transactions
-        .filter(t => {
-          const date = new Date(t.date);
-          return date >= start && date <= end;
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
+      const monthTransactions = $transactions.filter(t => {
+        const date = new Date(t.date);
+        return date >= start && date <= end;
+      });
+      const monthSpent = spentExcludingSavings(monthTransactions, savingsBucketIds);
       return { month, rate: calculateSavingsRate(monthIncome, monthSpent) };
     });
   }

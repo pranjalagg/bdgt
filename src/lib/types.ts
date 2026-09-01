@@ -22,6 +22,7 @@ export interface Bucket {
   allocationType: AllocationType;
   fixedAmount: number;      // cents
   percentageAmount: number; // 0-100
+  isSavings: boolean;       // spending here counts as saved, not spent
 }
 
 export interface Transaction {

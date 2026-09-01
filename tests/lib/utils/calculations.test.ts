@@ -7,7 +7,8 @@ import {
   filterFixedIncome,
   sumIncome,
   incomePercentage,
-  calculateSavingsRate
+  calculateSavingsRate,
+  spentExcludingSavings
 } from '$lib/utils/calculations';
 import type { Income } from '$lib/types';
 
@@ -209,6 +210,31 @@ describe('budget calculations', () => {
 
     it('handles zero spending', () => {
       expect(calculateSavingsRate(100000, 0)).toBe(100);
+    });
+  });
+
+  describe('spentExcludingSavings', () => {
+    const txns = [
+      { bucketId: 'rent', amount: 100000 },
+      { bucketId: 'savings', amount: 50000 },
+      { bucketId: 'invest', amount: 30000 },
+      { bucketId: 'food', amount: 20000 },
+    ];
+
+    it('sums all spending when no buckets are savings', () => {
+      expect(spentExcludingSavings(txns, new Set())).toBe(200000);
+    });
+
+    it('excludes transactions in savings buckets', () => {
+      expect(spentExcludingSavings(txns, new Set(['savings', 'invest']))).toBe(120000);
+    });
+
+    it('accepts an array of savings ids', () => {
+      expect(spentExcludingSavings(txns, ['savings'])).toBe(150000);
+    });
+
+    it('returns 0 for no transactions', () => {
+      expect(spentExcludingSavings([], new Set(['savings']))).toBe(0);
     });
   });
 });

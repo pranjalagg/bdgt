@@ -70,3 +70,17 @@ export function calculateSavingsRate(income: number, spent: number): number | nu
   if (income <= 0) return null;
   return Math.round(((income - spent) / income) * 1000) / 10;
 }
+
+// Total spent excluding transactions routed into savings-type buckets.
+// Money moved into savings is saved, not spent, so it must not depress
+// the savings rate.
+export function spentExcludingSavings(
+  transactions: { bucketId: string; amount: number }[],
+  savingsBucketIds: Set<string> | string[]
+): number {
+  const savings = savingsBucketIds instanceof Set ? savingsBucketIds : new Set(savingsBucketIds);
+  return transactions.reduce(
+    (sum, t) => (savings.has(t.bucketId) ? sum : sum + t.amount),
+    0
+  );
+}
