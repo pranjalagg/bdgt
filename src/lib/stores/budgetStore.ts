@@ -149,6 +149,14 @@ export const savingsRateTrend = derived(
   }
 );
 
+// parseCurrency() returns NaN on bad input; without this guard an
+// invalid form value could persist NaN straight into IndexedDB.
+function assertCents(amount: number, label = 'amount'): void {
+  if (!Number.isFinite(amount)) {
+    throw new Error(`Invalid ${label}: expected a finite number of cents`);
+  }
+}
+
 // Actions
 export async function addBucket(bucket: Omit<Bucket, 'id'>): Promise<string> {
   const id = crypto.randomUUID();
@@ -177,6 +185,7 @@ export async function deleteBucket(id: string): Promise<void> {
 }
 
 export async function addTransaction(transaction: Omit<Transaction, 'id'>): Promise<string> {
+  assertCents(transaction.amount);
   const id = crypto.randomUUID();
   const newTransaction = { ...transaction, id };
   await db.transactions.add(newTransaction);
@@ -186,6 +195,7 @@ export async function addTransaction(transaction: Omit<Transaction, 'id'>): Prom
 }
 
 export async function updateTransaction(id: string, updates: Partial<Transaction>): Promise<void> {
+  if (updates.amount !== undefined) assertCents(updates.amount);
   const existing = get(transactions).find((t) => t.id === id);
   await db.transactions.update(id, updates);
   transactions.update((t) => t.map((tx) => (tx.id === id ? { ...tx, ...updates } : tx)));
@@ -211,6 +221,7 @@ export async function deleteTransaction(id: string): Promise<void> {
 }
 
 export async function addIncome(income: Omit<Income, 'id'>): Promise<string> {
+  assertCents(income.amount);
   const id = crypto.randomUUID();
   const newIncome = { ...income, id };
   await db.incomes.add(newIncome);
@@ -220,6 +231,7 @@ export async function addIncome(income: Omit<Income, 'id'>): Promise<string> {
 }
 
 export async function updateIncome(id: string, updates: Partial<Income>): Promise<void> {
+  if (updates.amount !== undefined) assertCents(updates.amount);
   const existing = get(incomes).find((i) => i.id === id);
   await db.incomes.update(id, updates);
   incomes.update((i) => i.map((inc) => (inc.id === id ? { ...inc, ...updates } : inc)));
@@ -245,6 +257,7 @@ export async function deleteIncome(id: string): Promise<void> {
 }
 
 export async function setAllocation(bucketId: string, amount: number): Promise<void> {
+  assertCents(amount, 'allocation');
   const $month = get(currentMonthKey);
   let snapshot = await db.monthSnapshots.get($month);
 

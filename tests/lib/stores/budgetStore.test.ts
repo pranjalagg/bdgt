@@ -13,8 +13,9 @@ vi.mock('$lib/db', () => ({
   initializeDefaultBuckets: vi.fn().mockResolvedValue(undefined),
   db: {
     buckets: { delete: vi.fn().mockResolvedValue(undefined) },
-    transactions: { where: txChain.where },
+    transactions: { where: txChain.where, add: vi.fn().mockResolvedValue(undefined) },
     recurringTransactions: { where: recChain.where },
+    incomes: { add: vi.fn().mockResolvedValue(undefined) },
     savingsGoals: { where: goalChain.where },
     monthSnapshots: {
       get: vi.fn().mockResolvedValue(undefined),
@@ -23,7 +24,7 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { buckets, transactions, deleteBucket } from '$lib/stores/budgetStore';
+import { buckets, transactions, deleteBucket, addTransaction, addIncome } from '$lib/stores/budgetStore';
 
 describe('deleteBucket cascade', () => {
   beforeEach(() => {
@@ -54,5 +55,27 @@ describe('deleteBucket cascade', () => {
     expect(txChain.del).toHaveBeenCalled();
     expect(recChain.del).toHaveBeenCalled();
     expect(goalChain.del).toHaveBeenCalled();
+  });
+});
+
+describe('amount validation', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('rejects a transaction with a NaN amount', async () => {
+    await expect(
+      addTransaction({ amount: NaN, bucketId: 'b1', date: new Date(2026, 0, 1) })
+    ).rejects.toThrow(/amount/i);
+  });
+
+  it('rejects income with a non-finite amount', async () => {
+    await expect(
+      addIncome({ amount: Infinity, date: new Date(2026, 0, 1), isRecurring: false, type: 'fixed' })
+    ).rejects.toThrow(/amount/i);
+  });
+
+  it('accepts a valid transaction amount', async () => {
+    await expect(
+      addTransaction({ amount: 1234, bucketId: 'b1', date: new Date(2026, 0, 1) })
+    ).resolves.toBeDefined();
   });
 });
