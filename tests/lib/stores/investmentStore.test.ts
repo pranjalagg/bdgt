@@ -19,10 +19,15 @@ vi.mock('$lib/db', () => ({
         }),
       }),
     },
+    investmentPrices: {
+      put: vi.fn(),
+      delete: vi.fn(),
+      toArray: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 
-import { lots, sells, addLot, updateLot, deleteLot, sellFromLot, loadInvestments } from '$lib/stores/investmentStore';
+import { lots, sells, holdings, portfolioSummary, addLot, updateLot, deleteLot, sellFromLot, setPrice, loadInvestments } from '$lib/stores/investmentStore';
 import { db } from '$lib/db';
 
 describe('investmentStore', () => {
@@ -163,6 +168,37 @@ describe('investmentStore', () => {
       });
 
       await expect(sellFromLot(lotId, 5, 16000, new Date('2026-05-10'))).rejects.toThrow('Cannot sell more shares than available');
+    });
+  });
+
+  describe('setPrice / holding valuation', () => {
+    it('stores an uppercased price and enriches the holding', async () => {
+      await addLot({
+        symbol: 'msft', shares: 10, pricePerShare: 20000,
+        purchaseDate: new Date('2026-01-01'), soldShares: 0,
+      });
+
+      await setPrice('msft', 25000);
+
+      expect(db.investmentPrices.put).toHaveBeenCalledWith(
+        expect.objectContaining({ symbol: 'MSFT', pricePerShare: 25000 })
+      );
+      const holding = get(holdings).find((h) => h.symbol === 'MSFT')!;
+      expect(holding.marketValue).toBe(250000);
+      expect(holding.unrealizedGain).toBe(50000);
+      expect(get(portfolioSummary).totalUnrealizedGain).toBe(50000);
+    });
+
+    it('clearing a price removes it and unprices the holding', async () => {
+      await addLot({
+        symbol: 'NVDA', shares: 2, pricePerShare: 10000,
+        purchaseDate: new Date('2026-01-01'), soldShares: 0,
+      });
+      await setPrice('NVDA', 12000);
+      await setPrice('NVDA', null);
+
+      expect(db.investmentPrices.delete).toHaveBeenCalledWith('NVDA');
+      expect(get(holdings).find((h) => h.symbol === 'NVDA')!.marketValue).toBeNull();
     });
   });
 });

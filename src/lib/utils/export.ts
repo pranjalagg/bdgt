@@ -4,7 +4,7 @@ import { formatDate } from './dates';
 import type { ExportData } from '$lib/types';
 
 export async function exportToJson(): Promise<string> {
-  const [buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells] = await Promise.all([
+  const [buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells, investmentPrices] = await Promise.all([
     db.buckets.toArray(),
     db.transactions.toArray(),
     db.recurringTransactions.toArray(),
@@ -13,12 +13,13 @@ export async function exportToJson(): Promise<string> {
     db.savingsGoals.toArray(),
     db.investmentLots.toArray(),
     db.investmentSells.toArray(),
+    db.investmentPrices.toArray(),
   ]);
 
   const data: ExportData = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells },
+    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells, investmentPrices },
   };
 
   return JSON.stringify(data, null, 2);
@@ -60,6 +61,7 @@ const COLLECTIONS = [
   'savingsGoals',
   'investmentLots',
   'investmentSells',
+  'investmentPrices',
 ] as const;
 
 // Date-valued fields per collection, revived from ISO strings on import.
@@ -70,6 +72,7 @@ const DATE_FIELDS: Record<string, string[]> = {
   savingsGoals: ['createdAt', 'targetDate'],
   investmentLots: ['purchaseDate'],
   investmentSells: ['sellDate'],
+  investmentPrices: ['updatedAt'],
 };
 
 function reviveDates<T extends Record<string, unknown>>(rows: T[], fields: string[]): T[] {
@@ -128,31 +131,20 @@ export function parseImport(json: string): ExportData {
 
 export async function importFromJson(json: string): Promise<void> {
   const { data } = parseImport(json);
+  const tables = COLLECTIONS.map((name) => db.table(name));
 
-  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals, db.investmentLots, db.investmentSells], async () => {
-    await Promise.all(COLLECTIONS.map((name) => db.table(name).clear()));
-
-    await db.buckets.bulkAdd(data.buckets);
-    await db.transactions.bulkAdd(data.transactions);
-    await db.recurringTransactions.bulkAdd(data.recurringTransactions);
-    await db.incomes.bulkAdd(data.incomes);
-    await db.monthSnapshots.bulkAdd(data.monthSnapshots);
-    await db.savingsGoals.bulkAdd(data.savingsGoals);
-    await db.investmentLots.bulkAdd(data.investmentLots);
-    await db.investmentSells.bulkAdd(data.investmentSells);
+  await db.transaction('rw', tables, async () => {
+    await Promise.all(tables.map((t) => t.clear()));
+    for (const name of COLLECTIONS) {
+      await db.table(name).bulkAdd((data as Record<string, unknown[]>)[name]);
+    }
   });
 }
 
 export async function resetAllData(): Promise<void> {
-  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals, db.investmentLots, db.investmentSells], async () => {
-    await db.buckets.clear();
-    await db.transactions.clear();
-    await db.recurringTransactions.clear();
-    await db.incomes.clear();
-    await db.monthSnapshots.clear();
-    await db.savingsGoals.clear();
-    await db.investmentLots.clear();
-    await db.investmentSells.clear();
+  const tables = COLLECTIONS.map((name) => db.table(name));
+  await db.transaction('rw', tables, async () => {
+    await Promise.all(tables.map((t) => t.clear()));
   });
 }
 

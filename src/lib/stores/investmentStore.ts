@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { db } from '$lib/db';
-import type { InvestmentLot, InvestmentSell } from '$lib/types';
+import { holdingValuation, realizedGain } from '$lib/utils/investments';
+import type { InvestmentLot, InvestmentSell, InvestmentPrice } from '$lib/types';
 
 export interface Holding {
   symbol: string;
@@ -8,12 +9,21 @@ export interface Holding {
   avgCostBasis: number;
   totalCost: number;
   lots: InvestmentLot[];
+  currentPrice: number | null;
+  marketValue: number | null;
+  unrealizedGain: number | null;
+  unrealizedGainPct: number | null;
 }
 
 export interface PortfolioSummary {
   totalInvested: number;
   holdingsCount: number;
   topHoldings: Holding[];
+  totalMarketValue: number | null;
+  totalUnrealizedGain: number | null;
+  totalUnrealizedGainPct: number | null;
+  realizedGain: number;
+  pricedHoldings: number;
 }
 
 export interface Activity {
@@ -27,9 +37,10 @@ export interface Activity {
 
 export const lots = writable<InvestmentLot[]>([]);
 export const sells = writable<InvestmentSell[]>([]);
+export const prices = writable<Record<string, number>>({});
 export const isLoadingInvestments = writable(true);
 
-export const holdings = derived(lots, ($lots) => {
+export const holdings = derived([lots, prices], ([$lots, $prices]) => {
   const symbolMap = new Map<string, InvestmentLot[]>();
 
   for (const lot of $lots) {
@@ -49,6 +60,8 @@ export const holdings = derived(lots, ($lots) => {
     }, 0);
 
     const avgCostBasis = totalShares > 0 ? Math.round(totalCost / totalShares) : 0;
+    const currentPrice = $prices[symbol] ?? null;
+    const valuation = holdingValuation(totalShares, totalCost, currentPrice ?? undefined);
 
     result.push({
       symbol,
@@ -56,18 +69,43 @@ export const holdings = derived(lots, ($lots) => {
       avgCostBasis,
       totalCost,
       lots: symbolLots.filter((l) => l.shares - l.soldShares > 0),
+      currentPrice,
+      ...valuation,
     });
   }
 
   return result.sort((a, b) => b.totalCost - a.totalCost);
 });
 
-export const portfolioSummary = derived(holdings, ($holdings): PortfolioSummary => {
+export const portfolioSummary = derived([holdings, sells, lots], ([$holdings, $sells, $lots]): PortfolioSummary => {
   const totalInvested = $holdings.reduce((sum, h) => sum + h.totalCost, 0);
   const holdingsCount = $holdings.length;
   const topHoldings = $holdings.slice(0, 5);
 
-  return { totalInvested, holdingsCount, topHoldings };
+  const priced = $holdings.filter((h) => h.marketValue !== null);
+  const pricedHoldings = priced.length;
+  const totalMarketValue = pricedHoldings > 0
+    ? priced.reduce((sum, h) => sum + (h.marketValue ?? 0), 0)
+    : null;
+  const pricedCost = priced.reduce((sum, h) => sum + h.totalCost, 0);
+  const totalUnrealizedGain = totalMarketValue === null ? null : totalMarketValue - pricedCost;
+  const totalUnrealizedGainPct = totalUnrealizedGain !== null && pricedCost > 0
+    ? Math.round((totalUnrealizedGain / pricedCost) * 1000) / 10
+    : null;
+
+  const lotBasis: Record<string, number> = {};
+  for (const l of $lots) lotBasis[l.id] = l.pricePerShare;
+
+  return {
+    totalInvested,
+    holdingsCount,
+    topHoldings,
+    totalMarketValue,
+    totalUnrealizedGain,
+    totalUnrealizedGainPct,
+    realizedGain: realizedGain($sells, lotBasis),
+    pricedHoldings,
+  };
 });
 
 export const recentActivity = derived([lots, sells], ([$lots, $sells]): Activity[] => {
@@ -105,13 +143,32 @@ export const recentActivity = derived([lots, sells], ([$lots, $sells]): Activity
 
 export async function loadInvestments(): Promise<void> {
   isLoadingInvestments.set(true);
-  const [loadedLots, loadedSells] = await Promise.all([
+  const [loadedLots, loadedSells, loadedPrices] = await Promise.all([
     db.investmentLots.toArray(),
     db.investmentSells.toArray(),
+    db.investmentPrices.toArray(),
   ]);
   lots.set(loadedLots);
   sells.set(loadedSells);
+  prices.set(Object.fromEntries(loadedPrices.map((p) => [p.symbol, p.pricePerShare])));
   isLoadingInvestments.set(false);
+}
+
+// Manually set (or clear, with null) the current price for a symbol.
+export async function setPrice(symbol: string, pricePerShare: number | null): Promise<void> {
+  const sym = symbol.toUpperCase();
+  if (pricePerShare === null || !Number.isFinite(pricePerShare) || pricePerShare <= 0) {
+    await db.investmentPrices.delete(sym);
+    prices.update((p) => {
+      const next = { ...p };
+      delete next[sym];
+      return next;
+    });
+    return;
+  }
+  const record: InvestmentPrice = { symbol: sym, pricePerShare, updatedAt: new Date() };
+  await db.investmentPrices.put(record);
+  prices.update((p) => ({ ...p, [sym]: pricePerShare }));
 }
 
 export async function addLot(lot: Omit<InvestmentLot, 'id'>): Promise<string> {

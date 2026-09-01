@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal, InvestmentLot, InvestmentSell } from '$lib/types';
+import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice } from '$lib/types';
 
 const SAVINGS_BUCKET_NAMES = new Set(['Savings', 'Investments', 'Emergency Fund']);
 
@@ -12,6 +12,7 @@ export class BudgetDatabase extends Dexie {
   savingsGoals!: Table<SavingsGoal, string>;
   investmentLots!: Table<InvestmentLot, string>;
   investmentSells!: Table<InvestmentSell, string>;
+  investmentPrices!: Table<InvestmentPrice, string>;
 
   constructor() {
     super('BudgetDB');
@@ -78,6 +79,18 @@ export class BudgetDatabase extends Dexie {
           bucket.isSavings = SAVINGS_BUCKET_NAMES.has(bucket.name);
         }
       });
+    });
+
+    this.version(6).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      monthSnapshots: 'month',
+      savingsGoals: 'id, bucketId',
+      investmentLots: 'id, symbol, purchaseDate',
+      investmentSells: 'id, lotId, sellDate',
+      investmentPrices: 'symbol'
     });
   }
 }

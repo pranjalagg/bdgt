@@ -91,6 +91,12 @@ export interface InvestmentSell {
   note?: string;
 }
 
+export interface InvestmentPrice {
+  symbol: string;        // primary key
+  pricePerShare: number; // cents, entered manually
+  updatedAt: Date;
+}
+
 export type ExportData = {
   version: number;
   exportedAt: string;
@@ -103,5 +109,6 @@ export type ExportData = {
     savingsGoals: SavingsGoal[];
     investmentLots: InvestmentLot[];
     investmentSells: InvestmentSell[];
+    investmentPrices: InvestmentPrice[];
   };
 };
