@@ -11,7 +11,8 @@ import {
   getLast6Months,
   getDaysInMonth,
   getDayOfMonth,
-  parseLocalDate
+  parseLocalDate,
+  defaultEntryDate
 } from '$lib/utils/dates';
 
 describe('date utils', () => {
@@ -132,6 +133,24 @@ describe('date utils', () => {
       expect(date.getFullYear()).toBe(2026);
       expect(date.getMonth()).toBe(5); // June is 5 (0-indexed)
       expect(date.getDate()).toBe(27);
+    });
+  });
+
+  describe('defaultEntryDate', () => {
+    it('returns today when the viewed month is the current month', () => {
+      const today = new Date(2026, 8, 17, 10, 30);
+      const result = defaultEntryDate('2026-09', today);
+      expect(result.getFullYear()).toBe(2026);
+      expect(result.getMonth()).toBe(8);
+      expect(result.getDate()).toBe(17);
+    });
+
+    it('returns the first of the month when viewing a different month', () => {
+      const today = new Date(2026, 8, 17);
+      const result = defaultEntryDate('2026-04', today);
+      expect(result.getFullYear()).toBe(2026);
+      expect(result.getMonth()).toBe(3);
+      expect(result.getDate()).toBe(1);
     });
   });
 });

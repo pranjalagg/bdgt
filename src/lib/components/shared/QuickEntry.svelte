@@ -2,7 +2,7 @@
   import { buckets, addTransaction } from '$lib/stores/budgetStore';
   import { currentMonthKey } from '$lib/stores/uiStore';
   import { parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
-  import { parseMonthKey } from '$lib/utils/dates';
+  import { defaultEntryDate } from '$lib/utils/dates';
 
   export let preselectedBucketId: string | undefined = undefined;
   export let onComplete: (() => void) | undefined = undefined;
@@ -37,7 +37,7 @@
       await addTransaction({
         amount: parseCurrency(amount),
         bucketId,
-        date: parseMonthKey($currentMonthKey),
+        date: defaultEntryDate($currentMonthKey),
         note: note || undefined,
       });
       amount = '';

@@ -72,3 +72,9 @@ export function parseLocalDate(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
+// Sensible default date for a new entry in the month being viewed:
+// today if that month is current, otherwise the 1st of that month.
+export function defaultEntryDate(monthKey: string, today: Date = new Date()): Date {
+  return monthKey === getMonthKey(today) ? today : parseMonthKey(monthKey);
+}
+
