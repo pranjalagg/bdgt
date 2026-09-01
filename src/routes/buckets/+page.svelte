@@ -1,5 +1,7 @@
 <script lang="ts">
   import { buckets, bucketStatuses, addBucket, updateBucket, deleteBucket, setAllocation, updateBucketAllocation, totalPercentage, computedAllocations } from '$lib/stores/budgetStore';
+  import { loadRecurring } from '$lib/stores/recurringStore';
+  import { loadGoals } from '$lib/stores/goalsStore';
   import { formatCurrency, evaluateExpression } from '$lib/utils/currency';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
@@ -64,8 +66,13 @@
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this bucket? Transactions will need to be reassigned.')) return;
+    const status = $bucketStatuses.find((s) => s.bucket.id === id);
+    if (!confirm(
+      `Delete "${status?.bucket.name ?? 'this bucket'}"? This also deletes all of its transactions, recurring items and linked savings goals. This cannot be undone.`
+    )) return;
     await deleteBucket(id);
+    await loadRecurring();
+    await loadGoals();
   }
 
   async function handleAllocationChange(bucketId: string, value: string, inputEl: HTMLInputElement) {

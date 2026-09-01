@@ -163,9 +163,17 @@ export async function updateBucket(id: string, updates: Partial<Bucket>): Promis
   buckets.update((b) => b.map((bucket) => (bucket.id === id ? { ...bucket, ...updates } : bucket)));
 }
 
+// Deleting a bucket cascades to everything scoped to it. Without this,
+// transactions kept a dead bucketId: money vanished from category views
+// while still counting in raw-transaction totals.
 export async function deleteBucket(id: string): Promise<void> {
   await db.buckets.delete(id);
+  await db.transactions.where('bucketId').equals(id).delete();
+  await db.recurringTransactions.where('bucketId').equals(id).delete();
+  await db.savingsGoals.where('bucketId').equals(id).delete();
+
   buckets.update((b) => b.filter((bucket) => bucket.id !== id));
+  transactions.update((t) => t.filter((tx) => tx.bucketId !== id));
 }
 
 export async function addTransaction(transaction: Omit<Transaction, 'id'>): Promise<string> {
