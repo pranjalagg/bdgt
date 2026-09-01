@@ -51,42 +51,95 @@ export async function exportToCsv(): Promise<string> {
   return rows.join('\n');
 }
 
-export async function importFromJson(json: string): Promise<void> {
-  const data: ExportData = JSON.parse(json);
+const COLLECTIONS = [
+  'buckets',
+  'transactions',
+  'recurringTransactions',
+  'incomes',
+  'monthSnapshots',
+  'savingsGoals',
+  'investmentLots',
+  'investmentSells',
+] as const;
 
-  if (data.version !== 1) {
-    throw new Error('Unsupported backup version');
+// Date-valued fields per collection, revived from ISO strings on import.
+const DATE_FIELDS: Record<string, string[]> = {
+  transactions: ['date'],
+  recurringTransactions: ['nextDueDate'],
+  incomes: ['date'],
+  savingsGoals: ['createdAt', 'targetDate'],
+  investmentLots: ['purchaseDate'],
+  investmentSells: ['sellDate'],
+};
+
+function reviveDates<T extends Record<string, unknown>>(rows: T[], fields: string[]): T[] {
+  return rows.map((row) => {
+    const copy: Record<string, unknown> = { ...row };
+    for (const field of fields) {
+      if (copy[field] != null && !(copy[field] instanceof Date)) {
+        copy[field] = new Date(copy[field] as string);
+      }
+    }
+    return copy as T;
+  });
+}
+
+export function parseImport(json: string): ExportData {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error('File is not valid JSON');
   }
 
-  const incomesWithType = data.data.incomes.map((i) => ({
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Backup file is malformed');
+  }
+  const obj = parsed as Record<string, unknown>;
+
+  if (obj.version !== 1) {
+    throw new Error('Unsupported backup version');
+  }
+  if (!obj.data || typeof obj.data !== 'object') {
+    throw new Error('Backup file is missing its data section');
+  }
+  const data = obj.data as Record<string, unknown>;
+
+  for (const name of COLLECTIONS) {
+    if (data[name] === undefined) {
+      data[name] = [];
+      continue;
+    }
+    if (!Array.isArray(data[name])) {
+      throw new Error(`Backup section "${name}" is not a list`);
+    }
+    if (DATE_FIELDS[name]) {
+      data[name] = reviveDates(data[name] as Record<string, unknown>[], DATE_FIELDS[name]);
+    }
+  }
+
+  data.incomes = (data.incomes as Record<string, unknown>[]).map((i) => ({
     ...i,
     type: i.type || 'fixed',
   }));
 
-  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals, db.investmentLots, db.investmentSells], async () => {
-    await db.buckets.clear();
-    await db.transactions.clear();
-    await db.recurringTransactions.clear();
-    await db.incomes.clear();
-    await db.monthSnapshots.clear();
-    await db.savingsGoals.clear();
-    await db.investmentLots.clear();
-    await db.investmentSells.clear();
+  return obj as unknown as ExportData;
+}
 
-    await db.buckets.bulkAdd(data.data.buckets);
-    await db.transactions.bulkAdd(data.data.transactions);
-    await db.recurringTransactions.bulkAdd(data.data.recurringTransactions);
-    await db.incomes.bulkAdd(incomesWithType);
-    await db.monthSnapshots.bulkAdd(data.data.monthSnapshots);
-    if (data.data.savingsGoals) {
-      await db.savingsGoals.bulkAdd(data.data.savingsGoals);
-    }
-    if (data.data.investmentLots) {
-      await db.investmentLots.bulkAdd(data.data.investmentLots);
-    }
-    if (data.data.investmentSells) {
-      await db.investmentSells.bulkAdd(data.data.investmentSells);
-    }
+export async function importFromJson(json: string): Promise<void> {
+  const { data } = parseImport(json);
+
+  await db.transaction('rw', [db.buckets, db.transactions, db.recurringTransactions, db.incomes, db.monthSnapshots, db.savingsGoals, db.investmentLots, db.investmentSells], async () => {
+    await Promise.all(COLLECTIONS.map((name) => db.table(name).clear()));
+
+    await db.buckets.bulkAdd(data.buckets);
+    await db.transactions.bulkAdd(data.transactions);
+    await db.recurringTransactions.bulkAdd(data.recurringTransactions);
+    await db.incomes.bulkAdd(data.incomes);
+    await db.monthSnapshots.bulkAdd(data.monthSnapshots);
+    await db.savingsGoals.bulkAdd(data.savingsGoals);
+    await db.investmentLots.bulkAdd(data.investmentLots);
+    await db.investmentSells.bulkAdd(data.investmentSells);
   });
 }
 
