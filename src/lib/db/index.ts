@@ -98,13 +98,30 @@ export const DEFAULT_BUCKETS: Omit<Bucket, 'id'>[] = [
   { name: 'Misc', color: '#6b7280', order: 10, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
 ];
 
+const SEEDED_KEY = 'bdgt-default-buckets-seeded';
+
+// Seed defaults only the very first time. Otherwise a user who
+// intentionally deletes every bucket gets all 11 back on next load.
+export function shouldSeedDefaults(bucketCount: number, alreadySeeded: boolean): boolean {
+  return bucketCount === 0 && !alreadySeeded;
+}
+
 export async function initializeDefaultBuckets(): Promise<void> {
+  const alreadySeeded =
+    typeof localStorage !== 'undefined' && localStorage.getItem(SEEDED_KEY) === 'true';
   const count = await db.buckets.count();
-  if (count === 0) {
+
+  if (shouldSeedDefaults(count, alreadySeeded)) {
     const bucketsWithIds = DEFAULT_BUCKETS.map((b) => ({
       ...b,
       id: crypto.randomUUID(),
     }));
     await db.buckets.bulkAdd(bucketsWithIds);
+  }
+
+  try {
+    localStorage.setItem(SEEDED_KEY, 'true');
+  } catch {
+    // localStorage unavailable (private mode) — falls back to old behavior
   }
 }
