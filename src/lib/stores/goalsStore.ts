@@ -1,6 +1,8 @@
 import { writable, derived } from 'svelte/store';
 import { db } from '$lib/db';
-import { monthSnapshots, currentSnapshot, buckets } from './budgetStore';
+import { monthlyLedger, buckets } from './budgetStore';
+import { currentMonthKey } from './uiStore';
+import { computeAllocation } from '$lib/utils/calculations';
 import { calculateGoalProgress, calculateMonthlyNeeded, calculateProjectedDate, getGoalStatus, type GoalStatus } from '$lib/utils/goals';
 import type { SavingsGoal, Bucket } from '$lib/types';
 
@@ -41,13 +43,25 @@ export interface GoalStatusInfo {
 }
 
 export const goalStatuses = derived(
-  [savingsGoals, monthSnapshots, currentSnapshot, buckets],
-  ([$goals, $snapshots, $currentSnapshot, $buckets]): GoalStatusInfo[] => {
+  [savingsGoals, monthlyLedger, currentMonthKey, buckets],
+  ([$goals, $ledger, $month, $buckets]): GoalStatusInfo[] => {
+    const monthsThroughNow = [...new Set([...$ledger.months, $month])].filter((m) => m <= $month).sort();
+
     return $goals.map((goal) => {
       const bucket = $buckets.find((b) => b.id === goal.bucketId);
-      const currentAmount = calculateGoalProgress(goal, $snapshots);
+      const currentAmount = calculateGoalProgress(
+        goal,
+        bucket,
+        monthsThroughNow,
+        $ledger.allocationOverrides,
+        $ledger.incomeByMonth,
+        $ledger.spentByMonthBucket
+      );
       const progress = Math.min(currentAmount / goal.targetAmount, 1);
-      const currentMonthAllocation = $currentSnapshot.allocations[goal.bucketId] || 0;
+      const currentMonthAllocation = bucket
+        ? ($ledger.allocationOverrides[$month]?.[goal.bucketId]
+            ?? computeAllocation(bucket, $ledger.incomeByMonth[$month] ?? 0))
+        : 0;
 
       let monthlyNeeded = 0;
       let projectedDate: Date | null = null;

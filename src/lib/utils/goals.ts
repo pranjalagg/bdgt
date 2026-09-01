@@ -1,15 +1,34 @@
-import type { SavingsGoal, MonthSnapshot } from '$lib/types';
+import type { SavingsGoal, Bucket } from '$lib/types';
 import { getMonthKey } from './dates';
+import { computeAllocation } from './calculations';
 
+// Progress toward a goal = its starting balance plus the running balance
+// of the linked bucket (allocated minus spent) for every month from the
+// goal's creation onward. Derived from raw data, so withdrawing from the
+// bucket actually lowers progress.
 export function calculateGoalProgress(
   goal: SavingsGoal,
-  monthSnapshots: MonthSnapshot[]
+  bucket: Bucket | undefined,
+  months: string[],
+  allocationOverrides: Record<string, Record<string, number>>,
+  incomeByMonth: Record<string, number>,
+  spentByMonthBucket: Record<string, Record<string, number>>
 ): number {
   const startMonth = getMonthKey(goal.createdAt);
-  const allocations = monthSnapshots
-    .filter((s) => s.month >= startMonth)
-    .reduce((sum, s) => sum + (s.allocations[goal.bucketId] || 0), 0);
-  return goal.startingBalance + allocations;
+  let balance = goal.startingBalance;
+
+  for (const month of months) {
+    if (month < startMonth) continue;
+    if (!bucket) continue;
+
+    const allocated = bucket.allocationType === 'fixed'
+      ? (allocationOverrides[month]?.[goal.bucketId] ?? computeAllocation(bucket, incomeByMonth[month] ?? 0))
+      : computeAllocation(bucket, incomeByMonth[month] ?? 0);
+    const spent = spentByMonthBucket[month]?.[goal.bucketId] ?? 0;
+    balance += allocated - spent;
+  }
+
+  return balance;
 }
 
 export function monthsBetween(from: Date, to: Date): number {

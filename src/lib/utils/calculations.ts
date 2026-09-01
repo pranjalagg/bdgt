@@ -89,7 +89,11 @@ export function accumulateRollovers(
     const spent = spentByMonthBucket[month] ?? {};
 
     for (const bucket of buckets) {
-      const allocated = overrides[bucket.id] ?? computeAllocation(bucket, monthIncome);
+      // Per-month overrides only make sense for fixed buckets; percentage
+      // and hybrid always re-derive from that month's income.
+      const allocated = bucket.allocationType === 'fixed'
+        ? (overrides[bucket.id] ?? computeAllocation(bucket, monthIncome))
+        : computeAllocation(bucket, monthIncome);
       const delta = allocated - (spent[bucket.id] ?? 0);
       if (delta !== 0) {
         rollovers[bucket.id] = (rollovers[bucket.id] ?? 0) + delta;
