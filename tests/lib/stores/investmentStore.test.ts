@@ -217,5 +217,25 @@ describe('investmentStore', () => {
       expect(db.investmentPrices.delete).toHaveBeenCalledWith('NVDA');
       expect(get(holdings).find((h) => h.symbol === 'NVDA')!.marketValue).toBeNull();
     });
+
+    it('rejects a negative price instead of silently clearing the existing one', async () => {
+      await addLot({
+        symbol: 'TSLA', shares: 1, pricePerShare: 20000,
+        purchaseDate: new Date('2026-01-01'), soldShares: 0,
+      });
+      await setPrice('TSLA', 25000);
+      vi.mocked(db.investmentPrices.delete).mockClear();
+
+      await expect(setPrice('TSLA', -100)).rejects.toThrow(/positive/i);
+
+      expect(db.investmentPrices.delete).not.toHaveBeenCalled();
+      expect(get(holdings).find((h) => h.symbol === 'TSLA')!.currentPrice).toBe(25000);
+    });
+
+    it('rejects zero, NaN and Infinity the same way', async () => {
+      await expect(setPrice('AAPL', 0)).rejects.toThrow(/positive/i);
+      await expect(setPrice('AAPL', NaN)).rejects.toThrow(/positive/i);
+      await expect(setPrice('AAPL', Infinity)).rejects.toThrow(/positive/i);
+    });
   });
 });

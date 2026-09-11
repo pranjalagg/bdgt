@@ -155,10 +155,14 @@ export async function loadInvestments(): Promise<void> {
   isLoadingInvestments.set(false);
 }
 
-// Manually set (or clear, with null) the current price for a symbol.
+// Manually set the current price for a symbol, or clear it by passing
+// null explicitly. An invalid non-null value (negative, zero, NaN,
+// Infinity) is rejected rather than silently clearing the existing
+// price -- a typo shouldn't erase data the user already entered.
 export async function setPrice(symbol: string, pricePerShare: number | null): Promise<void> {
   const sym = symbol.toUpperCase();
-  if (pricePerShare === null || !Number.isFinite(pricePerShare) || pricePerShare <= 0) {
+
+  if (pricePerShare === null) {
     await db.investmentPrices.delete(sym);
     prices.update((p) => {
       const next = { ...p };
@@ -167,6 +171,11 @@ export async function setPrice(symbol: string, pricePerShare: number | null): Pr
     });
     return;
   }
+
+  if (!Number.isFinite(pricePerShare) || pricePerShare <= 0) {
+    throw new Error('Price must be a positive number');
+  }
+
   const record: InvestmentPrice = { symbol: sym, pricePerShare, updatedAt: new Date() };
   await db.investmentPrices.put(record);
   prices.update((p) => ({ ...p, [sym]: pricePerShare }));

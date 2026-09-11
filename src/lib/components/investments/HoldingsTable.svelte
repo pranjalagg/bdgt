@@ -9,6 +9,7 @@
   let expandedSymbol: string | null = null;
   let editingPriceSymbol: string | null = null;
   let priceDraft = '';
+  let priceError = '';
 
   function toggleExpand(symbol: string) {
     expandedSymbol = expandedSymbol === symbol ? null : symbol;
@@ -21,16 +22,30 @@
   function startEditPrice(h: Holding) {
     editingPriceSymbol = h.symbol;
     priceDraft = h.currentPrice != null ? (h.currentPrice / 100).toFixed(2) : '';
+    priceError = '';
   }
 
   async function commitPrice(symbol: string) {
     const trimmed = priceDraft.trim();
-    if (trimmed === '') {
-      await setPrice(symbol, null);
-    } else if (isValidCurrency(trimmed)) {
-      await setPrice(symbol, parseCurrency(trimmed));
+    try {
+      if (trimmed === '') {
+        await setPrice(symbol, null);
+      } else if (isValidCurrency(trimmed) && parseCurrency(trimmed) > 0) {
+        await setPrice(symbol, parseCurrency(trimmed));
+      } else {
+        priceError = 'Enter a positive price';
+        return;
+      }
+      editingPriceSymbol = null;
+      priceError = '';
+    } catch (e) {
+      priceError = e instanceof Error ? e.message : 'Failed to save price';
     }
+  }
+
+  function cancelEditPrice() {
     editingPriceSymbol = null;
+    priceError = '';
   }
 
   function gainClass(n: number | null): string {
@@ -85,10 +100,13 @@
                   bind:value={priceDraft}
                   autofocus
                   on:blur={() => commitPrice(holding.symbol)}
-                  on:keydown={(e) => { if (e.key === 'Enter') commitPrice(holding.symbol); if (e.key === 'Escape') editingPriceSymbol = null; }}
-                  class="w-20 rounded border border-gray-300 px-1.5 py-0.5 text-right text-sm dark:border-border-dark dark:bg-gray-800"
+                  on:keydown={(e) => { if (e.key === 'Enter') commitPrice(holding.symbol); if (e.key === 'Escape') cancelEditPrice(); }}
+                  class="w-20 rounded border {priceError ? 'border-danger' : 'border-gray-300'} px-1.5 py-0.5 text-right text-sm dark:border-border-dark dark:bg-gray-800"
                   placeholder="0.00"
                 />
+                {#if priceError}
+                  <p class="mt-0.5 text-xs text-danger">{priceError}</p>
+                {/if}
               {:else}
                 <button class="text-sm font-medium tabular-nums text-primary hover:underline" on:click={() => startEditPrice(holding)}>
                   {holding.currentPrice != null ? formatCurrency(holding.currentPrice) : 'Set'}
