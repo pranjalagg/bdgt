@@ -212,7 +212,38 @@ describe('currency utils', () => {
       expect(evaluateExpression('10 + abc')).toBeNull();
       expect(evaluateExpression('+ 10')).toBeNull();
       expect(evaluateExpression('10 +')).toBeNull();
-      expect(evaluateExpression('10 * 5')).toBeNull();
+      expect(evaluateExpression('10 *')).toBeNull();
+    });
+
+    it('multiplies operands', () => {
+      expect(evaluateExpression('10 * 5')).toBe(50);
+      expect(evaluateExpression('12.50 * 3')).toBe(37.50);
+      expect(evaluateExpression('10*5')).toBe(50);
+    });
+
+    it('divides operands', () => {
+      expect(evaluateExpression('100 / 4')).toBe(25);
+      expect(evaluateExpression('10 / 3')).toBe(3.33);
+    });
+
+    it('returns null for division by zero', () => {
+      expect(evaluateExpression('10 / 0')).toBeNull();
+    });
+
+    it('gives multiplication and division precedence over addition and subtraction', () => {
+      expect(evaluateExpression('10 + 2 * 5')).toBe(20);
+      expect(evaluateExpression('2 * 5 + 10')).toBe(20);
+      expect(evaluateExpression('20 - 10 / 2')).toBe(15);
+      expect(evaluateExpression('100 / 4 + 5')).toBe(30);
+    });
+
+    it('chains multiplication and division left to right', () => {
+      expect(evaluateExpression('100 / 5 * 2')).toBe(40);
+      expect(evaluateExpression('2 * 3 * 4')).toBe(24);
+    });
+
+    it('applies a leading negative sign across a multiplicative chain', () => {
+      expect(evaluateExpression('-5 * 2')).toBe(-10);
     });
 
     it('returns null for operands with too many decimal places', () => {
@@ -243,6 +274,15 @@ describe('currency utils', () => {
 
     it('detects subtraction expressions', () => {
       expect(isExpression('50 - 12')).toBe(true);
+    });
+
+    it('detects multiplication expressions', () => {
+      expect(isExpression('10 * 5')).toBe(true);
+      expect(isExpression('10*5')).toBe(true);
+    });
+
+    it('detects division expressions', () => {
+      expect(isExpression('100 / 4')).toBe(true);
     });
 
     it('returns false for plain numbers', () => {

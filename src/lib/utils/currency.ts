@@ -40,21 +40,36 @@ export function evaluateExpression(value: string): number | null {
     if (!cleaned) return null;
   }
 
-  const tokens = cleaned.split(/\s*([\+\-])\s*/);
-  if (tokens.length === 0) return null;
+  const parts = cleaned.split(/\s*([\+\-\*\/])\s*/);
+  if (!isValidToken(parts[0])) return null;
 
-  if (!isValidToken(tokens[0])) return null;
-  let result = parseFloat(tokens[0]);
-  if (negateFirst) result = -result;
+  // Pass 1: * and / bind tighter than + and -, so resolve them first,
+  // left to right, folding into a running list of addable terms.
+  const terms = [parseFloat(parts[0])];
+  const addSubOps: string[] = [];
 
-  for (let i = 1; i < tokens.length; i += 2) {
-    const op = tokens[i];
-    const operand = tokens[i + 1];
+  for (let i = 1; i < parts.length; i += 2) {
+    const op = parts[i];
+    const operand = parts[i + 1];
     if (!operand || !isValidToken(operand)) return null;
     const num = parseFloat(operand);
-    if (op === '+') result += num;
-    else if (op === '-') result -= num;
-    else return null;
+
+    if (op === '*' || op === '/') {
+      if (op === '/' && num === 0) return null;
+      const last = terms.length - 1;
+      terms[last] = op === '*' ? terms[last] * num : terms[last] / num;
+    } else if (op === '+' || op === '-') {
+      addSubOps.push(op);
+      terms.push(num);
+    } else {
+      return null;
+    }
+  }
+
+  // Pass 2: combine the resolved terms with + and -.
+  let result = negateFirst ? -terms[0] : terms[0];
+  for (let i = 0; i < addSubOps.length; i++) {
+    result = addSubOps[i] === '+' ? result + terms[i + 1] : result - terms[i + 1];
   }
 
   result = Math.round(result * 100) / 100;
@@ -63,7 +78,7 @@ export function evaluateExpression(value: string): number | null {
 
 export function isExpression(value: string): boolean {
   const cleaned = value.replace(/[$,]/g, '').trim();
-  return /[\d\.]\s*[\+\-]\s*[\d\.]/.test(cleaned);
+  return /[\d\.]\s*[\+\-\*\/]\s*[\d\.]/.test(cleaned);
 }
 
 export function isValidCurrency(value: string): boolean {

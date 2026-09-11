@@ -21,7 +21,7 @@
   }
 
   $: amountError = amountTouched && amount && !isValidCurrency(amount)
-    ? 'Please enter a valid amount (e.g. 12.50, -5, or 10 + 5.25)'
+    ? 'Please enter a valid amount (e.g. 12.50, -5, 10 + 5.25, or 12.50 * 3)'
     : '';
 
   $: canSubmit = !!amount && !!bucketId && !amountError && isValidCurrency(amount);
