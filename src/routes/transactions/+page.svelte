@@ -1,12 +1,11 @@
 <script lang="ts">
-  import LogEntry from '$lib/components/shared/LogEntry.svelte';
   import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import { currentMonthTransactions, buckets, deleteTransaction } from '$lib/stores/budgetStore';
   import { groupTransactionsByDay } from '$lib/utils/calculations';
   import { formatCurrency } from '$lib/utils/currency';
-  import { openModal, closeModal } from '$lib/stores/uiStore';
+  import { openModal, openLog } from '$lib/stores/uiStore';
   import type { Transaction } from '$lib/types';
 
   let filterBucketId = '';
@@ -74,7 +73,7 @@
         <option value={bucket.id}>{bucket.name}</option>
       {/each}
     </select>
-    <button class="btn-primary" on:click={() => openModal('add-transaction')}>Add</button>
+    <button class="btn-primary" on:click={() => openLog()}>Add</button>
   </div>
 
   {#if days.length === 0}
@@ -151,10 +150,6 @@
     </div>
   {/if}
 </div>
-
-<Modal id="add-transaction" title="Add Transaction">
-  <LogEntry onComplete={closeModal} />
-</Modal>
 
 <Modal id="edit-transaction" title="Edit Transaction">
   {#if editingTransaction}

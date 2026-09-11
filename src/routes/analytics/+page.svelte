@@ -1,6 +1,7 @@
 <!-- src/routes/analytics/+page.svelte -->
 <script lang="ts">
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
+  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
@@ -100,6 +101,8 @@
 </script>
 
 <div class="space-y-6">
+  <SectionTabs tabs={[{ href: '/analytics', label: 'Analytics' }, { href: '/investments', label: 'Investments' }]} />
+
   <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Analytics</h1>
     <MonthPicker />

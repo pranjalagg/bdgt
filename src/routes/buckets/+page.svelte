@@ -5,6 +5,7 @@
   import { formatCurrency, evaluateExpression } from '$lib/utils/currency';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
+  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { AllocationType } from '$lib/types';
 
@@ -124,6 +125,8 @@
 </script>
 
 <div class="space-y-6">
+  <SectionTabs tabs={[{ href: '/buckets', label: 'Buckets' }, { href: '/recurring', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
+
   <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Buckets</h1>
     <div class="flex items-center gap-3">

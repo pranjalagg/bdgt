@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { openModal } from '$lib/stores/uiStore';
+  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import {
     loadInvestments,
     isLoadingInvestments,
@@ -31,6 +32,8 @@
 </script>
 
 <div class="space-y-6">
+  <SectionTabs tabs={[{ href: '/analytics', label: 'Analytics' }, { href: '/investments', label: 'Investments' }]} />
+
   <h1 class="page-title">Investments</h1>
 
   {#if $isLoadingInvestments}

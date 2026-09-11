@@ -5,6 +5,7 @@
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
   import { formatDate, parseLocalDate } from '$lib/utils/dates';
   import Modal from '$lib/components/shared/Modal.svelte';
+  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { RecurringTransaction } from '$lib/types';
 
@@ -91,6 +92,8 @@
 </script>
 
 <div class="space-y-6">
+  <SectionTabs tabs={[{ href: '/buckets', label: 'Buckets' }, { href: '/recurring', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
+
   <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Recurring</h1>
     <button class="btn-primary" on:click={handleAdd}>

@@ -3,19 +3,17 @@
   import EnvelopeLine from '$lib/components/shared/EnvelopeLine.svelte';
   import EnvelopeRow from '$lib/components/shared/EnvelopeRow.svelte';
   import AssignPanel from '$lib/components/shared/AssignPanel.svelte';
-  import LogEntry from '$lib/components/shared/LogEntry.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import { bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
-  import { currentMonthKey, openModal, closeModal } from '$lib/stores/uiStore';
+  import { currentMonthKey, openModal, closeModal, openLog } from '$lib/stores/uiStore';
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
   import { parseMonthKey, getDaysInMonth } from '$lib/utils/dates';
 
   $: daysLeftInMonth = getDaysInMonth($currentMonthKey) - new Date().getDate() + 1;
 
-  let selectedBucketId: string | undefined;
   let incomeAmount = '';
   let incomeNote = '';
   let incomeType: IncomeType = 'fixed';
@@ -81,16 +79,6 @@
     goalTargetDate = ''; goalMonthlyContribution = '';
     goalAmountTouched = false; goalContribTouched = false;
     closeModal();
-  }
-
-  function handleBucketClick(bucketId: string) {
-    selectedBucketId = bucketId;
-    openModal('quick-entry');
-  }
-
-  function handleEntryComplete() {
-    closeModal();
-    selectedBucketId = undefined;
   }
 
   function resetIncomeForm() {
@@ -212,14 +200,14 @@
       <h2 class="eyebrow">Envelopes</h2>
       <button
         class="text-[13px] font-medium text-primary hover:underline"
-        on:click={() => openModal('quick-entry')}
+        on:click={() => openLog()}
       >
         Add transaction
       </button>
     </div>
     <div class="grid gap-1.5 lg:grid-cols-2">
       {#each $bucketStatuses as status (status.bucket.id)}
-        <EnvelopeRow {status} onClick={() => handleBucketClick(status.bucket.id)} />
+        <EnvelopeRow {status} onClick={() => openLog(status.bucket.id)} />
       {/each}
     </div>
   </div>
@@ -257,10 +245,6 @@
 
 <Modal id="assign" title="Assign your income">
   <AssignPanel />
-</Modal>
-
-<Modal id="quick-entry" title="Add Transaction">
-  <LogEntry preselectedBucketId={selectedBucketId} onComplete={handleEntryComplete} />
 </Modal>
 
 <Modal id="income" title="Manage Income">

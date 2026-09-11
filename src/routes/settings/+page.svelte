@@ -5,6 +5,7 @@
   import { loadGoals } from '$lib/stores/goalsStore';
   import { loadInvestments } from '$lib/stores/investmentStore';
   import { themePreference, setTheme, type ThemePreference } from '$lib/stores/themeStore';
+  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
 
   let fileInput: HTMLInputElement;
   let isExporting = false;
@@ -74,6 +75,8 @@
 </script>
 
 <div class="space-y-6">
+  <SectionTabs tabs={[{ href: '/buckets', label: 'Buckets' }, { href: '/recurring', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
+
   <h1 class="page-title">Settings</h1>
 
   <div class="card">
