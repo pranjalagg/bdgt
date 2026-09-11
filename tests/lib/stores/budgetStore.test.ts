@@ -13,8 +13,11 @@ vi.mock('$lib/db', () => ({
   initializeDefaultBuckets: vi.fn().mockResolvedValue(undefined),
   DATE_FIELDS: { transactions: ['date'], incomes: ['date'] },
   db: {
+    transaction: vi.fn((_mode: string, _tables: unknown, cb: () => unknown) => cb()),
     buckets: {
       delete: vi.fn().mockResolvedValue(undefined),
+      add: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
       orderBy: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }),
     },
     transactions: {
@@ -33,7 +36,7 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, deleteBucket, addTransaction, addIncome, loadData } from '$lib/stores/budgetStore';
+import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, updateBucketAllocation } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
 import { currentMonthKey } from '$lib/stores/uiStore';
 
@@ -139,5 +142,50 @@ describe('loadData', () => {
 
     expect(get(transactions)[0].date).toBeInstanceOf(Date);
     expect(get(incomes)[0].date).toBeInstanceOf(Date);
+  });
+});
+
+describe('allocation domain validation', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('rejects a negative fixed allocation via setAllocation', async () => {
+    await expect(setAllocation('b1', -500)).rejects.toThrow(/negative/i);
+    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+  });
+
+  it('rejects a negative fixedAmount when adding a bucket', async () => {
+    await expect(
+      addBucket({
+        name: 'Pets', color: '#000', order: 0, isDefault: false,
+        allocationType: 'fixed', fixedAmount: -1000, percentageAmount: 0, isSavings: false,
+      })
+    ).rejects.toThrow(/negative/i);
+    expect(db.buckets.add).not.toHaveBeenCalled();
+  });
+
+  it('rejects a negative percentageAmount when adding a bucket', async () => {
+    await expect(
+      addBucket({
+        name: 'Pets', color: '#000', order: 0, isDefault: false,
+        allocationType: 'percentage', fixedAmount: 0, percentageAmount: -10, isSavings: false,
+      })
+    ).rejects.toThrow(/negative/i);
+    expect(db.buckets.add).not.toHaveBeenCalled();
+  });
+
+  it('rejects a negative fixedAmount from updateBucketAllocation even for a hybrid bucket', async () => {
+    // Hybrid writes fixedAmount straight to db.buckets.update, bypassing
+    // setAllocation entirely -- the only other place this was validated.
+    await expect(updateBucketAllocation('b1', 'hybrid', -200, 10)).rejects.toThrow(/negative/i);
+    expect(db.buckets.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a negative percentageAmount from updateBucketAllocation', async () => {
+    await expect(updateBucketAllocation('b1', 'percentage', 0, -5)).rejects.toThrow(/negative/i);
+    expect(db.buckets.update).not.toHaveBeenCalled();
+  });
+
+  it('accepts a zero allocation (fully unfunded bucket)', async () => {
+    await expect(setAllocation('b1', 0)).resolves.toBeUndefined();
   });
 });

@@ -17,6 +17,7 @@
   let newFixedAmount = 0;
   let newPercentageAmount = 0;
   let newIsSavings = false;
+  let formError = '';
 
   function handleAddBucket() {
     editingBucket = null;
@@ -26,6 +27,7 @@
     newFixedAmount = 0;
     newPercentageAmount = 0;
     newIsSavings = false;
+    formError = '';
     openModal('bucket-form');
   }
 
@@ -37,32 +39,38 @@
     newFixedAmount = bucket.fixedAmount;
     newPercentageAmount = bucket.percentageAmount;
     newIsSavings = bucket.isSavings ?? false;
+    formError = '';
     openModal('bucket-form');
   }
 
   async function handleSubmit() {
     if (!newBucketName.trim()) return;
+    formError = '';
 
-    if (editingBucket) {
-      await updateBucket(editingBucket.id, {
-        name: newBucketName,
-        color: newBucketColor,
-        isSavings: newIsSavings,
-      });
-      await updateBucketAllocation(editingBucket.id, newAllocationType, newFixedAmount, newPercentageAmount);
-    } else {
-      await addBucket({
-        name: newBucketName,
-        color: newBucketColor,
-        order: $buckets.length,
-        isDefault: false,
-        allocationType: newAllocationType,
-        fixedAmount: newFixedAmount,
-        percentageAmount: newPercentageAmount,
-        isSavings: newIsSavings,
-      });
+    try {
+      if (editingBucket) {
+        await updateBucket(editingBucket.id, {
+          name: newBucketName,
+          color: newBucketColor,
+          isSavings: newIsSavings,
+        });
+        await updateBucketAllocation(editingBucket.id, newAllocationType, newFixedAmount, newPercentageAmount);
+      } else {
+        await addBucket({
+          name: newBucketName,
+          color: newBucketColor,
+          order: $buckets.length,
+          isDefault: false,
+          allocationType: newAllocationType,
+          fixedAmount: newFixedAmount,
+          percentageAmount: newPercentageAmount,
+          isSavings: newIsSavings,
+        });
+      }
+      closeModal();
+    } catch (e) {
+      formError = e instanceof Error ? e.message : 'Failed to save bucket';
     }
-    closeModal();
   }
 
   async function handleDelete(id: string) {
@@ -175,6 +183,9 @@
 
 <Modal id="bucket-form" title={editingBucket ? 'Edit Bucket' : 'Add Bucket'}>
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+    {#if formError}
+      <p class="text-sm text-danger">{formError}</p>
+    {/if}
     <div>
       <label for="name" class="label">Name</label>
       <input id="name" type="text" bind:value={newBucketName} class="mt-1.5 input-base" required />

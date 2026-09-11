@@ -210,8 +210,22 @@ function assertCents(amount: number, label = 'amount'): void {
   }
 }
 
+// Allocations (unlike transactions/income) can never be negative -- the
+// number-input's min="0" is a soft browser hint a typed or pasted value
+// can bypass, and any direct caller (import, future code) bypasses the
+// form entirely. Negative allocations corrupt unallocated and rollover
+// totals, so enforce the domain rule at the store boundary.
+function assertNonNegativeCents(amount: number, label: string): void {
+  assertCents(amount, label);
+  if (amount < 0) {
+    throw new Error(`Invalid ${label}: cannot be negative`);
+  }
+}
+
 // Actions
 export async function addBucket(bucket: Omit<Bucket, 'id'>): Promise<string> {
+  assertNonNegativeCents(bucket.fixedAmount, 'fixedAmount');
+  assertNonNegativeCents(bucket.percentageAmount, 'percentageAmount');
   const id = crypto.randomUUID();
   const newBucket = { ...bucket, id };
   await db.buckets.add(newBucket);
@@ -285,7 +299,7 @@ export async function deleteIncome(id: string): Promise<void> {
 // Records an explicit allocation for one bucket in the current month,
 // overriding the bucket's standing amount. Atomic get-modify-put.
 export async function setAllocation(bucketId: string, amount: number): Promise<void> {
-  assertCents(amount, 'allocation');
+  assertNonNegativeCents(amount, 'allocation');
   const month = get(currentMonthKey);
 
   const saved = await db.transaction('rw', db.monthSnapshots, async () => {
@@ -319,6 +333,8 @@ export async function updateBucketAllocation(
   fixedAmount: number,
   percentageAmount: number
 ): Promise<void> {
+  assertNonNegativeCents(fixedAmount, 'fixedAmount');
+  assertNonNegativeCents(percentageAmount, 'percentageAmount');
   await db.buckets.update(id, { allocationType, fixedAmount, percentageAmount });
   buckets.update((b) =>
     b.map((bucket) =>
