@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
-import { db } from '$lib/db';
+import { db, DATE_FIELDS } from '$lib/db';
 import { holdingValuation, realizedGain } from '$lib/utils/investments';
+import { reviveDateFields } from '$lib/utils/dates';
 import type { InvestmentLot, InvestmentSell, InvestmentPrice } from '$lib/types';
 
 export interface Holding {
@@ -148,8 +149,8 @@ export async function loadInvestments(): Promise<void> {
     db.investmentSells.toArray(),
     db.investmentPrices.toArray(),
   ]);
-  lots.set(loadedLots);
-  sells.set(loadedSells);
+  lots.set(loadedLots.map((l) => reviveDateFields(l, DATE_FIELDS.investmentLots)));
+  sells.set(loadedSells.map((s) => reviveDateFields(s, DATE_FIELDS.investmentSells)));
   prices.set(Object.fromEntries(loadedPrices.map((p) => [p.symbol, p.pricePerShare])));
   isLoadingInvestments.set(false);
 }

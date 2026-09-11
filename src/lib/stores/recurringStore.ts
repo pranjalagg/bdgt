@@ -1,14 +1,15 @@
 // src/lib/stores/recurringStore.ts
 import { writable, derived } from 'svelte/store';
-import { db } from '$lib/db';
+import { db, DATE_FIELDS } from '$lib/db';
 import { addTransaction } from './budgetStore';
+import { reviveDateFields } from '$lib/utils/dates';
 import type { RecurringTransaction } from '$lib/types';
 
 export const recurringTransactions = writable<RecurringTransaction[]>([]);
 
 export async function loadRecurring(): Promise<void> {
   const loaded = await db.recurringTransactions.toArray();
-  recurringTransactions.set(loaded);
+  recurringTransactions.set(loaded.map((r) => reviveDateFields(r, DATE_FIELDS.recurringTransactions)));
 }
 
 export const upcomingRecurring = derived(recurringTransactions, ($recurring) => {

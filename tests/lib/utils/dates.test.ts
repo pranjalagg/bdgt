@@ -12,7 +12,8 @@ import {
   getDaysInMonth,
   getDayOfMonth,
   parseLocalDate,
-  defaultEntryDate
+  defaultEntryDate,
+  reviveDateFields
 } from '$lib/utils/dates';
 
 describe('date utils', () => {
@@ -151,6 +152,41 @@ describe('date utils', () => {
       expect(result.getFullYear()).toBe(2026);
       expect(result.getMonth()).toBe(3);
       expect(result.getDate()).toBe(1);
+    });
+  });
+
+  describe('reviveDateFields', () => {
+    it('converts an ISO string field to a real Date', () => {
+      const record = { id: 'g1', createdAt: '2026-02-01T00:00:00.000Z' };
+      const result = reviveDateFields(record, ['createdAt']);
+      expect(result.createdAt).toBeInstanceOf(Date);
+      expect((result.createdAt as unknown as Date).toISOString()).toBe('2026-02-01T00:00:00.000Z');
+    });
+
+    it('leaves an already-Date field untouched', () => {
+      const date = new Date(2026, 1, 1);
+      const record = { createdAt: date };
+      const result = reviveDateFields(record, ['createdAt']);
+      expect(result.createdAt).toBe(date);
+    });
+
+    it('leaves a null or undefined field alone', () => {
+      const record = { targetDate: undefined as unknown as string };
+      const result = reviveDateFields(record, ['targetDate']);
+      expect(result.targetDate).toBeUndefined();
+    });
+
+    it('does not mutate the original record', () => {
+      const record = { createdAt: '2026-02-01T00:00:00.000Z' };
+      reviveDateFields(record, ['createdAt']);
+      expect(typeof record.createdAt).toBe('string');
+    });
+
+    it('handles multiple fields on the same record', () => {
+      const record = { createdAt: '2026-01-01T00:00:00.000Z', targetDate: '2026-12-01T00:00:00.000Z' };
+      const result = reviveDateFields(record, ['createdAt', 'targetDate']);
+      expect(result.createdAt).toBeInstanceOf(Date);
+      expect(result.targetDate).toBeInstanceOf(Date);
     });
   });
 });

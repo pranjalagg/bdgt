@@ -1,8 +1,8 @@
 // src/lib/stores/budgetStore.ts
 import { writable, derived, get } from 'svelte/store';
-import { db, initializeDefaultBuckets } from '$lib/db';
+import { db, DATE_FIELDS, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
-import { getMonthKey, getMonthRange, getLast6Months } from '$lib/utils/dates';
+import { getMonthKey, getMonthRange, getLast6Months, reviveDateFields } from '$lib/utils/dates';
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
@@ -24,8 +24,8 @@ export async function loadData(): Promise<void> {
   ]);
 
   buckets.set(loadedBuckets);
-  transactions.set(loadedTransactions);
-  incomes.set(loadedIncomes);
+  transactions.set(loadedTransactions.map((t) => reviveDateFields(t, DATE_FIELDS.transactions)));
+  incomes.set(loadedIncomes.map((i) => reviveDateFields(i, DATE_FIELDS.incomes)));
   monthSnapshots.set(loadedSnapshots);
   isLoading.set(false);
 }

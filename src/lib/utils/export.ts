@@ -1,6 +1,6 @@
-import { db } from '$lib/db';
+import { db, DATE_FIELDS } from '$lib/db';
 import { centsToDollars } from './currency';
-import { formatDate } from './dates';
+import { formatDate, reviveDateFields } from './dates';
 import type { ExportData } from '$lib/types';
 
 export async function exportToJson(): Promise<string> {
@@ -64,27 +64,8 @@ const COLLECTIONS = [
   'investmentPrices',
 ] as const;
 
-// Date-valued fields per collection, revived from ISO strings on import.
-const DATE_FIELDS: Record<string, string[]> = {
-  transactions: ['date'],
-  recurringTransactions: ['nextDueDate'],
-  incomes: ['date'],
-  savingsGoals: ['createdAt', 'targetDate'],
-  investmentLots: ['purchaseDate'],
-  investmentSells: ['sellDate'],
-  investmentPrices: ['updatedAt'],
-};
-
 function reviveDates<T extends Record<string, unknown>>(rows: T[], fields: string[]): T[] {
-  return rows.map((row) => {
-    const copy: Record<string, unknown> = { ...row };
-    for (const field of fields) {
-      if (copy[field] != null && !(copy[field] instanceof Date)) {
-        copy[field] = new Date(copy[field] as string);
-      }
-    }
-    return copy as T;
-  });
+  return rows.map((row) => reviveDateFields(row, fields));
 }
 
 export function parseImport(json: string): ExportData {

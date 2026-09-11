@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { get } from 'svelte/store';
 
 vi.mock('$lib/db', () => ({
+  DATE_FIELDS: { investmentLots: ['purchaseDate'], investmentSells: ['sellDate'] },
   db: {
     investmentLots: {
       add: vi.fn(),
@@ -168,6 +169,22 @@ describe('investmentStore', () => {
       });
 
       await expect(sellFromLot(lotId, 5, 16000, new Date('2026-05-10'))).rejects.toThrow('Cannot sell more shares than available');
+    });
+  });
+
+  describe('loadInvestments', () => {
+    it('normalizes lot and sell dates that survived as strings', async () => {
+      vi.mocked(db.investmentLots.toArray).mockResolvedValue([
+        { id: 'l1', symbol: 'AAPL', shares: 1, pricePerShare: 15000, purchaseDate: '2026-01-01T00:00:00.000Z', soldShares: 0 } as never,
+      ]);
+      vi.mocked(db.investmentSells.toArray).mockResolvedValue([
+        { id: 's1', lotId: 'l1', shares: 1, pricePerShare: 16000, sellDate: '2026-02-01T00:00:00.000Z' } as never,
+      ]);
+
+      await loadInvestments();
+
+      expect(get(lots)[0].purchaseDate).toBeInstanceOf(Date);
+      expect(get(sells)[0].sellDate).toBeInstanceOf(Date);
     });
   });
 

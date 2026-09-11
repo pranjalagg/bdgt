@@ -1,8 +1,9 @@
 import { writable, derived } from 'svelte/store';
-import { db } from '$lib/db';
+import { db, DATE_FIELDS } from '$lib/db';
 import { monthlyLedger, buckets } from './budgetStore';
 import { currentMonthKey } from './uiStore';
 import { computeAllocation } from '$lib/utils/calculations';
+import { reviveDateFields } from '$lib/utils/dates';
 import { calculateGoalProgress, calculateMonthlyNeeded, calculateProjectedDate, getGoalStatus, type GoalStatus } from '$lib/utils/goals';
 import type { SavingsGoal, Bucket } from '$lib/types';
 
@@ -10,7 +11,7 @@ export const savingsGoals = writable<SavingsGoal[]>([]);
 
 export async function loadGoals(): Promise<void> {
   const goals = await db.savingsGoals.toArray();
-  savingsGoals.set(goals);
+  savingsGoals.set(goals.map((g) => reviveDateFields(g, DATE_FIELDS.savingsGoals)));
 }
 
 export async function addGoal(goal: Omit<SavingsGoal, 'id'>): Promise<string> {

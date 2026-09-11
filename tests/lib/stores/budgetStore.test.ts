@@ -11,20 +11,30 @@ const { txChain, recChain, goalChain } = vi.hoisted(() => {
 
 vi.mock('$lib/db', () => ({
   initializeDefaultBuckets: vi.fn().mockResolvedValue(undefined),
+  DATE_FIELDS: { transactions: ['date'], incomes: ['date'] },
   db: {
-    buckets: { delete: vi.fn().mockResolvedValue(undefined) },
-    transactions: { where: txChain.where, add: vi.fn().mockResolvedValue(undefined) },
+    buckets: {
+      delete: vi.fn().mockResolvedValue(undefined),
+      orderBy: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }),
+    },
+    transactions: {
+      where: txChain.where,
+      add: vi.fn().mockResolvedValue(undefined),
+      toArray: vi.fn().mockResolvedValue([]),
+    },
     recurringTransactions: { where: recChain.where },
-    incomes: { add: vi.fn().mockResolvedValue(undefined) },
+    incomes: { add: vi.fn().mockResolvedValue(undefined), toArray: vi.fn().mockResolvedValue([]) },
     savingsGoals: { where: goalChain.where },
     monthSnapshots: {
       get: vi.fn().mockResolvedValue(undefined),
       put: vi.fn().mockResolvedValue(undefined),
+      toArray: vi.fn().mockResolvedValue([]),
     },
   },
 }));
 
-import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, deleteBucket, addTransaction, addIncome } from '$lib/stores/budgetStore';
+import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, deleteBucket, addTransaction, addIncome, loadData } from '$lib/stores/budgetStore';
+import { db } from '$lib/db';
 import { currentMonthKey } from '$lib/stores/uiStore';
 
 const bucket = (id: string, over: Partial<import('$lib/types').Bucket> = {}) => ({
@@ -113,5 +123,21 @@ describe('bucketStatuses rollover', () => {
     ]);
     const status = get(bucketStatuses).find((s) => s.bucket.id === 'groceries')!;
     expect(status.rollover).toBe(0);
+  });
+});
+
+describe('loadData', () => {
+  it('normalizes transaction and income dates that survived as strings', async () => {
+    vi.mocked(db.transactions.toArray).mockResolvedValue([
+      { id: 't1', amount: 500, bucketId: 'b1', date: '2026-03-05T00:00:00.000Z' } as never,
+    ]);
+    vi.mocked(db.incomes.toArray).mockResolvedValue([
+      { id: 'i1', amount: 500000, date: '2026-03-01T00:00:00.000Z', isRecurring: false, type: 'fixed' } as never,
+    ]);
+
+    await loadData();
+
+    expect(get(transactions)[0].date).toBeInstanceOf(Date);
+    expect(get(incomes)[0].date).toBeInstanceOf(Date);
   });
 });

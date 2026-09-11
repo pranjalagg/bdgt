@@ -1,7 +1,23 @@
 import Dexie, { type Table } from 'dexie';
+import { reviveDateFields } from '$lib/utils/dates';
 import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice } from '$lib/types';
 
 const SAVINGS_BUCKET_NAMES = new Set(['Savings', 'Investments', 'Emergency Fund']);
+
+// Date-valued fields per collection. Dexie preserves real Date objects
+// through IndexedDB, but a record that ever round-tripped through JSON
+// (an import predating date-revival there) can leave one of these as a
+// plain string — which crashes any code that calls .getMonthKey()/etc.
+// on it. Shared by the v7 repair migration and export.ts's import path.
+export const DATE_FIELDS: Record<string, string[]> = {
+  transactions: ['date'],
+  recurringTransactions: ['nextDueDate'],
+  incomes: ['date'],
+  savingsGoals: ['createdAt', 'targetDate'],
+  investmentLots: ['purchaseDate'],
+  investmentSells: ['sellDate'],
+  investmentPrices: ['updatedAt'],
+};
 
 export class BudgetDatabase extends Dexie {
   buckets!: Table<Bucket, string>;
@@ -91,6 +107,27 @@ export class BudgetDatabase extends Dexie {
       investmentLots: 'id, symbol, purchaseDate',
       investmentSells: 'id, lotId, sellDate',
       investmentPrices: 'symbol'
+    });
+
+    // Repair-only: no schema change. Coerces any date field that
+    // survived a pre-fix JSON import as a plain string back to a real
+    // Date, everywhere one is expected.
+    this.version(7).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      monthSnapshots: 'month',
+      savingsGoals: 'id, bucketId',
+      investmentLots: 'id, symbol, purchaseDate',
+      investmentSells: 'id, lotId, sellDate',
+      investmentPrices: 'symbol'
+    }).upgrade(async tx => {
+      for (const [tableName, fields] of Object.entries(DATE_FIELDS)) {
+        await tx.table(tableName).toCollection().modify(record => {
+          Object.assign(record, reviveDateFields(record, fields));
+        });
+      }
     });
   }
 }
