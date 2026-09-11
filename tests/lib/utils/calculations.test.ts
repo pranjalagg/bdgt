@@ -10,7 +10,8 @@ import {
   calculateSavingsRate,
   spentExcludingSavings,
   accumulateRollovers,
-  monthlyBucketSpend
+  monthlyBucketSpend,
+  groupTransactionsByDay
 } from '$lib/utils/calculations';
 import type { Bucket, Income } from '$lib/types';
 
@@ -384,6 +385,46 @@ describe('budget calculations', () => {
 
     it('returns an empty array for no buckets', () => {
       expect(monthlyBucketSpend([], [], months)).toEqual([]);
+    });
+  });
+
+  describe('groupTransactionsByDay', () => {
+    const tx = (id: string, amount: number, day: number, bucketId = 'b1') => ({
+      id, amount, bucketId, date: new Date(2026, 8, day),
+    });
+
+    it('groups transactions into days, newest day first', () => {
+      const groups = groupTransactionsByDay([
+        tx('a', 100, 3),
+        tx('b', 200, 11),
+        tx('c', 300, 7),
+      ]);
+      expect(groups.map((g) => g.date.getDate())).toEqual([11, 7, 3]);
+    });
+
+    it('totals each day', () => {
+      const groups = groupTransactionsByDay([tx('a', 2100, 11), tx('b', 500, 11), tx('c', 90, 3)]);
+      expect(groups[0].total).toBe(2600);
+      expect(groups[1].total).toBe(90);
+    });
+
+    it('orders transactions within a day by amount, largest first', () => {
+      const groups = groupTransactionsByDay([tx('small', 500, 11), tx('big', 2100, 11)]);
+      expect(groups[0].transactions.map((t) => t.id)).toEqual(['big', 'small']);
+    });
+
+    it('excludes savings-bucket transactions from the day total but keeps the rows', () => {
+      const groups = groupTransactionsByDay(
+        [tx('rent', 2100, 11, 'b1'), tx('invest', 1500, 11, 'savings')],
+        new Set(['savings'])
+      );
+      expect(groups[0].transactions).toHaveLength(2);
+      expect(groups[0].total).toBe(2100);
+      expect(groups[0].setAside).toBe(1500);
+    });
+
+    it('returns an empty array for no transactions', () => {
+      expect(groupTransactionsByDay([])).toEqual([]);
     });
   });
 });

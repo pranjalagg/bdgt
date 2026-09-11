@@ -95,22 +95,31 @@
     await setAllocation(bucketId, cents);
   }
 
-  function formatAllocationDisplay(bucket: { allocationType: AllocationType; fixedAmount: number; percentageAmount: number }, computedAmount: number): string {
+  // For a fixed bucket this must describe the *viewed month's* assignment,
+  // not the bucket's standing default — assigning from the dashboard writes
+  // a per-month override, and showing the default here contradicted the
+  // input sitting right next to it.
+  function formatAllocationDisplay(
+    bucket: { allocationType: AllocationType; fixedAmount: number; percentageAmount: number },
+    computedAmount: number,
+    assignedThisMonth: number
+  ): string {
     switch (bucket.allocationType) {
-      case 'fixed':
-        return formatCurrency(bucket.fixedAmount);
       case 'percentage':
-        return `${bucket.percentageAmount}% (${formatCurrency(computedAmount)})`;
+        return `${bucket.percentageAmount}% of income · ${formatCurrency(computedAmount)}`;
       case 'hybrid':
-        return `${formatCurrency(bucket.fixedAmount)} + ${bucket.percentageAmount}% (${formatCurrency(computedAmount)})`;
+        return `${formatCurrency(bucket.fixedAmount)} + ${bucket.percentageAmount}% · ${formatCurrency(computedAmount)}`;
+      case 'fixed':
       default:
-        return formatCurrency(bucket.fixedAmount);
+        return assignedThisMonth === bucket.fixedAmount
+          ? `Assigned this month`
+          : `Assigned this month · standing amount ${formatCurrency(bucket.fixedAmount)}`;
     }
   }
 </script>
 
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
+  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Buckets</h1>
     <div class="flex items-center gap-3">
       <MonthPicker />
@@ -137,7 +146,7 @@
         <div class="flex-1 min-w-0">
           <h3 class="font-semibold text-gray-800 dark:text-gray-100">{status.bucket.name}</h3>
           <p class="text-sm text-muted">
-            {formatAllocationDisplay(status.bucket, $computedAllocations[status.bucket.id])}
+            {formatAllocationDisplay(status.bucket, $computedAllocations[status.bucket.id], status.allocated)}
           </p>
           {#if status.rollover !== 0}
             <p class="text-xs text-muted">Rollover: {formatCurrency(status.rollover)}</p>
@@ -150,12 +159,12 @@
               type="text"
               value={(status.allocated / 100).toFixed(2)}
               on:change={(e) => handleAllocationChange(status.bucket.id, e.currentTarget.value, e.currentTarget)}
-              class="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-right text-sm transition-shadow focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-border-dark dark:bg-gray-800/50 dark:text-gray-100"
+              class="money w-24 rounded-lg border border-border bg-white px-2 py-1.5 text-right text-sm transition-shadow focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-border-dark dark:bg-gray-800/50 dark:text-gray-100"
               placeholder="0.00"
             />
           </div>
         {:else}
-          <div class="text-right tabular-nums text-muted">
+          <div class="money text-right text-muted">
             {formatCurrency(status.allocated)}
           </div>
         {/if}

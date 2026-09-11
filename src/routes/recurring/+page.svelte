@@ -91,7 +91,7 @@
 </script>
 
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
+  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Recurring</h1>
     <button class="btn-primary" on:click={handleAdd}>
       + Add Recurring
@@ -110,7 +110,7 @@
             style="background-color: {bucket?.color || '#ccc'}"
           ></span>
           <div class="flex-1 min-w-0">
-            <p class="font-semibold tabular-nums dark:text-gray-100">{formatCurrency(rec.amount)}</p>
+            <p class="money font-semibold dark:text-gray-100">{formatCurrency(rec.amount)}</p>
             <p class="text-sm text-muted">
               {bucket?.name || 'Unknown'} &middot; {rec.frequency}
               {#if rec.note} &middot; {rec.note}{/if}
@@ -118,7 +118,7 @@
           </div>
           <div class="text-right">
             <p class="text-xs text-muted">Next due</p>
-            <p class="text-sm font-medium tabular-nums dark:text-gray-200">{formatDate(new Date(rec.nextDueDate))}</p>
+            <p class="money text-sm font-medium dark:text-gray-200">{formatDate(new Date(rec.nextDueDate))}</p>
           </div>
           <div class="flex gap-1">
             <button

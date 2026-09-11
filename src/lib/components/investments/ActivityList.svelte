@@ -36,7 +36,7 @@
               @ {formatCurrency(activity.pricePerShare)} · {activity.date.toLocaleDateString()}
             </p>
           </div>
-          <p class="font-medium tabular-nums {activity.type === 'buy' ? 'text-gray-800 dark:text-gray-100' : 'text-success'}">
+          <p class="money font-medium {activity.type === 'buy' ? 'text-gray-800 dark:text-gray-100' : 'text-success'}">
             {activity.type === 'buy' ? '' : '+'}{formatCurrency(activity.shares * activity.pricePerShare)}
           </p>
         </li>

@@ -2,7 +2,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { db, DATE_FIELDS, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
-import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, reviveDateFields } from '$lib/utils/dates';
+import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, getPreviousMonthKey, reviveDateFields } from '$lib/utils/dates';
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
@@ -346,6 +346,67 @@ export async function setAllocation(bucketId: string, amount: number): Promise<v
     }
     return [...all, saved];
   });
+}
+
+// Assigns several buckets at once — the "close the gap" gesture, where a
+// user pushes the unassigned remainder across buckets in one go. One
+// snapshot write for the whole batch, so a half-applied assignment can't
+// happen; validation runs on everything before anything is written.
+export async function setAllocations(allocations: Record<string, number>): Promise<void> {
+  for (const [bucketId, amount] of Object.entries(allocations)) {
+    assertNonNegativeCents(amount, `allocation for ${bucketId}`);
+  }
+
+  const month = get(currentMonthKey);
+
+  const saved = await db.transaction('rw', db.monthSnapshots, async () => {
+    const existing = await db.monthSnapshots.get(month);
+    const snapshot: MonthSnapshot = existing ?? {
+      month,
+      incomeTotal: 0,
+      allocations: {},
+      spent: {},
+      rollovers: {},
+    };
+    snapshot.allocations = { ...snapshot.allocations, ...allocations };
+    await db.monthSnapshots.put(snapshot);
+    return snapshot;
+  });
+
+  monthSnapshots.update((all) => {
+    const idx = all.findIndex((s) => s.month === month);
+    if (idx >= 0) {
+      const next = [...all];
+      next[idx] = saved;
+      return next;
+    }
+    return [...all, saved];
+  });
+}
+
+// A zero-based budget is nearly identical month to month; retyping it is
+// the single most tedious thing about keeping one. Copies last month's
+// assignments onto this month, skipping buckets that no longer exist.
+// Returns how many were carried.
+export async function carryForwardAllocations(): Promise<number> {
+  const month = get(currentMonthKey);
+  const previous = getPreviousMonthKey(month);
+  const previousSnapshot = get(monthSnapshots).find((s) => s.month === previous);
+  if (!previousSnapshot) return 0;
+
+  const liveBucketIds = new Set(get(buckets).map((b) => b.id));
+  const carried: Record<string, number> = {};
+  for (const [bucketId, amount] of Object.entries(previousSnapshot.allocations ?? {})) {
+    if (liveBucketIds.has(bucketId) && Number.isFinite(amount) && amount >= 0) {
+      carried[bucketId] = amount;
+    }
+  }
+
+  const count = Object.keys(carried).length;
+  if (count === 0) return 0;
+
+  await setAllocations(carried);
+  return count;
 }
 
 export async function updateBucketAllocation(

@@ -11,8 +11,15 @@ body {
 }
 
 @layer components {
+  /* Money is always mono. IBM Plex Mono is drawn for tabular data, so
+     amounts share a decimal column and a ledger can actually be scanned.
+     Every figure in the app goes through this class. */
+  .money {
+    @apply font-mono tabular-nums tracking-tight;
+  }
+
   .card {
-    @apply rounded-xl border border-gray-200 bg-white dark:border-border-dark dark:bg-surface-dark;
+    @apply rounded-xl border border-border bg-white dark:border-border-dark dark:bg-surface-dark;
   }
 
   .card-padded {
@@ -75,10 +82,15 @@ body {
   }
 
   .metric-value {
-    @apply text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-50;
+    @apply font-mono text-2xl font-medium tabular-nums tracking-tight text-gray-900 dark:text-gray-50;
   }
 
   .metric-label {
-    @apply text-sm text-muted dark:text-gray-400;
+    @apply text-xs font-semibold uppercase tracking-wider text-muted dark:text-muted-dark;
+  }
+
+  /* Section label: small, spaced, quiet — structure without decoration. */
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-muted dark:text-muted-dark;
   }
 }

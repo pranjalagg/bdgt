@@ -19,13 +19,13 @@
   <div class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
     <div>
       <p class="metric-label">Cost Basis</p>
-      <p class="text-2xl font-bold tabular-nums text-gray-800 dark:text-gray-100">
+      <p class="text-2xl font-bold money text-gray-800 dark:text-gray-100">
         {formatCurrency(summary.totalInvested)}
       </p>
     </div>
     <div>
       <p class="metric-label">Market Value</p>
-      <p class="text-2xl font-bold tabular-nums text-gray-800 dark:text-gray-100">
+      <p class="text-2xl font-bold money text-gray-800 dark:text-gray-100">
         {summary.totalMarketValue === null ? '—' : formatCurrency(summary.totalMarketValue)}
       </p>
       {#if summary.totalMarketValue !== null && summary.pricedHoldings < summary.holdingsCount}
@@ -37,7 +37,7 @@
       {#if summary.totalUnrealizedGain === null}
         <p class="text-2xl font-bold text-muted">—</p>
       {:else}
-        <p class="text-2xl font-bold tabular-nums {gainClass(summary.totalUnrealizedGain)}">
+        <p class="text-2xl font-bold money {gainClass(summary.totalUnrealizedGain)}">
           {signed(summary.totalUnrealizedGain)}
         </p>
         {#if summary.totalUnrealizedGainPct !== null}
@@ -49,7 +49,7 @@
     </div>
     <div>
       <p class="metric-label">Realised</p>
-      <p class="text-2xl font-bold tabular-nums {gainClass(summary.realizedGain)}">
+      <p class="text-2xl font-bold money {gainClass(summary.realizedGain)}">
         {summary.realizedGain === 0 ? formatCurrency(0) : signed(summary.realizedGain)}
       </p>
     </div>

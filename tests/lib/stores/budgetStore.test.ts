@@ -36,7 +36,7 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, updateBucketAllocation } from '$lib/stores/budgetStore';
+import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, updateBucketAllocation } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
 import { currentMonthKey } from '$lib/stores/uiStore';
 
@@ -225,5 +225,86 @@ describe('allocation domain validation', () => {
 
   it('accepts a zero allocation (fully unfunded bucket)', async () => {
     await expect(setAllocation('b1', 0)).resolves.toBeUndefined();
+  });
+});
+
+describe('setAllocations (bulk assign)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    monthSnapshots.set([]);
+    currentMonthKey.set('2026-03');
+  });
+
+  it('writes every bucket in one snapshot put', async () => {
+    await setAllocations({ b1: 50000, b2: 25000 });
+
+    expect(db.monthSnapshots.put).toHaveBeenCalledTimes(1);
+    const written = vi.mocked(db.monthSnapshots.put).mock.calls[0][0] as { allocations: Record<string, number> };
+    expect(written.allocations).toEqual({ b1: 50000, b2: 25000 });
+    expect(get(monthSnapshots)[0].allocations).toEqual({ b1: 50000, b2: 25000 });
+  });
+
+  it('merges into allocations already set for the month', async () => {
+    vi.mocked(db.monthSnapshots.get).mockResolvedValue({
+      month: '2026-03', incomeTotal: 0, allocations: { b1: 10000, keep: 700 }, spent: {}, rollovers: {},
+    });
+
+    await setAllocations({ b1: 50000 });
+
+    const written = vi.mocked(db.monthSnapshots.put).mock.calls[0][0] as { allocations: Record<string, number> };
+    expect(written.allocations).toEqual({ b1: 50000, keep: 700 });
+  });
+
+  it('rejects the whole batch if any amount is negative', async () => {
+    await expect(setAllocations({ b1: 50000, b2: -1 })).rejects.toThrow(/negative/i);
+    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-finite amount', async () => {
+    await expect(setAllocations({ b1: NaN })).rejects.toThrow(/amount|finite/i);
+    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+  });
+});
+
+describe('carryForwardAllocations', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // clearAllMocks keeps mockResolvedValue from earlier tests — reset the
+    // snapshot read back to "no snapshot for this month yet".
+    vi.mocked(db.monthSnapshots.get).mockResolvedValue(undefined as never);
+    currentMonthKey.set('2026-03');
+    buckets.set([bucket('b1'), bucket('b2')]);
+  });
+
+  it('copies the previous month\'s allocations into the current month', async () => {
+    monthSnapshots.set([
+      { month: '2026-02', incomeTotal: 0, allocations: { b1: 50000, b2: 25000 }, spent: {}, rollovers: {} },
+    ]);
+
+    const count = await carryForwardAllocations();
+
+    expect(count).toBe(2);
+    const written = vi.mocked(db.monthSnapshots.put).mock.calls[0][0] as { month: string; allocations: Record<string, number> };
+    expect(written.month).toBe('2026-03');
+    expect(written.allocations).toEqual({ b1: 50000, b2: 25000 });
+  });
+
+  it('copies nothing when the previous month has no snapshot', async () => {
+    monthSnapshots.set([]);
+    const count = await carryForwardAllocations();
+    expect(count).toBe(0);
+    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+  });
+
+  it('skips allocations for buckets that no longer exist', async () => {
+    monthSnapshots.set([
+      { month: '2026-02', incomeTotal: 0, allocations: { b1: 50000, deleted: 9999 }, spent: {}, rollovers: {} },
+    ]);
+
+    const count = await carryForwardAllocations();
+
+    expect(count).toBe(1);
+    const written = vi.mocked(db.monthSnapshots.put).mock.calls[0][0] as { allocations: Record<string, number> };
+    expect(written.allocations).toEqual({ b1: 50000 });
   });
 });

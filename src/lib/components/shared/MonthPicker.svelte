@@ -1,5 +1,7 @@
 <script lang="ts">
   import { currentMonthKey, currentMonthDisplay } from '$lib/stores/uiStore';
+  import { bucketStatuses, currentMonthIncome, unallocated } from '$lib/stores/budgetStore';
+  import EnvelopeLine from './EnvelopeLine.svelte';
   import { getPreviousMonthKey, getNextMonthKey, getCurrentMonthKey } from '$lib/utils/dates';
 
   function goToPrevious() {
@@ -29,11 +31,21 @@
   </button>
 
   <button
-    class="min-w-[140px] rounded-md px-3 py-1 text-center text-sm font-semibold text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
+    class="min-w-[140px] rounded-md px-3 py-1 text-center hover:bg-gray-100 dark:hover:bg-gray-800"
     on:click={goToCurrent}
     title="Go to current month"
   >
-    {$currentMonthDisplay}
+    <span class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{$currentMonthDisplay}</span>
+    <!-- Same object as the dashboard's envelope line, 3px tall: whether
+         this month is settled should be legible from any page. -->
+    <span class="mt-1 flex justify-center">
+      <EnvelopeLine
+        compact
+        statuses={$bucketStatuses}
+        income={$currentMonthIncome}
+        unallocated={$unallocated}
+      />
+    </span>
   </button>
 
   <button

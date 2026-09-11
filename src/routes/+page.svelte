@@ -1,6 +1,8 @@
 <script lang="ts">
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
-  import BucketCard from '$lib/components/shared/BucketCard.svelte';
+  import EnvelopeLine from '$lib/components/shared/EnvelopeLine.svelte';
+  import EnvelopeRow from '$lib/components/shared/EnvelopeRow.svelte';
+  import AssignPanel from '$lib/components/shared/AssignPanel.svelte';
   import QuickEntry from '$lib/components/shared/QuickEntry.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
@@ -48,15 +50,17 @@
     && !goalBalanceError
     && (goalMode !== 'monthly' || (!!goalMonthlyContribution && !goalContribError && isValidCurrency(goalMonthlyContribution)));
 
-  $: savingsRateColor = $savingsRate === null ? 'text-muted'
-    : $savingsRate >= 20 ? 'text-success'
+  $: savingsRateColor = $savingsRate === null ? 'text-muted dark:text-muted-dark'
+    : $savingsRate >= 20 ? 'text-success dark:text-success-light'
     : $savingsRate >= 10 ? 'text-warning'
-    : 'text-danger';
+    : 'text-danger dark:text-danger-light';
 
-  $: savingsRateIconBg = $savingsRate === null ? 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
-    : $savingsRate >= 20 ? 'bg-success/10 text-success'
-    : $savingsRate >= 10 ? 'bg-warning/10 text-warning'
-    : 'bg-danger/10 text-danger';
+  // Money moved into a savings bucket isn't spending — same rule the
+  // savings rate and the Analytics page already use.
+  $: totalSpent = $bucketStatuses.reduce(
+    (sum, s) => (s.bucket.isSavings ? sum : sum + Math.max(s.spent, 0)),
+    0
+  );
 
   async function handleAddGoal() {
     goalAmountTouched = true;
@@ -126,94 +130,76 @@
 </script>
 
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
+  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Dashboard</h1>
     <MonthPicker />
   </div>
 
-  <!-- Summary Cards -->
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <button class="card cursor-pointer p-5 text-left transition-all hover:border-primary/30 hover:shadow-sm" on:click={() => openModal('income')}>
-      <div class="mb-1 flex items-center gap-2">
-        <span class="flex h-6 w-6 items-center justify-center rounded-md bg-success/10 text-success">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-        </span>
-        <p class="metric-label">Income</p>
-      </div>
-      <p class="metric-value">{formatCurrency($currentMonthIncome)}</p>
+  <!-- The thesis: one line, the whole month. -->
+  <EnvelopeLine
+    statuses={$bucketStatuses}
+    income={$currentMonthIncome}
+    unallocated={$unallocated}
+    onAssign={() => openModal('assign')}
+  />
+
+  {#if $currentMonthIncome === 0}
+    <!-- First run reads as an invitation, not eleven negative balances. -->
+    <div class="card flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-sm text-gray-700 dark:text-gray-200">
+        Add this month's income and every bucket has something to hold.
+      </p>
+      <button class="btn-primary flex-none" on:click={() => openModal('income')}>Add income</button>
+    </div>
+  {/if}
+
+  <!-- Supporting figures, subordinate to the line above. -->
+  <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border dark:border-border-dark dark:bg-border-dark sm:grid-cols-3">
+    <button
+      class="bg-white p-4 text-left transition-colors hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:bg-surface-dark dark:hover:bg-white/[0.03]"
+      on:click={() => openModal('income')}
+    >
+      <p class="metric-label">Income</p>
+      <p class="metric-value mt-1 text-xl">{formatCurrency($currentMonthIncome)}</p>
       {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
-        <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
-          <span class="flex items-center gap-1">
-            <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
-            {formatCurrency($currentMonthFixedIncome)} fixed
-          </span>
-          <span class="flex items-center gap-1">
-            <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
-            {formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} variable
-          </span>
-        </div>
+        <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">
+          <span class="money">{formatCurrency($currentMonthFixedIncome)}</span> fixed ·
+          <span class="money">{formatCurrency($currentMonthIncome - $currentMonthFixedIncome)}</span> variable
+        </p>
       {/if}
     </button>
-    <div class="card p-5">
-      <div class="mb-1 flex items-center gap-2">
-        <span class="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </span>
-        <p class="metric-label">Allocated</p>
-      </div>
-      <p class="metric-value">
-        {formatCurrency($currentMonthIncome - $unallocated)}
-      </p>
+    <div class="bg-white p-4 dark:bg-surface-dark">
+      <p class="metric-label">Spent</p>
+      <p class="metric-value mt-1 text-xl">{formatCurrency(totalSpent)}</p>
+      <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">excludes money set aside</p>
     </div>
-    <div class="card p-5">
-      <div class="mb-1 flex items-center gap-2">
-        <span class="flex h-6 w-6 items-center justify-center rounded-md {$unallocated < 0 ? 'bg-danger/10 text-danger' : $unallocated > 0 ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'}">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-        </span>
-        <p class="metric-label">Unallocated</p>
-      </div>
-      <p class="metric-value" class:text-danger={$unallocated < 0} class:text-warning={$unallocated > 0} class:text-success={$unallocated === 0}>
-        {formatCurrency($unallocated)}
-      </p>
-    </div>
-    <div class="card p-5">
-      <div class="mb-1 flex items-center gap-2">
-        <span class="flex h-6 w-6 items-center justify-center rounded-md {savingsRateIconBg}">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        </span>
-        <p class="metric-label">Savings Rate</p>
-      </div>
-      <p class="metric-value {savingsRateColor}">
+    <div class="col-span-2 bg-white p-4 dark:bg-surface-dark sm:col-span-1">
+      <p class="metric-label">Savings rate</p>
+      <p class="metric-value mt-1 text-xl {savingsRateColor}">
         {$savingsRate !== null ? `${$savingsRate}%` : '—'}
+      </p>
+      <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">
+        {$savingsRate !== null ? 'of income kept' : 'add income to see this'}
       </p>
     </div>
   </div>
 
-  {#if $unallocated !== 0}
-    <div class="flex items-center gap-3 rounded-xl border-l-4 p-4 {$unallocated > 0 ? 'border-warning bg-amber-50/50 dark:bg-amber-900/10' : 'border-danger bg-red-50/50 dark:bg-red-900/10'}">
-      <p class="text-sm text-gray-700 dark:text-gray-200">
-        {#if $unallocated > 0}
-          You have <span class="font-semibold">{formatCurrency($unallocated)}</span> unallocated. Assign it to buckets!
-        {:else}
-          You're <span class="font-semibold">{formatCurrency(Math.abs($unallocated))}</span> over budget.
-        {/if}
-      </p>
+  <!-- Envelopes -->
+  <div>
+    <div class="mb-2.5 flex items-center justify-between">
+      <h2 class="eyebrow">Envelopes</h2>
+      <button
+        class="text-[13px] font-medium text-primary hover:underline dark:text-success-light"
+        on:click={() => openModal('quick-entry')}
+      >
+        Add transaction
+      </button>
     </div>
-  {/if}
-
-  <!-- Quick Add Button -->
-  <button
-    class="w-full rounded-xl border-2 border-dashed border-gray-200 py-3.5 text-sm font-medium text-muted transition-colors hover:border-primary hover:text-primary dark:border-border-dark dark:text-gray-400"
-    on:click={() => openModal('quick-entry')}
-  >
-    + Add Transaction
-  </button>
-
-  <!-- Bucket Grid -->
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {#each $bucketStatuses as status}
-      <BucketCard {status} fixedIncome={$currentMonthFixedIncome} onClick={() => handleBucketClick(status.bucket.id)} />
-    {/each}
+    <div class="grid gap-1.5 lg:grid-cols-2">
+      {#each $bucketStatuses as status (status.bucket.id)}
+        <EnvelopeRow {status} onClick={() => handleBucketClick(status.bucket.id)} />
+      {/each}
+    </div>
   </div>
 
   <!-- Goals Section -->
@@ -246,6 +232,10 @@
     {/if}
   </div>
 </div>
+
+<Modal id="assign" title="Assign your income">
+  <AssignPanel />
+</Modal>
 
 <Modal id="quick-entry" title="Add Transaction">
   <QuickEntry preselectedBucketId={selectedBucketId} onComplete={handleEntryComplete} />

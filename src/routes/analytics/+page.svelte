@@ -100,7 +100,7 @@
 </script>
 
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
+  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Analytics</h1>
     <MonthPicker />
   </div>
@@ -164,10 +164,10 @@
             </div>
             <div class="flex h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/50">
               {#if bigTotal > 0}
-                <div class="bg-indigo-500 transition-all" style="width: {bigPct}%"></div>
+                <div class="bg-primary transition-all" style="width: {bigPct}%"></div>
               {/if}
               {#if smallTotal > 0}
-                <div class="bg-emerald-500 transition-all" style="width: {smallPct}%"></div>
+                <div class="bg-success transition-all" style="width: {smallPct}%"></div>
               {/if}
             </div>
           </div>
@@ -176,7 +176,7 @@
         <!-- Two Donut Charts -->
         <div class="grid gap-6 sm:grid-cols-2">
           <div>
-            <h3 class="mb-3 text-center text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+            <h3 class="mb-3 text-center text-sm font-semibold text-primary dark:text-success-light">
               Big Purchases (&ge; ${thresholdInput || '500'})
             </h3>
             {#if bigChartData.length > 0}
@@ -204,7 +204,7 @@
           </div>
 
           <div>
-            <h3 class="mb-3 text-center text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+            <h3 class="mb-3 text-center text-sm font-semibold text-success dark:text-success-light">
               Small Purchases (&lt; ${thresholdInput || '500'})
             </h3>
             {#if smallChartData.length > 0}

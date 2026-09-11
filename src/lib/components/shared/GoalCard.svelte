@@ -45,7 +45,7 @@
   <div class="flex justify-between text-sm">
     <div>
       <p class="metric-label">Saved</p>
-      <p class="font-semibold tabular-nums text-gray-800 dark:text-gray-100">{formatCurrency(status.currentAmount)}</p>
+      <p class="money font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(status.currentAmount)}</p>
     </div>
     <div class="text-right">
       <p class="metric-label">Target</p>

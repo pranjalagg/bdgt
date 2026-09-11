@@ -21,6 +21,10 @@
     { href: '/investments', label: 'Investments', icon: 'trending-up' },
   ];
 
+  // A bottom bar stops being tappable past five destinations, so mobile
+  // drops the two least-frequent ones; the sidebar still shows all six.
+  const mobileNavItems = mainNavItems.filter((i) => i.href !== '/recurring' && i.href !== '/investments');
+
   const settingsItem = { href: '/settings', label: 'Settings', icon: 'cog' };
 
   $: currentPath = $page.url.pathname;
@@ -79,21 +83,19 @@
 
 <!-- Mobile bottom nav -->
 <nav class="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-sm dark:border-border-dark dark:bg-surface-dark/95 md:hidden">
-  <ul class="flex justify-around">
-    {#each mainNavItems as item}
+  <ul class="flex justify-around pb-[env(safe-area-inset-bottom)]">
+    {#each mobileNavItems as item}
       {@const active = currentPath === getHref(item.href) || currentPath === getHref(item.href) + '/'}
       <li class="flex-1">
         <a
           href={getHref(item.href)}
-          class="flex flex-col items-center gap-0.5 py-2.5 transition-colors
-                 {active
-                   ? 'text-primary'
-                   : 'text-gray-500 dark:text-gray-400'}"
+          class="flex min-h-[44px] flex-col items-center justify-center gap-1 py-2 transition-colors
+                 {active ? 'text-primary dark:text-success-light' : 'text-muted dark:text-muted-dark'}"
         >
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             {@html iconPaths[item.icon]}
           </svg>
-          <span class="text-[10px] font-medium">{item.label}</span>
+          <span class="text-[11px] font-medium">{item.label}</span>
         </a>
       </li>
     {/each}

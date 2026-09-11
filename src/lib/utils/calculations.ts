@@ -123,6 +123,42 @@ export function spentExcludingSavings(
   );
 }
 
+export interface DayGroup<T> {
+  key: string;          // YYYY-MM-DD
+  date: Date;
+  transactions: T[];
+  total: number;        // spending only — money set aside is excluded
+  setAside: number;     // what went into savings buckets that day
+}
+
+// A ledger reads by day, not by row. Repeating the same date on nine
+// consecutive rows is noise; one header carrying the day's total is the
+// thing you actually scan for.
+export function groupTransactionsByDay<T extends { amount: number; bucketId: string; date: Date }>(
+  transactions: T[],
+  savingsBucketIds: Set<string> | string[] = []
+): DayGroup<T>[] {
+  const savings = savingsBucketIds instanceof Set ? savingsBucketIds : new Set(savingsBucketIds);
+  const byDay = new Map<string, DayGroup<T>>();
+
+  for (const t of transactions) {
+    const d = new Date(t.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    let group = byDay.get(key);
+    if (!group) {
+      group = { key, date: new Date(d.getFullYear(), d.getMonth(), d.getDate()), transactions: [], total: 0, setAside: 0 };
+      byDay.set(key, group);
+    }
+    group.transactions.push(t);
+    if (savings.has(t.bucketId)) group.setAside += t.amount;
+    else group.total += t.amount;
+  }
+
+  return [...byDay.values()]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .map((g) => ({ ...g, transactions: [...g.transactions].sort((a, b) => b.amount - a.amount) }));
+}
+
 export interface BucketMonthlySeries {
   bucketId: string;
   label: string;
