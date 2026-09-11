@@ -36,21 +36,22 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, updateBucketAllocation } from '$lib/stores/budgetStore';
+import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, updateBucketAllocation } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
 import { currentMonthKey } from '$lib/stores/uiStore';
 
 const bucket = (id: string, over: Partial<import('$lib/types').Bucket> = {}) => ({
   id, name: id, color: '#000', order: 0, isDefault: false,
-  allocationType: 'fixed' as const, fixedAmount: 0, percentageAmount: 0, isSavings: false, ...over,
+  allocationType: 'fixed' as const, fixedAmount: 0, percentageAmount: 0, isSavings: false,
+  createdAt: new Date(2000, 0, 1), ...over,
 });
 
 describe('deleteBucket cascade', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     buckets.set([
-      { id: 'b1', name: 'Food', color: '#000', order: 0, isDefault: false, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
-      { id: 'b2', name: 'Rent', color: '#111', order: 1, isDefault: false, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
+      bucket('b1', { name: 'Food', color: '#000' }),
+      bucket('b2', { name: 'Rent', color: '#111', order: 1 }),
     ]);
     transactions.set([
       { id: 't1', amount: 100, bucketId: 'b1', date: new Date(2026, 0, 1) },
@@ -99,10 +100,29 @@ describe('amount validation', () => {
   });
 });
 
+describe('monthlyLedger range', () => {
+  it('is not dragged back to the epoch by a migrated bucket\'s sentinel createdAt', () => {
+    // The v8 migration backfills pre-existing buckets' createdAt to the
+    // epoch so the rollover cutoff never excludes them -- but the ledger's
+    // own month range must not treat that sentinel as "this bucket has
+    // existed since 1970" and blow up to ~670 months for every user.
+    buckets.set([bucket('groceries', { createdAt: new Date(0) })]);
+    transactions.set([
+      { id: 'a', amount: 100, bucketId: 'groceries', date: new Date(2026, 0, 15) },
+    ]);
+    incomes.set([]);
+    monthSnapshots.set([]);
+
+    const { months } = get(monthlyLedger);
+    expect(months.length).toBeLessThan(24);
+    expect(months[0]).toBe('2026-01');
+  });
+});
+
 describe('bucketStatuses rollover', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    buckets.set([bucket('groceries', { fixedAmount: 50000 })]);
+    buckets.set([bucket('groceries', { fixedAmount: 50000, createdAt: new Date(2026, 0, 1) })]);
     incomes.set([]);
     monthSnapshots.set([]);
     currentMonthKey.set('2026-03');
@@ -120,12 +140,28 @@ describe('bucketStatuses rollover', () => {
   });
 
   it('ignores the current and future months when computing rollover', () => {
+    // Bucket created this month specifically, so there are no quiet
+    // prior months to legitimately accrue -- isolates that March
+    // (current) and June (future) themselves are excluded.
+    buckets.set([bucket('groceries', { fixedAmount: 50000, createdAt: new Date(2026, 2, 1) })]);
     transactions.set([
       { id: 'c', amount: 10000, bucketId: 'groceries', date: new Date(2026, 2, 5) }, // March (current)
       { id: 'd', amount: 10000, bucketId: 'groceries', date: new Date(2026, 5, 5) }, // June (future)
     ]);
     const status = get(bucketStatuses).find((s) => s.bucket.id === 'groceries')!;
     expect(status.rollover).toBe(0);
+  });
+
+  it('still accrues a completely quiet month with no transaction, income or snapshot', () => {
+    // Jan has activity; Feb has none at all (not even a snapshot); the
+    // bucket's $500 fixed allocation must still roll over from Feb even
+    // though nothing was recorded that month.
+    transactions.set([
+      { id: 'a', amount: 30000, bucketId: 'groceries', date: new Date(2026, 0, 10) }, // Jan: +20000
+    ]);
+    const status = get(bucketStatuses).find((s) => s.bucket.id === 'groceries')!;
+    // Jan +20000, Feb (quiet) +50000
+    expect(status.rollover).toBe(70000);
   });
 });
 
@@ -158,6 +194,7 @@ describe('allocation domain validation', () => {
       addBucket({
         name: 'Pets', color: '#000', order: 0, isDefault: false,
         allocationType: 'fixed', fixedAmount: -1000, percentageAmount: 0, isSavings: false,
+        createdAt: new Date(),
       })
     ).rejects.toThrow(/negative/i);
     expect(db.buckets.add).not.toHaveBeenCalled();
@@ -168,6 +205,7 @@ describe('allocation domain validation', () => {
       addBucket({
         name: 'Pets', color: '#000', order: 0, isDefault: false,
         allocationType: 'percentage', fixedAmount: 0, percentageAmount: -10, isSavings: false,
+        createdAt: new Date(),
       })
     ).rejects.toThrow(/negative/i);
     expect(db.buckets.add).not.toHaveBeenCalled();

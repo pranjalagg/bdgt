@@ -1,4 +1,5 @@
 import type { Bucket, Income } from '$lib/types';
+import { getMonthKey } from './dates';
 
 export function calculateUnallocated(
   income: number,
@@ -89,6 +90,10 @@ export function accumulateRollovers(
     const spent = spentByMonthBucket[month] ?? {};
 
     for (const bucket of buckets) {
+      // A bucket accrues no rollover for a month before it existed --
+      // its current fixed amount must not retroactively backfill history.
+      if (month < getMonthKey(bucket.createdAt)) continue;
+
       // Per-month overrides only make sense for fixed buckets; percentage
       // and hybrid always re-derive from that month's income.
       const allocated = bucket.allocationType === 'fixed'

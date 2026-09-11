@@ -23,6 +23,7 @@ export interface Bucket {
   fixedAmount: number;      // cents
   percentageAmount: number; // 0-100
   isSavings: boolean;       // spending here counts as saved, not spent
+  createdAt: Date;          // excludes the bucket from rollover before this month
 }
 
 export interface Transaction {

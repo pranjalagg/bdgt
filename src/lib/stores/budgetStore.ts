@@ -2,7 +2,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { db, DATE_FIELDS, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
-import { getMonthKey, getMonthRange, getLast6Months, reviveDateFields } from '$lib/utils/dates';
+import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, reviveDateFields } from '$lib/utils/dates';
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
@@ -87,35 +87,56 @@ export const totalPercentage = derived(buckets, ($buckets) => getTotalPercentage
 
 // Raw material for every month-by-month derivation (rollovers, goal
 // progress): allocation overrides, income and per-bucket spend keyed by
-// month. Built once from the raw stores; nothing is persisted.
+// month. `months` is a full contiguous calendar range, not just the
+// months that happen to have a snapshot/income/transaction -- a month
+// with zero activity still needs to be considered, since a fixed
+// allocation accrues (and can roll over) whether or not anything
+// happened that month. Built once from the raw stores; nothing is
+// persisted.
 export const monthlyLedger = derived(
-  [transactions, incomes, monthSnapshots],
-  ([$transactions, $incomes, $snapshots]) => {
-    const monthSet = new Set<string>();
-
+  [transactions, incomes, monthSnapshots, buckets],
+  ([$transactions, $incomes, $snapshots, $buckets]) => {
     const allocationOverrides: Record<string, Record<string, number>> = {};
+    const incomeByMonth: Record<string, number> = {};
+    const spentByMonthBucket: Record<string, Record<string, number>> = {};
+
+    let earliest: string | null = null;
+    let latest = getCurrentMonthKey();
+    const track = (m: string) => {
+      if (earliest === null || m < earliest) earliest = m;
+      if (m > latest) latest = m;
+    };
+
     for (const s of $snapshots) {
       allocationOverrides[s.month] = s.allocations ?? {};
-      monthSet.add(s.month);
+      track(s.month);
     }
 
-    const incomeByMonth: Record<string, number> = {};
     for (const i of $incomes) {
       const m = getMonthKey(new Date(i.date));
       incomeByMonth[m] = (incomeByMonth[m] ?? 0) + i.amount;
-      monthSet.add(m);
+      track(m);
     }
 
-    const spentByMonthBucket: Record<string, Record<string, number>> = {};
     for (const t of $transactions) {
       const m = getMonthKey(new Date(t.date));
       (spentByMonthBucket[m] ??= {})[t.bucketId] =
         (spentByMonthBucket[m][t.bucketId] ?? 0) + t.amount;
-      monthSet.add(m);
+      track(m);
+    }
+
+    // A bucket's own creation month anchors the range too, even with no
+    // transactions/income/snapshot yet -- otherwise its accrual since
+    // creation would be silently dropped rather than just zero. Skip the
+    // migration's epoch sentinel (pre-existing buckets backfilled so the
+    // rollover cutoff never excludes them): treating "1970" as a real
+    // anchor would blow the range out to ~670 months for every user.
+    for (const b of $buckets) {
+      if (b.createdAt.getTime() > 0) track(getMonthKey(b.createdAt));
     }
 
     return {
-      months: [...monthSet].sort(),
+      months: earliest === null ? [] : getMonthKeysBetween(earliest, latest),
       allocationOverrides,
       incomeByMonth,
       spentByMonthBucket,

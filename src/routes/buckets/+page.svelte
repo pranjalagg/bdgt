@@ -65,6 +65,7 @@
           fixedAmount: newFixedAmount,
           percentageAmount: newPercentageAmount,
           isSavings: newIsSavings,
+          createdAt: new Date(),
         });
       }
       closeModal();

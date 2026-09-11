@@ -78,6 +78,22 @@ export function defaultEntryDate(monthKey: string, today: Date = new Date()): Da
   return monthKey === getMonthKey(today) ? today : parseMonthKey(monthKey);
 }
 
+// Every month key from start to end, inclusive of both ends. Used to
+// turn a sparse set of "months with activity" into a full contiguous
+// calendar range, so a month with zero transactions/income/snapshots
+// still gets considered (a fixed allocation still accrues in a quiet
+// month).
+export function getMonthKeysBetween(startKey: string, endKey: string): string[] {
+  if (startKey > endKey) return [];
+  const months: string[] = [];
+  let month = startKey;
+  while (month <= endKey) {
+    months.push(month);
+    month = getNextMonthKey(month);
+  }
+  return months;
+}
+
 // Dexie preserves real Date objects through IndexedDB, but a record that
 // ever passed through JSON (an import predating date-revival there, or
 // any other JSON round-trip) can leave a date field as a plain string.

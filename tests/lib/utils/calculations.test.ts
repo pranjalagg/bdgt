@@ -240,13 +240,13 @@ describe('budget calculations', () => {
   });
 
   describe('accumulateRollovers', () => {
-    const fixedBucket = (id: string, fixedAmount: number): Bucket => ({
+    const fixedBucket = (id: string, fixedAmount: number, createdAt = new Date(2000, 0, 1)): Bucket => ({
       id, name: id, color: '#000', order: 0, isDefault: false,
-      allocationType: 'fixed', fixedAmount, percentageAmount: 0, isSavings: false,
+      allocationType: 'fixed', fixedAmount, percentageAmount: 0, isSavings: false, createdAt,
     });
-    const pctBucket = (id: string, pct: number): Bucket => ({
+    const pctBucket = (id: string, pct: number, createdAt = new Date(2000, 0, 1)): Bucket => ({
       id, name: id, color: '#000', order: 0, isDefault: false,
-      allocationType: 'percentage', fixedAmount: 0, percentageAmount: pct, isSavings: false,
+      allocationType: 'percentage', fixedAmount: 0, percentageAmount: pct, isSavings: false, createdAt,
     });
 
     it('carries unspent fixed allocation forward across months', () => {
@@ -299,6 +299,28 @@ describe('budget calculations', () => {
     it('is empty when there are no prior months', () => {
       const rollovers = accumulateRollovers([], [fixedBucket('x', 1000)], {}, {}, {});
       expect(rollovers).toEqual({});
+    });
+
+    it('excludes months before the bucket existed', () => {
+      // Bucket created in March; Jan and Feb predate it and must not
+      // contribute phantom rollover even though the bucket now has a
+      // standing fixed amount.
+      const bucket = fixedBucket('pets', 5000, new Date(2026, 2, 1));
+      const rollovers = accumulateRollovers(
+        ['2026-01', '2026-02', '2026-03'],
+        [bucket],
+        {},
+        {},
+        {}
+      );
+      // Only March accrues: +5000
+      expect(rollovers.pets).toBe(5000);
+    });
+
+    it('produces no rollover at all when the bucket was created this month', () => {
+      const bucket = fixedBucket('pets', 5000, new Date(2026, 2, 15));
+      const rollovers = accumulateRollovers(['2026-01', '2026-02'], [bucket], {}, {}, {});
+      expect(rollovers.pets ?? 0).toBe(0);
     });
   });
 });

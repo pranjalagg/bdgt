@@ -13,7 +13,8 @@ import {
   getDayOfMonth,
   parseLocalDate,
   defaultEntryDate,
-  reviveDateFields
+  reviveDateFields,
+  getMonthKeysBetween
 } from '$lib/utils/dates';
 
 describe('date utils', () => {
@@ -187,6 +188,24 @@ describe('date utils', () => {
       const result = reviveDateFields(record, ['createdAt', 'targetDate']);
       expect(result.createdAt).toBeInstanceOf(Date);
       expect(result.targetDate).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('getMonthKeysBetween', () => {
+    it('returns every month inclusive of both ends', () => {
+      expect(getMonthKeysBetween('2026-01', '2026-04')).toEqual(['2026-01', '2026-02', '2026-03', '2026-04']);
+    });
+
+    it('spans a year boundary', () => {
+      expect(getMonthKeysBetween('2025-11', '2026-02')).toEqual(['2025-11', '2025-12', '2026-01', '2026-02']);
+    });
+
+    it('returns a single month when start equals end', () => {
+      expect(getMonthKeysBetween('2026-03', '2026-03')).toEqual(['2026-03']);
+    });
+
+    it('returns an empty array when start is after end', () => {
+      expect(getMonthKeysBetween('2026-05', '2026-01')).toEqual([]);
     });
   });
 });
