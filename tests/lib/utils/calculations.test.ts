@@ -12,7 +12,8 @@ import {
   accumulateRollovers,
   monthlyBucketSpend,
   groupTransactionsByDay,
-  calculateSafeToSpendPerDay
+  calculateSafeToSpendPerDay,
+  calculateBucketFit
 } from '$lib/utils/calculations';
 import type { Bucket, Income } from '$lib/types';
 
@@ -464,6 +465,33 @@ describe('budget calculations', () => {
 
     it('returns 0 for no everyday buckets', () => {
       expect(calculateSafeToSpendPerDay([], 10)).toBe(0);
+    });
+  });
+
+  describe('calculateBucketFit', () => {
+    it('is neutral when no amount has been typed yet', () => {
+      expect(calculateBucketFit(0, 5000, 10000)).toBe('neutral');
+      expect(calculateBucketFit(-100, 5000, 10000)).toBe('neutral');
+    });
+
+    it('is unfunded when the bucket has nothing assigned', () => {
+      expect(calculateBucketFit(1000, 0, 0)).toBe('unfunded');
+    });
+
+    it('fits when the amount is within what remains', () => {
+      expect(calculateBucketFit(3000, 5000, 10000)).toBe('fits');
+    });
+
+    it('fits exactly at the remaining boundary', () => {
+      expect(calculateBucketFit(5000, 5000, 10000)).toBe('fits');
+    });
+
+    it('is tight when the amount would break the envelope', () => {
+      expect(calculateBucketFit(6000, 5000, 10000)).toBe('tight');
+    });
+
+    it('is tight when the bucket is already overspent (remaining negative)', () => {
+      expect(calculateBucketFit(100, -2000, 10000)).toBe('tight');
     });
   });
 });

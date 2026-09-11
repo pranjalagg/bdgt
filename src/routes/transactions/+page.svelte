@@ -1,5 +1,5 @@
 <script lang="ts">
-  import QuickEntry from '$lib/components/shared/QuickEntry.svelte';
+  import LogEntry from '$lib/components/shared/LogEntry.svelte';
   import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
@@ -153,7 +153,7 @@
 </div>
 
 <Modal id="add-transaction" title="Add Transaction">
-  <QuickEntry onComplete={closeModal} />
+  <LogEntry onComplete={closeModal} />
 </Modal>
 
 <Modal id="edit-transaction" title="Edit Transaction">

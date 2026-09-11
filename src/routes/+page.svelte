@@ -3,7 +3,7 @@
   import EnvelopeLine from '$lib/components/shared/EnvelopeLine.svelte';
   import EnvelopeRow from '$lib/components/shared/EnvelopeRow.svelte';
   import AssignPanel from '$lib/components/shared/AssignPanel.svelte';
-  import QuickEntry from '$lib/components/shared/QuickEntry.svelte';
+  import LogEntry from '$lib/components/shared/LogEntry.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import { bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
@@ -260,7 +260,7 @@
 </Modal>
 
 <Modal id="quick-entry" title="Add Transaction">
-  <QuickEntry preselectedBucketId={selectedBucketId} onComplete={handleEntryComplete} />
+  <LogEntry preselectedBucketId={selectedBucketId} onComplete={handleEntryComplete} />
 </Modal>
 
 <Modal id="income" title="Manage Income">

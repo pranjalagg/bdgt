@@ -210,3 +210,18 @@ export function calculateSafeToSpendPerDay(
   const days = Math.max(daysLeftInMonth, 1);
   return Math.round(pool / days);
 }
+
+export type BucketFitStatus = 'neutral' | 'unfunded' | 'fits' | 'tight';
+
+// Entry is amount-first: type what you're about to spend, and every
+// bucket answers "does this fit?" before you pick one, instead of
+// picking a bucket blind and finding out you broke it after the fact.
+export function calculateBucketFit(
+  amountCents: number,
+  remaining: number,
+  allocated: number
+): BucketFitStatus {
+  if (amountCents <= 0) return 'neutral';
+  if (allocated === 0) return 'unfunded';
+  return amountCents <= remaining ? 'fits' : 'tight';
+}
