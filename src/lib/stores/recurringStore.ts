@@ -1,9 +1,9 @@
 // src/lib/stores/recurringStore.ts
 import { writable, derived } from 'svelte/store';
 import { db, DATE_FIELDS } from '$lib/db';
-import { addTransaction } from './budgetStore';
+import { transactions } from './budgetStore';
 import { reviveDateFields } from '$lib/utils/dates';
-import type { RecurringTransaction } from '$lib/types';
+import type { RecurringTransaction, Transaction } from '$lib/types';
 
 export const recurringTransactions = writable<RecurringTransaction[]>([]);
 
@@ -87,6 +87,50 @@ export function dueOccurrences(
   return { occurrences, nextDueDate: cursor };
 }
 
+// Builds every occurrence + due-date advance across all due items without
+// writing anything, so processRecurring can commit them in one transaction.
+function planRecurringBatch(
+  due: RecurringTransaction[],
+  now: Date
+): { newTransactions: Transaction[]; dueUpdates: { id: string; nextDueDate: Date }[] } {
+  const newTransactions: Transaction[] = [];
+  const dueUpdates: { id: string; nextDueDate: Date }[] = [];
+
+  for (const recurring of due) {
+    // A corrupted amount (e.g. from data that predates assertCents) must
+    // not silently mint NaN transactions; skip the item rather than fail
+    // the whole batch.
+    if (!Number.isFinite(recurring.amount)) continue;
+
+    const { occurrences, nextDueDate } = dueOccurrences(
+      new Date(recurring.nextDueDate),
+      recurring.frequency,
+      now
+    );
+    if (occurrences.length === 0) continue;
+
+    for (const occurrence of occurrences) {
+      newTransactions.push({
+        id: crypto.randomUUID(),
+        amount: recurring.amount,
+        bucketId: recurring.bucketId,
+        date: occurrence,
+        note: recurring.note,
+        recurringId: recurring.id,
+      });
+    }
+    dueUpdates.push({ id: recurring.id, nextDueDate });
+  }
+
+  return { newTransactions, dueUpdates };
+}
+
+// Generates every missed occurrence for every due item, then commits all
+// of the resulting transactions and due-date advances in a single Dexie
+// transaction. Previously this wrote one occurrence at a time and only
+// advanced nextDueDate after its whole loop: a failure partway through
+// left the old due date in place, so the already-inserted occurrences
+// would be generated again -- duplicated -- on the next app load.
 export async function processRecurring(): Promise<number> {
   const now = new Date();
   now.setHours(23, 59, 59, 999);
@@ -95,34 +139,20 @@ export async function processRecurring(): Promise<number> {
     .filter((r) => r.isActive && new Date(r.nextDueDate) <= now)
     .toArray();
 
-  let processed = 0;
+  const { newTransactions, dueUpdates } = planRecurringBatch(due, now);
+  if (newTransactions.length === 0) return 0;
 
-  for (const recurring of due) {
-    const { occurrences, nextDueDate } = dueOccurrences(
-      new Date(recurring.nextDueDate),
-      recurring.frequency,
-      now
-    );
-
-    for (const occurrence of occurrences) {
-      await addTransaction({
-        amount: recurring.amount,
-        bucketId: recurring.bucketId,
-        date: occurrence,
-        note: recurring.note,
-        recurringId: recurring.id,
-      });
-      processed++;
+  await db.transaction('rw', [db.transactions, db.recurringTransactions], async () => {
+    await db.transactions.bulkAdd(newTransactions);
+    for (const { id, nextDueDate } of dueUpdates) {
+      await db.recurringTransactions.update(id, { nextDueDate });
     }
+  });
 
-    await db.recurringTransactions.update(recurring.id, { nextDueDate });
-  }
+  transactions.update((t) => [...t, ...newTransactions]);
+  await loadRecurring();
 
-  if (processed > 0) {
-    await loadRecurring();
-  }
-
-  return processed;
+  return newTransactions.length;
 }
 
 export async function addRecurring(recurring: Omit<RecurringTransaction, 'id'>): Promise<string> {

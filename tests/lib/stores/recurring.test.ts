@@ -1,5 +1,26 @@
-import { describe, it, expect } from 'vitest';
-import { dueOccurrences } from '$lib/stores/recurringStore';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { get } from 'svelte/store';
+
+const { txState } = vi.hoisted(() => ({ txState: { recurring: [] as unknown[] } }));
+
+vi.mock('$lib/db', () => ({
+  DATE_FIELDS: { transactions: ['date'], recurringTransactions: ['nextDueDate'] },
+  db: {
+    transaction: vi.fn((_mode: string, _tables: unknown, cb: () => unknown) => cb()),
+    transactions: { bulkAdd: vi.fn().mockResolvedValue(undefined) },
+    recurringTransactions: {
+      filter: vi.fn((pred: (r: unknown) => boolean) => ({
+        toArray: vi.fn().mockResolvedValue(txState.recurring.filter(pred)),
+      })),
+      update: vi.fn().mockResolvedValue(undefined),
+      toArray: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
+
+import { dueOccurrences, processRecurring } from '$lib/stores/recurringStore';
+import { transactions } from '$lib/stores/budgetStore';
+import { db } from '$lib/db';
 
 describe('dueOccurrences', () => {
   it('returns nothing when the next due date is still in the future', () => {
@@ -44,4 +65,75 @@ describe('dueOccurrences', () => {
     expect(result.occurrences).toEqual([]);
     expect(result.nextDueDate.getTime()).toBe(start.getTime());
   }, 2000);
+});
+
+describe('processRecurring', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    txState.recurring = [];
+    transactions.set([]);
+  });
+
+  it('does nothing when nothing is due', async () => {
+    const count = await processRecurring();
+    expect(count).toBe(0);
+    expect(db.transactions.bulkAdd).not.toHaveBeenCalled();
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('inserts every occurrence and advances nextDueDate in one transaction', async () => {
+    txState.recurring = [
+      { id: 'r1', amount: 500, bucketId: 'b1', frequency: 'monthly', nextDueDate: new Date(), isActive: true },
+    ];
+
+    const count = await processRecurring();
+
+    expect(count).toBe(1);
+    expect(db.transaction).toHaveBeenCalledWith('rw', [db.transactions, db.recurringTransactions], expect.any(Function));
+    expect(db.transactions.bulkAdd).toHaveBeenCalledWith([
+      expect.objectContaining({ amount: 500, bucketId: 'b1', recurringId: 'r1' }),
+    ]);
+    expect(db.recurringTransactions.update).toHaveBeenCalledWith('r1', { nextDueDate: expect.any(Date) });
+    expect(get(transactions)).toHaveLength(1);
+  });
+
+  it('never advances nextDueDate for an item that produced no occurrences', async () => {
+    txState.recurring = [
+      { id: 'r-broken', amount: 500, bucketId: 'b1', frequency: 'yearly' as never, nextDueDate: new Date(2020, 0, 1), isActive: true },
+    ];
+
+    const count = await processRecurring();
+
+    expect(count).toBe(0);
+    expect(db.recurringTransactions.update).not.toHaveBeenCalled();
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('skips an item with a non-finite amount instead of writing NaN transactions', async () => {
+    txState.recurring = [
+      { id: 'r-nan', amount: NaN, bucketId: 'b1', frequency: 'monthly', nextDueDate: new Date(), isActive: true },
+      { id: 'r-ok', amount: 500, bucketId: 'b1', frequency: 'monthly', nextDueDate: new Date(), isActive: true },
+    ];
+
+    const count = await processRecurring();
+
+    expect(count).toBe(1);
+    expect(db.transactions.bulkAdd).toHaveBeenCalledWith([
+      expect.objectContaining({ recurringId: 'r-ok' }),
+    ]);
+    expect(db.recurringTransactions.update).toHaveBeenCalledTimes(1);
+    expect(db.recurringTransactions.update).toHaveBeenCalledWith('r-ok', { nextDueDate: expect.any(Date) });
+  });
+
+  it('leaves the local transactions store untouched if the db transaction fails', async () => {
+    txState.recurring = [
+      { id: 'r1', amount: 500, bucketId: 'b1', frequency: 'monthly', nextDueDate: new Date(), isActive: true },
+    ];
+    vi.mocked(db.transactions.bulkAdd).mockRejectedValueOnce(new Error('quota exceeded'));
+
+    await expect(processRecurring()).rejects.toThrow('quota exceeded');
+
+    expect(get(transactions)).toHaveLength(0);
+    expect(db.recurringTransactions.update).not.toHaveBeenCalled();
+  });
 });
