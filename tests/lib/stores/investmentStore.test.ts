@@ -58,6 +58,26 @@ describe('investmentStore', () => {
       expect(get(lots)).toHaveLength(1);
       expect(get(lots)[0].symbol).toBe('AAPL');
     });
+
+    it.each([
+      ['shares', { shares: -5 }],
+      ['shares', { shares: 0 }],
+      ['shares', { shares: NaN }],
+      ['shares', { shares: Infinity }],
+      ['pricePerShare', { pricePerShare: -100 }],
+      ['pricePerShare', { pricePerShare: 0 }],
+      ['soldShares', { soldShares: -1 }],
+    ])('rejects an invalid %s (%o)', async (_label, override) => {
+      const lot = { symbol: 'AAPL', shares: 10, pricePerShare: 15000, purchaseDate: new Date('2026-05-01'), soldShares: 0, ...override };
+      await expect(addLot(lot)).rejects.toThrow();
+      expect(db.investmentLots.add).not.toHaveBeenCalled();
+    });
+
+    it('rejects soldShares greater than shares', async () => {
+      const lot = { symbol: 'AAPL', shares: 10, pricePerShare: 15000, purchaseDate: new Date('2026-05-01'), soldShares: 11 };
+      await expect(addLot(lot)).rejects.toThrow(/soldShares/i);
+      expect(db.investmentLots.add).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateLot', () => {
@@ -75,6 +95,35 @@ describe('investmentStore', () => {
 
       expect(db.investmentLots.update).toHaveBeenCalledWith(id, { shares: 15 });
       expect(get(lots)[0].shares).toBe(15);
+    });
+
+    it('rejects a negative or zero shares update', async () => {
+      await expect(updateLot('l1', { shares: -1 })).rejects.toThrow();
+      await expect(updateLot('l1', { shares: 0 })).rejects.toThrow();
+      expect(db.investmentLots.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-positive pricePerShare update', async () => {
+      await expect(updateLot('l1', { pricePerShare: -50 })).rejects.toThrow();
+      expect(db.investmentLots.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects setting soldShares above the lot\'s existing shares', async () => {
+      vi.mocked(db.investmentLots.get).mockResolvedValue({
+        id: 'l1', symbol: 'AAPL', shares: 10, pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'), soldShares: 0,
+      });
+      await expect(updateLot('l1', { soldShares: 11 })).rejects.toThrow(/soldShares/i);
+      expect(db.investmentLots.update).not.toHaveBeenCalled();
+    });
+
+    it('allows soldShares up to a newly-updated shares count', async () => {
+      vi.mocked(db.investmentLots.get).mockResolvedValue({
+        id: 'l1', symbol: 'AAPL', shares: 10, pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'), soldShares: 0,
+      });
+      await expect(updateLot('l1', { shares: 20, soldShares: 15 })).resolves.toBeUndefined();
+      expect(db.investmentLots.update).toHaveBeenCalledWith('l1', { shares: 20, soldShares: 15 });
     });
   });
 

@@ -181,7 +181,26 @@ export async function setPrice(symbol: string, pricePerShare: number | null): Pr
   prices.update((p) => ({ ...p, [sym]: pricePerShare }));
 }
 
+function assertPositiveFinite(value: number, label: string): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`Invalid ${label}: must be a positive number`);
+  }
+}
+
+function assertNonNegativeFinite(value: number, label: string): void {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`Invalid ${label}: must be zero or a positive number`);
+  }
+}
+
 export async function addLot(lot: Omit<InvestmentLot, 'id'>): Promise<string> {
+  assertPositiveFinite(lot.shares, 'shares');
+  assertPositiveFinite(lot.pricePerShare, 'pricePerShare');
+  assertNonNegativeFinite(lot.soldShares, 'soldShares');
+  if (lot.soldShares > lot.shares) {
+    throw new Error('Invalid soldShares: cannot exceed shares');
+  }
+
   const id = crypto.randomUUID();
   const newLot: InvestmentLot = { ...lot, id, symbol: lot.symbol.toUpperCase() };
   await db.investmentLots.add(newLot);
@@ -193,6 +212,21 @@ export async function updateLot(id: string, updates: Partial<InvestmentLot>): Pr
   if (updates.symbol) {
     updates.symbol = updates.symbol.toUpperCase();
   }
+  if (updates.shares !== undefined) assertPositiveFinite(updates.shares, 'shares');
+  if (updates.pricePerShare !== undefined) assertPositiveFinite(updates.pricePerShare, 'pricePerShare');
+  if (updates.soldShares !== undefined) assertNonNegativeFinite(updates.soldShares, 'soldShares');
+
+  if (updates.shares !== undefined || updates.soldShares !== undefined) {
+    const existing = await db.investmentLots.get(id);
+    if (existing) {
+      const effectiveShares = updates.shares ?? existing.shares;
+      const effectiveSold = updates.soldShares ?? existing.soldShares;
+      if (effectiveSold > effectiveShares) {
+        throw new Error('Invalid soldShares: cannot exceed shares');
+      }
+    }
+  }
+
   await db.investmentLots.update(id, updates);
   lots.update((l) => l.map((lot) => (lot.id === id ? { ...lot, ...updates } : lot)));
 }
