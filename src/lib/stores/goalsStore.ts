@@ -4,7 +4,7 @@ import { monthlyLedger, buckets } from './budgetStore';
 import { currentMonthKey } from './uiStore';
 import { computeAllocation } from '$lib/utils/calculations';
 import { reviveDateFields } from '$lib/utils/dates';
-import { calculateGoalProgress, calculateMonthlyNeeded, calculateProjectedDate, getGoalStatus, type GoalStatus } from '$lib/utils/goals';
+import { calculateGoalProgress, calculateMonthlyNeeded, calculateProjectedDate, calculateProgressPercent, getGoalStatus, type GoalStatus } from '$lib/utils/goals';
 import type { SavingsGoal, Bucket } from '$lib/types';
 
 export const savingsGoals = writable<SavingsGoal[]>([]);
@@ -58,7 +58,7 @@ export const goalStatuses = derived(
         $ledger.incomeByMonth,
         $ledger.spentByMonthBucket
       );
-      const progress = Math.min(currentAmount / goal.targetAmount, 1);
+      const progress = calculateProgressPercent(currentAmount, goal.targetAmount);
       const currentMonthAllocation = bucket
         ? ($ledger.allocationOverrides[$month]?.[goal.bucketId]
             ?? computeAllocation(bucket, $ledger.incomeByMonth[$month] ?? 0))

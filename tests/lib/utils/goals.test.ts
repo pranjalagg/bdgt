@@ -3,7 +3,8 @@ import {
   calculateGoalProgress,
   calculateMonthlyNeeded,
   getGoalStatus,
-  monthsBetween
+  monthsBetween,
+  calculateProgressPercent
 } from '$lib/utils/goals';
 import type { SavingsGoal, Bucket } from '$lib/types';
 
@@ -153,5 +154,24 @@ describe('getGoalStatus', () => {
   it('returns behind when allocation is less than monthlyNeeded', () => {
     expect(getGoalStatus(5000, 10000, 1000, 500)).toBe('behind');
     expect(getGoalStatus(5000, 10000, 1000, 0)).toBe('behind');
+  });
+});
+
+describe('calculateProgressPercent', () => {
+  it('returns the fraction saved toward the target', () => {
+    expect(calculateProgressPercent(5000, 10000)).toBe(0.5);
+  });
+
+  it('caps at 1 once the target is met or exceeded', () => {
+    expect(calculateProgressPercent(10000, 10000)).toBe(1);
+    expect(calculateProgressPercent(15000, 10000)).toBe(1);
+  });
+
+  it('clamps a negative balance (net withdrawal) to 0', () => {
+    expect(calculateProgressPercent(-5000, 10000)).toBe(0);
+  });
+
+  it('returns 0 for a zero or negative target', () => {
+    expect(calculateProgressPercent(500, 0)).toBe(0);
   });
 });

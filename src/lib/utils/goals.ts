@@ -66,6 +66,14 @@ export function calculateProjectedDate(
   return projected;
 }
 
+// A net withdrawal can leave currentAmount negative; a bare
+// currentAmount / targetAmount would then produce a negative progress
+// bar width. Clamp to [0, 1].
+export function calculateProgressPercent(currentAmount: number, targetAmount: number): number {
+  if (targetAmount <= 0) return 0;
+  return Math.max(0, Math.min(currentAmount / targetAmount, 1));
+}
+
 export type GoalStatus = 'completed' | 'on-track' | 'behind';
 
 export function getGoalStatus(
