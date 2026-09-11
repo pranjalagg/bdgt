@@ -9,7 +9,8 @@ import {
   incomePercentage,
   calculateSavingsRate,
   spentExcludingSavings,
-  accumulateRollovers
+  accumulateRollovers,
+  monthlyBucketSpend
 } from '$lib/utils/calculations';
 import type { Bucket, Income } from '$lib/types';
 
@@ -321,6 +322,68 @@ describe('budget calculations', () => {
       const bucket = fixedBucket('pets', 5000, new Date(2026, 2, 15));
       const rollovers = accumulateRollovers(['2026-01', '2026-02'], [bucket], {}, {}, {});
       expect(rollovers.pets ?? 0).toBe(0);
+    });
+  });
+
+  describe('monthlyBucketSpend', () => {
+    const testBucket = (id: string, name: string, color: string): Bucket => ({
+      id, name, color, order: 0, isDefault: false, allocationType: 'fixed',
+      fixedAmount: 0, percentageAmount: 0, isSavings: false, createdAt: new Date(2000, 0, 1),
+    });
+    const groceries = testBucket('groceries', 'Groceries', '#00f');
+    const dining = testBucket('dining', 'Dining Out', '#f00');
+    const unused = testBucket('unused', 'Unused Bucket', '#0f0');
+    const months = ['2026-01', '2026-02', '2026-03'];
+
+    it('sums each bucket\'s transactions per month, aligned to the months array', () => {
+      const series = monthlyBucketSpend(
+        [groceries, dining],
+        [
+          { bucketId: 'groceries', amount: 3000, date: new Date(2026, 0, 5) },
+          { bucketId: 'groceries', amount: 2000, date: new Date(2026, 0, 20) },
+          { bucketId: 'groceries', amount: 4000, date: new Date(2026, 2, 1) },
+          { bucketId: 'dining', amount: 1500, date: new Date(2026, 1, 10) },
+        ],
+        months
+      );
+
+      const g = series.find((s) => s.bucketId === 'groceries')!;
+      expect(g.data).toEqual([5000, 0, 4000]);
+      const d = series.find((s) => s.bucketId === 'dining')!;
+      expect(d.data).toEqual([0, 1500, 0]);
+      expect(d.label).toBe('Dining Out');
+      expect(d.color).toBe('#f00');
+    });
+
+    it('excludes a bucket with zero activity across every month', () => {
+      const series = monthlyBucketSpend(
+        [groceries, unused],
+        [{ bucketId: 'groceries', amount: 1000, date: new Date(2026, 0, 5) }],
+        months
+      );
+      expect(series.map((s) => s.bucketId)).toEqual(['groceries']);
+    });
+
+    it('ignores a transaction outside the given months', () => {
+      const series = monthlyBucketSpend(
+        [groceries],
+        [{ bucketId: 'groceries', amount: 1000, date: new Date(2025, 5, 5) }],
+        months
+      );
+      expect(series).toEqual([]);
+    });
+
+    it('counts a lone refund (negative amount) as activity', () => {
+      const series = monthlyBucketSpend(
+        [groceries],
+        [{ bucketId: 'groceries', amount: -500, date: new Date(2026, 0, 5) }],
+        months
+      );
+      expect(series[0].data).toEqual([-500, 0, 0]);
+    });
+
+    it('returns an empty array for no buckets', () => {
+      expect(monthlyBucketSpend([], [], months)).toEqual([]);
     });
   });
 });

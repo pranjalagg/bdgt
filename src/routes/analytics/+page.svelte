@@ -4,8 +4,9 @@
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
-  import { bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome, savingsRateTrend } from '$lib/stores/budgetStore';
+  import { buckets, bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome, savingsRateTrend } from '$lib/stores/budgetStore';
   import { currentMonthKey } from '$lib/stores/uiStore';
+  import { spentExcludingSavings, monthlyBucketSpend } from '$lib/utils/calculations';
   import { centsToDollars, formatCurrency, dollarsToCents } from '$lib/utils/currency';
   import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange, getLast6Months } from '$lib/utils/dates';
 
@@ -33,8 +34,12 @@
     return dollarsToCents(Number.isFinite(n) ? n : 500);
   })();
 
+  $: savingsBucketIds = new Set($buckets.filter((b) => b.isSavings).map((b) => b.id));
+
+  // Money moved into a savings/investment bucket is saved, not spent --
+  // it must not count toward any "spend" figure on this page.
   $: allSpendingByCategory = $bucketStatuses
-    .filter((s) => s.spent > 0)
+    .filter((s) => s.spent > 0 && !s.bucket.isSavings)
     .map((s) => ({
       bucketId: s.bucket.id,
       label: s.bucket.name,
@@ -63,14 +68,18 @@
 
   $: monthlySpending = last6Months.map((month) => {
     const { start, end } = getMonthRange(month);
-    const spent = $transactions
-      .filter((t) => {
-        const date = new Date(t.date);
-        return date >= start && date <= end;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-    return centsToDollars(spent);
+    const monthTransactions = $transactions.filter((t) => {
+      const date = new Date(t.date);
+      return date >= start && date <= end;
+    });
+    return centsToDollars(spentExcludingSavings(monthTransactions, savingsBucketIds));
   });
+
+  $: bucketSpendSeries = monthlyBucketSpend($buckets, $transactions, last6Months).map((s) => ({
+    label: s.label,
+    color: s.color,
+    data: s.data.map(centsToDollars),
+  }));
 
   $: monthlyIncome = last6Months.map((month) => {
     const { start, end } = getMonthRange(month);
@@ -263,6 +272,18 @@
       </div>
     </div>
   </div>
+
+  {#if bucketSpendSeries.length > 0}
+    <div class="card">
+      <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+        <h2 class="section-title">Monthly Spend by Bucket</h2>
+        <p class="mt-0.5 text-xs text-muted">Last 6 months &middot; click a legend item to hide it</p>
+      </div>
+      <div class="p-5">
+        <LineChart labels={monthLabels} datasets={bucketSpendSeries} />
+      </div>
+    </div>
+  {/if}
 
   <div class="card">
     <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">

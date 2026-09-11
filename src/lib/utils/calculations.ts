@@ -122,3 +122,39 @@ export function spentExcludingSavings(
     0
   );
 }
+
+export interface BucketMonthlySeries {
+  bucketId: string;
+  label: string;
+  color: string;
+  data: number[]; // cents, one entry per month in `months`, same index
+}
+
+// Per-bucket transaction totals for each of the given months, for a
+// "spend trend by bucket" chart. A bucket with no activity in any of
+// the months is left out entirely rather than plotting a flat empty
+// line.
+export function monthlyBucketSpend(
+  buckets: Bucket[],
+  transactions: { bucketId: string; amount: number; date: Date }[],
+  months: string[]
+): BucketMonthlySeries[] {
+  const monthSet = new Set(months);
+  const byBucketMonth: Record<string, Record<string, number>> = {};
+
+  for (const t of transactions) {
+    const m = getMonthKey(new Date(t.date));
+    if (!monthSet.has(m)) continue;
+    const bucketTotals = (byBucketMonth[t.bucketId] ??= {});
+    bucketTotals[m] = (bucketTotals[m] ?? 0) + t.amount;
+  }
+
+  return buckets
+    .map((b) => ({
+      bucketId: b.id,
+      label: b.name,
+      color: b.color,
+      data: months.map((m) => byBucketMonth[b.id]?.[m] ?? 0),
+    }))
+    .filter((series) => series.data.some((v) => v !== 0));
+}
