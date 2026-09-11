@@ -247,32 +247,38 @@ export async function sellFromLot(
   sellDate: Date,
   note?: string
 ): Promise<string> {
-  const lot = await db.investmentLots.get(lotId);
-  if (!lot) {
-    throw new Error('Lot not found');
-  }
-
-  const availableShares = lot.shares - lot.soldShares;
-  if (shares > availableShares) {
-    throw new Error('Cannot sell more shares than available');
-  }
+  assertPositiveFinite(shares, 'shares');
+  assertPositiveFinite(pricePerShare, 'pricePerShare');
 
   const id = crypto.randomUUID();
-  const newSell: InvestmentSell = {
-    id,
-    lotId,
-    shares,
-    pricePerShare,
-    sellDate,
-    note,
-  };
+  const newSell: InvestmentSell = { id, lotId, shares, pricePerShare, sellDate, note };
 
-  await db.investmentSells.add(newSell);
+  // Read-check-write the lot and insert the sell inside one Dexie
+  // transaction. Two concurrent sells against the same lot would
+  // otherwise both read the same soldShares, both pass the
+  // availableShares check, and the second write would clobber the
+  // first -- a lost update that lets you oversell. Local stores are
+  // only touched after the transaction commits, so a failure partway
+  // through can't leave them out of sync with the db.
+  const updatedLot = await db.transaction('rw', [db.investmentLots, db.investmentSells], async () => {
+    const lot = await db.investmentLots.get(lotId);
+    if (!lot) {
+      throw new Error('Lot not found');
+    }
+
+    const availableShares = lot.shares - lot.soldShares;
+    if (shares > availableShares) {
+      throw new Error('Cannot sell more shares than available');
+    }
+
+    const newSoldShares = lot.soldShares + shares;
+    await db.investmentSells.add(newSell);
+    await db.investmentLots.update(lotId, { soldShares: newSoldShares });
+    return { ...lot, soldShares: newSoldShares };
+  });
+
   sells.update((s) => [...s, newSell]);
-
-  const newSoldShares = lot.soldShares + shares;
-  await db.investmentLots.update(lotId, { soldShares: newSoldShares });
-  lots.update((l) => l.map((lt) => (lt.id === lotId ? { ...lt, soldShares: newSoldShares } : lt)));
+  lots.update((l) => l.map((lt) => (lt.id === lotId ? updatedLot : lt)));
 
   return id;
 }

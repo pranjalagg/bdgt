@@ -25,6 +25,7 @@ vi.mock('$lib/db', () => ({
       delete: vi.fn(),
       toArray: vi.fn().mockResolvedValue([]),
     },
+    transaction: vi.fn((_mode: string, _tables: unknown, cb: () => unknown) => cb()),
   },
 }));
 
@@ -218,6 +219,47 @@ describe('investmentStore', () => {
       });
 
       await expect(sellFromLot(lotId, 5, 16000, new Date('2026-05-10'))).rejects.toThrow('Cannot sell more shares than available');
+    });
+
+    it.each([
+      [-1, 16000],
+      [0, 16000],
+      [NaN, 16000],
+      [Infinity, 16000],
+      [3, -16000],
+      [3, 0],
+    ])('rejects invalid shares=%s pricePerShare=%s before touching the lot', async (shares, price) => {
+      await expect(sellFromLot('lot-x', shares, price, new Date('2026-05-10'))).rejects.toThrow();
+      expect(db.investmentLots.get).not.toHaveBeenCalled();
+      expect(db.investmentSells.add).not.toHaveBeenCalled();
+    });
+
+    it('performs the sell insert and lot update in one transaction', async () => {
+      vi.mocked(db.investmentLots.get).mockResolvedValue({
+        id: 'lot-1', symbol: 'AAPL', shares: 10, pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'), soldShares: 0,
+      });
+
+      await sellFromLot('lot-1', 3, 16000, new Date('2026-05-10'));
+
+      expect(db.transaction).toHaveBeenCalledWith(
+        'rw',
+        [db.investmentLots, db.investmentSells],
+        expect.any(Function)
+      );
+    });
+
+    it('does not touch either store if the transaction fails partway through', async () => {
+      vi.mocked(db.investmentLots.get).mockResolvedValue({
+        id: 'lot-1', symbol: 'AAPL', shares: 10, pricePerShare: 15000,
+        purchaseDate: new Date('2026-05-01'), soldShares: 0,
+      });
+      vi.mocked(db.investmentLots.update).mockRejectedValueOnce(new Error('write failed'));
+
+      await expect(sellFromLot('lot-1', 3, 16000, new Date('2026-05-10'))).rejects.toThrow('write failed');
+
+      expect(get(sells)).toHaveLength(0);
+      expect(get(lots)).toHaveLength(0);
     });
   });
 
