@@ -54,6 +54,25 @@ describe('parseImport', () => {
     );
   });
 
+  it('rejects a recurring transaction with an unknown frequency', () => {
+    const payload = validPayload();
+    payload.data.recurringTransactions = [
+      // @ts-expect-error deliberate corruption
+      { id: 'r1', amount: 500, bucketId: 'b1', frequency: 'yearly', nextDueDate: '2026-01-01T00:00:00.000Z', isActive: true },
+    ];
+    expect(() => parseImport(JSON.stringify(payload))).toThrow(/frequency/i);
+  });
+
+  it('accepts every valid recurring frequency', () => {
+    const payload = validPayload();
+    payload.data.recurringTransactions = ['weekly', 'biweekly', 'monthly'].map((frequency, i) => ({
+      id: `r${i}`, amount: 500, bucketId: 'b1', frequency,
+      nextDueDate: '2026-01-01T00:00:00.000Z', isActive: true,
+    })) as typeof payload.data.recurringTransactions;
+    const result = parseImport(JSON.stringify(payload));
+    expect(result.data.recurringTransactions).toHaveLength(3);
+  });
+
   it('defaults missing income type to fixed', () => {
     const payload = validPayload();
     payload.data.incomes = [

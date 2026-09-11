@@ -117,6 +117,16 @@ export function parseImport(json: string): ExportData {
     type: i.type || 'fixed',
   }));
 
+  const VALID_FREQUENCIES = new Set(['weekly', 'biweekly', 'monthly']);
+  for (const r of data.recurringTransactions as Record<string, unknown>[]) {
+    if (!VALID_FREQUENCIES.has(r.frequency as string)) {
+      // An unrecognized frequency can never advance its due date
+      // (calculateNextDueDate has no default case), which would hang
+      // processRecurring on every future app load. Reject at the door.
+      throw new Error(`Recurring transaction has an unknown frequency: "${r.frequency}"`);
+    }
+  }
+
   return obj as unknown as ExportData;
 }
 

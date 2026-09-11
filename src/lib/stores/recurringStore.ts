@@ -61,14 +61,27 @@ export function dueOccurrences(
   let cursor = new Date(nextDueDate);
 
   while (cursor <= until && occurrences.length < MAX_CATCHUP) {
+    const next = calculateNextDueDate(cursor, frequency);
+    if (next.getTime() === cursor.getTime()) {
+      // Unknown/corrupted frequency (e.g. from an unvalidated import):
+      // the cursor can't advance. Treat as unprocessable rather than
+      // generating the same occurrence forever on every load.
+      return { occurrences: [], nextDueDate };
+    }
     occurrences.push(new Date(cursor));
-    cursor = calculateNextDueDate(cursor, frequency);
+    cursor = next;
   }
 
   // Hit the cap while still behind: skip ahead so we don't re-process
-  // the same backlog on every load.
+  // the same backlog on every load. (Unreachable for the three real
+  // frequencies, which always advance; kept as a defensive mirror of
+  // the check above.)
   while (cursor <= until) {
-    cursor = calculateNextDueDate(cursor, frequency);
+    const next = calculateNextDueDate(cursor, frequency);
+    if (next.getTime() === cursor.getTime()) {
+      return { occurrences, nextDueDate: cursor };
+    }
+    cursor = next;
   }
 
   return { occurrences, nextDueDate: cursor };

@@ -33,4 +33,15 @@ describe('dueOccurrences', () => {
     expect(result.occurrences.length).toBeLessThanOrEqual(366);
     expect(result.nextDueDate.getTime()).toBeGreaterThan(new Date(2026, 0, 1).getTime());
   });
+
+  it('terminates instead of hanging on a frequency that never advances the cursor', () => {
+    // An imported record can carry a frequency outside the TS union
+    // (parseImport doesn't validate it). calculateNextDueDate's switch
+    // has no default case, so an unknown frequency leaves cursor
+    // unchanged -- this must not spin forever.
+    const start = new Date(2020, 0, 1);
+    const result = dueOccurrences(start, 'yearly' as never, new Date(2026, 0, 1));
+    expect(result.occurrences).toEqual([]);
+    expect(result.nextDueDate.getTime()).toBe(start.getTime());
+  }, 2000);
 });
