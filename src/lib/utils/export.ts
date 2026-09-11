@@ -30,6 +30,16 @@ export function escapeCsvField(value: unknown): string {
   return /[",\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 }
 
+// A cell whose text starts with =, +, -, @ or a tab is read as a formula
+// by Excel/Sheets when the CSV is opened -- a bucket name or note could
+// carry a formula payload (e.g. '=cmd|...'!A1'). Prefixing with an
+// apostrophe forces it to render as literal text instead of executing.
+const FORMULA_TRIGGER = /^[=+\-@\t]/;
+
+export function sanitizeCsvFormula(value: string): string {
+  return FORMULA_TRIGGER.test(value) ? `'${value}` : value;
+}
+
 export async function exportToCsv(): Promise<string> {
   const transactions = await db.transactions.toArray();
   const buckets = await db.buckets.toArray();
@@ -40,9 +50,9 @@ export async function exportToCsv(): Promise<string> {
     ...transactions.map((t) =>
       [
         formatDate(new Date(t.date)),
-        bucketMap.get(t.bucketId) || 'Unknown',
-        centsToDollars(t.amount),
-        t.note || '',
+        sanitizeCsvFormula(bucketMap.get(t.bucketId) || 'Unknown'),
+        centsToDollars(t.amount), // numeric -- never formula-sanitized
+        sanitizeCsvFormula(t.note || ''),
       ]
         .map(escapeCsvField)
         .join(',')
