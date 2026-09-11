@@ -23,7 +23,7 @@ function createGoal(overrides: Partial<SavingsGoal> = {}): SavingsGoal {
 function fixedBucket(fixedAmount: number): Bucket {
   return {
     id: 'bucket-1', name: 'Savings', color: '#000', order: 0, isDefault: false,
-    allocationType: 'fixed', fixedAmount, percentageAmount: 0, isSavings: true,
+    allocationType: 'fixed', fixedAmount, percentageAmount: 0, isSavings: true, isEveryday: false,
     createdAt: new Date(2000, 0, 1),
   };
 }

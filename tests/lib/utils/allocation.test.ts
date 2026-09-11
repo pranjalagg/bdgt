@@ -13,6 +13,7 @@ function createBucket(overrides: Partial<Bucket> = {}): Bucket {
     fixedAmount: 0,
     percentageAmount: 0,
     isSavings: false,
+    isEveryday: true,
     createdAt: new Date(2000, 0, 1),
     ...overrides
   };

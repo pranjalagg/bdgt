@@ -194,3 +194,19 @@ export function monthlyBucketSpend(
     }))
     .filter((series) => series.data.some((v) => v !== 0));
 }
+
+// What's actually free to spend today: everything left in day-to-day
+// envelopes, divided across the days remaining. Excludes savings buckets
+// (that money isn't "spendable") and any bucket marked as a fixed
+// obligation rather than everyday spend (rent, a subscription) -- those
+// are already committed, not safe to eat into.
+export function calculateSafeToSpendPerDay(
+  statuses: { bucket: { isSavings: boolean; isEveryday: boolean }; remaining: number }[],
+  daysLeftInMonth: number
+): number {
+  const pool = statuses
+    .filter((s) => !s.bucket.isSavings && s.bucket.isEveryday)
+    .reduce((sum, s) => sum + s.remaining, 0);
+  const days = Math.max(daysLeftInMonth, 1);
+  return Math.round(pool / days);
+}

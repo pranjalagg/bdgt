@@ -2,8 +2,8 @@
 import { writable, derived, get } from 'svelte/store';
 import { db, DATE_FIELDS, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
-import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, getPreviousMonthKey, reviveDateFields } from '$lib/utils/dates';
-import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers } from '$lib/utils/calculations';
+import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, getPreviousMonthKey, getDaysInMonth, isCurrentMonth, reviveDateFields } from '$lib/utils/dates';
+import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers, calculateSafeToSpendPerDay } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
 export const buckets = writable<Bucket[]>([]);
@@ -197,6 +197,19 @@ export const savingsRate = derived(
       0
     );
     return calculateSavingsRate($income, totalSpent);
+  }
+);
+
+// What's actually free to spend today -- only meaningful while looking at
+// the real current month; null otherwise so the UI can hide it rather
+// than show a number for a month that's already closed or hasn't started.
+export const safeToSpendPerDay = derived(
+  [bucketStatuses, currentMonthKey],
+  ([$statuses, $month]) => {
+    if (!isCurrentMonth($month)) return null;
+    const today = new Date();
+    const daysLeft = getDaysInMonth($month) - today.getDate() + 1;
+    return calculateSafeToSpendPerDay($statuses, daysLeft);
   }
 );
 

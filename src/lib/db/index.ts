@@ -154,23 +154,51 @@ export class BudgetDatabase extends Dexie {
         }
       });
     });
+
+    // Repair-only: no schema change. "Safe to spend today" (see
+    // calculateSafeToSpendPerDay) needs to know which buckets are everyday
+    // discretionary spend versus a fixed obligation like rent that's
+    // already committed. Neutral default for existing buckets: everyday
+    // unless it's a savings bucket, which the user can refine afterward
+    // from the bucket form.
+    this.version(9).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      monthSnapshots: 'month',
+      savingsGoals: 'id, bucketId',
+      investmentLots: 'id, symbol, purchaseDate',
+      investmentSells: 'id, lotId, sellDate',
+      investmentPrices: 'symbol'
+    }).upgrade(tx => {
+      return tx.table('buckets').toCollection().modify(bucket => {
+        if (bucket.isEveryday === undefined) {
+          bucket.isEveryday = !bucket.isSavings;
+        }
+      });
+    });
   }
 }
 
 export const db = new BudgetDatabase();
 
 export const DEFAULT_BUCKETS: Omit<Bucket, 'id' | 'createdAt'>[] = [
-  { name: 'Rent/Mortgage', color: '#6366f1', order: 0, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
-  { name: 'Utilities', color: '#8b5cf6', order: 1, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
-  { name: 'Grocery', color: '#10b981', order: 2, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
-  { name: 'Transportation', color: '#f59e0b', order: 3, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
-  { name: 'Dining Out', color: '#ef4444', order: 4, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
-  { name: 'Entertainment', color: '#ec4899', order: 5, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
-  { name: 'Subscriptions', color: '#06b6d4', order: 6, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
-  { name: 'Savings', color: '#22c55e', order: 7, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: true },
-  { name: 'Investments', color: '#3b82f6', order: 8, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: true },
-  { name: 'Emergency Fund', color: '#f97316', order: 9, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: true },
-  { name: 'Misc', color: '#6b7280', order: 10, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false },
+  // Fixed obligations: assigned monthly but already spoken for, so they
+  // don't count toward "safe to spend today".
+  { name: 'Rent/Mortgage', color: '#6366f1', order: 0, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: false },
+  { name: 'Utilities', color: '#8b5cf6', order: 1, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: false },
+  { name: 'Subscriptions', color: '#06b6d4', order: 6, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: false },
+  // Everyday discretionary spend: this is the pool "safe to spend" draws from.
+  { name: 'Grocery', color: '#10b981', order: 2, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true },
+  { name: 'Transportation', color: '#f59e0b', order: 3, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true },
+  { name: 'Dining Out', color: '#ef4444', order: 4, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true },
+  { name: 'Entertainment', color: '#ec4899', order: 5, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true },
+  { name: 'Misc', color: '#6b7280', order: 10, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true },
+  // Savings: excluded from "safe to spend" by isSavings regardless of isEveryday.
+  { name: 'Savings', color: '#22c55e', order: 7, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: true, isEveryday: false },
+  { name: 'Investments', color: '#3b82f6', order: 8, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: true, isEveryday: false },
+  { name: 'Emergency Fund', color: '#f97316', order: 9, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: true, isEveryday: false },
 ];
 
 const SEEDED_KEY = 'bdgt-default-buckets-seeded';

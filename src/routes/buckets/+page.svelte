@@ -8,7 +8,7 @@
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { AllocationType } from '$lib/types';
 
-  type BucketFormData = { id: string; name: string; color: string; allocationType: AllocationType; fixedAmount: number; percentageAmount: number; isSavings: boolean };
+  type BucketFormData = { id: string; name: string; color: string; allocationType: AllocationType; fixedAmount: number; percentageAmount: number; isSavings: boolean; isEveryday: boolean };
 
   let editingBucket: BucketFormData | null = null;
   let newBucketName = '';
@@ -17,6 +17,7 @@
   let newFixedAmount = 0;
   let newPercentageAmount = 0;
   let newIsSavings = false;
+  let newIsEveryday = true;
   let formError = '';
 
   function handleAddBucket() {
@@ -27,6 +28,7 @@
     newFixedAmount = 0;
     newPercentageAmount = 0;
     newIsSavings = false;
+    newIsEveryday = true;
     formError = '';
     openModal('bucket-form');
   }
@@ -39,6 +41,7 @@
     newFixedAmount = bucket.fixedAmount;
     newPercentageAmount = bucket.percentageAmount;
     newIsSavings = bucket.isSavings ?? false;
+    newIsEveryday = bucket.isEveryday ?? true;
     formError = '';
     openModal('bucket-form');
   }
@@ -53,6 +56,7 @@
           name: newBucketName,
           color: newBucketColor,
           isSavings: newIsSavings,
+          isEveryday: newIsEveryday,
         });
         await updateBucketAllocation(editingBucket.id, newAllocationType, newFixedAmount, newPercentageAmount);
       } else {
@@ -65,6 +69,7 @@
           fixedAmount: newFixedAmount,
           percentageAmount: newPercentageAmount,
           isSavings: newIsSavings,
+          isEveryday: newIsEveryday,
           createdAt: new Date(),
         });
       }
@@ -258,6 +263,14 @@
       <span class="text-sm text-gray-700 dark:text-gray-200">
         Counts as savings
         <span class="block text-xs text-muted">Money moved here is treated as saved, not spent, in your savings rate.</span>
+      </span>
+    </label>
+
+    <label class="flex items-start gap-2.5 cursor-pointer">
+      <input type="checkbox" bind:checked={newIsEveryday} class="mt-0.5 accent-primary" />
+      <span class="text-sm text-gray-700 dark:text-gray-200">
+        Everyday spending
+        <span class="block text-xs text-muted">Included in "safe to spend today". Turn off for a fixed obligation like rent that's already spoken for.</span>
       </span>
     </label>
 

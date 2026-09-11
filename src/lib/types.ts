@@ -23,6 +23,7 @@ export interface Bucket {
   fixedAmount: number;      // cents
   percentageAmount: number; // 0-100
   isSavings: boolean;       // spending here counts as saved, not spent
+  isEveryday: boolean;      // counts toward "safe to spend today" (not a fixed obligation)
   createdAt: Date;          // excludes the bucket from rollover before this month
 }
 

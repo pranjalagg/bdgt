@@ -6,12 +6,14 @@
   import QuickEntry from '$lib/components/shared/QuickEntry.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
-  import { bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate } from '$lib/stores/budgetStore';
+  import { bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, openModal, closeModal } from '$lib/stores/uiStore';
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
-  import { parseMonthKey } from '$lib/utils/dates';
+  import { parseMonthKey, getDaysInMonth } from '$lib/utils/dates';
+
+  $: daysLeftInMonth = getDaysInMonth($currentMonthKey) - new Date().getDate() + 1;
 
   let selectedBucketId: string | undefined;
   let incomeAmount = '';
@@ -134,6 +136,26 @@
     <h1 class="page-title">Dashboard</h1>
     <MonthPicker />
   </div>
+
+  {#if $safeToSpendPerDay !== null}
+    <!-- The number this app exists to answer: what's actually free to
+         spend today, once fixed obligations and savings are set aside. -->
+    <div class="card p-5">
+      <p class="eyebrow">Safe to spend</p>
+      <p class="mt-1 flex items-baseline gap-1.5">
+        <span
+          class="money text-[34px] font-medium leading-none tracking-tight
+                 {$safeToSpendPerDay < 0 ? 'text-danger dark:text-danger-light' : 'text-gray-900 dark:text-gray-50'}"
+        >
+          {formatCurrency($safeToSpendPerDay)}
+        </span>
+        <span class="text-sm text-muted dark:text-muted-dark">/day</span>
+      </p>
+      <p class="mt-1 text-[12.5px] text-muted dark:text-muted-dark">
+        across everyday envelopes, {daysLeftInMonth} day{daysLeftInMonth === 1 ? '' : 's'} left
+      </p>
+    </div>
+  {/if}
 
   <!-- The thesis: one line, the whole month. -->
   <EnvelopeLine

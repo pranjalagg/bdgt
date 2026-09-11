@@ -39,7 +39,7 @@ describe('goalStatuses progress', () => {
   it('accrues a completely quiet month between the goal\'s start and the current month', () => {
     buckets.set([{
       id: 'b1', name: 'Savings', color: '#000', order: 0, isDefault: false,
-      allocationType: 'fixed', fixedAmount: 20000, percentageAmount: 0, isSavings: true,
+      allocationType: 'fixed', fixedAmount: 20000, percentageAmount: 0, isSavings: true, isEveryday: false,
       createdAt: new Date(2026, 0, 1),
     }]);
     transactions.set([

@@ -11,7 +11,8 @@ import {
   spentExcludingSavings,
   accumulateRollovers,
   monthlyBucketSpend,
-  groupTransactionsByDay
+  groupTransactionsByDay,
+  calculateSafeToSpendPerDay
 } from '$lib/utils/calculations';
 import type { Bucket, Income } from '$lib/types';
 
@@ -244,11 +245,11 @@ describe('budget calculations', () => {
   describe('accumulateRollovers', () => {
     const fixedBucket = (id: string, fixedAmount: number, createdAt = new Date(2000, 0, 1)): Bucket => ({
       id, name: id, color: '#000', order: 0, isDefault: false,
-      allocationType: 'fixed', fixedAmount, percentageAmount: 0, isSavings: false, createdAt,
+      allocationType: 'fixed', fixedAmount, percentageAmount: 0, isSavings: false, isEveryday: true, createdAt,
     });
     const pctBucket = (id: string, pct: number, createdAt = new Date(2000, 0, 1)): Bucket => ({
       id, name: id, color: '#000', order: 0, isDefault: false,
-      allocationType: 'percentage', fixedAmount: 0, percentageAmount: pct, isSavings: false, createdAt,
+      allocationType: 'percentage', fixedAmount: 0, percentageAmount: pct, isSavings: false, isEveryday: true, createdAt,
     });
 
     it('carries unspent fixed allocation forward across months', () => {
@@ -329,7 +330,7 @@ describe('budget calculations', () => {
   describe('monthlyBucketSpend', () => {
     const testBucket = (id: string, name: string, color: string): Bucket => ({
       id, name, color, order: 0, isDefault: false, allocationType: 'fixed',
-      fixedAmount: 0, percentageAmount: 0, isSavings: false, createdAt: new Date(2000, 0, 1),
+      fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true, createdAt: new Date(2000, 0, 1),
     });
     const groceries = testBucket('groceries', 'Groceries', '#00f');
     const dining = testBucket('dining', 'Dining Out', '#f00');
@@ -425,6 +426,44 @@ describe('budget calculations', () => {
 
     it('returns an empty array for no transactions', () => {
       expect(groupTransactionsByDay([])).toEqual([]);
+    });
+  });
+
+  describe('calculateSafeToSpendPerDay', () => {
+    const row = (over: Partial<{ isSavings: boolean; isEveryday: boolean; remaining: number }> = {}) => ({
+      bucket: { isSavings: false, isEveryday: true, ...over },
+      remaining: over.remaining ?? 0,
+    });
+
+    it('sums remaining across everyday buckets and divides by days left', () => {
+      // Grocery 32000 left, Dining 12000 left, 10 days left -> 4400/day
+      const rows = [row({ remaining: 32000 }), row({ remaining: 12000 })];
+      expect(calculateSafeToSpendPerDay(rows, 10)).toBe(4400);
+    });
+
+    it('excludes savings buckets even if flagged everyday', () => {
+      const rows = [row({ remaining: 32000 }), row({ isSavings: true, isEveryday: true, remaining: 999999 })];
+      expect(calculateSafeToSpendPerDay(rows, 10)).toBe(3200);
+    });
+
+    it('excludes non-everyday buckets (fixed obligations like rent)', () => {
+      const rows = [row({ remaining: 32000 }), row({ isEveryday: false, remaining: 210000 })];
+      expect(calculateSafeToSpendPerDay(rows, 10)).toBe(3200);
+    });
+
+    it('an overspent everyday bucket drags the number down, even negative', () => {
+      const rows = [row({ remaining: 5000 }), row({ remaining: -20000 })];
+      expect(calculateSafeToSpendPerDay(rows, 5)).toBe(-3000);
+    });
+
+    it('treats days-left of zero or less as the last day (divide by 1)', () => {
+      const rows = [row({ remaining: 5000 })];
+      expect(calculateSafeToSpendPerDay(rows, 0)).toBe(5000);
+      expect(calculateSafeToSpendPerDay(rows, -3)).toBe(5000);
+    });
+
+    it('returns 0 for no everyday buckets', () => {
+      expect(calculateSafeToSpendPerDay([], 10)).toBe(0);
     });
   });
 });

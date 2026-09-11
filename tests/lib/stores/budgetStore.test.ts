@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { get } from 'svelte/store';
 
 const { txChain, recChain, goalChain } = vi.hoisted(() => {
@@ -36,13 +36,13 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, updateBucketAllocation } from '$lib/stores/budgetStore';
+import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, updateBucketAllocation, safeToSpendPerDay } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
 import { currentMonthKey } from '$lib/stores/uiStore';
 
 const bucket = (id: string, over: Partial<import('$lib/types').Bucket> = {}) => ({
   id, name: id, color: '#000', order: 0, isDefault: false,
-  allocationType: 'fixed' as const, fixedAmount: 0, percentageAmount: 0, isSavings: false,
+  allocationType: 'fixed' as const, fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true,
   createdAt: new Date(2000, 0, 1), ...over,
 });
 
@@ -116,6 +116,43 @@ describe('monthlyLedger range', () => {
     const { months } = get(monthlyLedger);
     expect(months.length).toBeLessThan(24);
     expect(months[0]).toBe('2026-01');
+  });
+});
+
+describe('safeToSpendPerDay', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    monthSnapshots.set([]);
+    incomes.set([]);
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it('is null when viewing a month other than the current one', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 2, 15)); // today: March 15
+    buckets.set([bucket('groceries', { fixedAmount: 30000 })]);
+    transactions.set([]);
+    currentMonthKey.set('2026-02'); // viewing February, not the current month
+    expect(get(safeToSpendPerDay)).toBeNull();
+  });
+
+  it('divides remaining everyday-bucket money by the days left including today', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 2, 21)); // March has 31 days; 11 days left incl. today
+    buckets.set([
+      bucket('groceries', { fixedAmount: 60000, isEveryday: true, createdAt: new Date(2026, 2, 1) }),
+      bucket('rent', { fixedAmount: 210000, isEveryday: false, createdAt: new Date(2026, 2, 1) }),
+    ]);
+    transactions.set([
+      { id: 'a', amount: 15000, bucketId: 'groceries', date: new Date(2026, 2, 5) },
+      { id: 'b', amount: 210000, bucketId: 'rent', date: new Date(2026, 2, 1) },
+    ]);
+    currentMonthKey.set('2026-03');
+
+    // groceries remaining 60000-15000=45000, rent excluded (not everyday)
+    // 45000 / 11 = 4090.9 -> rounds to 4091
+    expect(get(safeToSpendPerDay)).toBe(4091);
   });
 });
 
@@ -193,7 +230,7 @@ describe('allocation domain validation', () => {
     await expect(
       addBucket({
         name: 'Pets', color: '#000', order: 0, isDefault: false,
-        allocationType: 'fixed', fixedAmount: -1000, percentageAmount: 0, isSavings: false,
+        allocationType: 'fixed', fixedAmount: -1000, percentageAmount: 0, isSavings: false, isEveryday: true,
         createdAt: new Date(),
       })
     ).rejects.toThrow(/negative/i);
@@ -204,7 +241,7 @@ describe('allocation domain validation', () => {
     await expect(
       addBucket({
         name: 'Pets', color: '#000', order: 0, isDefault: false,
-        allocationType: 'percentage', fixedAmount: 0, percentageAmount: -10, isSavings: false,
+        allocationType: 'percentage', fixedAmount: 0, percentageAmount: -10, isSavings: false, isEveryday: true,
         createdAt: new Date(),
       })
     ).rejects.toThrow(/negative/i);
