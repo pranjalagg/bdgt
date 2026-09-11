@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* "primary" is ink, not a brand hue: near-black so it reads as the
+     interface's own voice, not an eleventh-plus-one color competing with
+     the buckets. Space-separated so Tailwind's <alpha-value> (bg-primary/30
+     etc.) keeps working. */
+  --color-ctl: 23 24 26;
+  --color-ctl-hover: 42 44 47;
+}
+
+:root.dark {
+  /* Near-white on dark grounds -- the same ink relationship, inverted. */
+  --color-ctl: 236 237 234;
+  --color-ctl-hover: 213 214 210;
+}
+
 body {
   @apply bg-background text-gray-800 antialiased;
 }
@@ -43,7 +58,8 @@ body {
     @apply inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2
            font-medium text-white transition-colors
            hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/30
-           disabled:opacity-50 disabled:cursor-not-allowed;
+           disabled:opacity-50 disabled:cursor-not-allowed
+           dark:text-gray-900;
   }
 
   .btn-secondary {

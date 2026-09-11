@@ -90,7 +90,7 @@
         <a
           href={getHref(item.href)}
           class="flex min-h-[44px] flex-col items-center justify-center gap-1 py-2 transition-colors
-                 {active ? 'text-primary dark:text-success-light' : 'text-muted dark:text-muted-dark'}"
+                 {active ? 'text-primary' : 'text-muted dark:text-muted-dark'}"
         >
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             {@html iconPaths[item.icon]}

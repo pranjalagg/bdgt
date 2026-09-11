@@ -176,7 +176,7 @@
         <!-- Two Donut Charts -->
         <div class="grid gap-6 sm:grid-cols-2">
           <div>
-            <h3 class="mb-3 text-center text-sm font-semibold text-primary dark:text-success-light">
+            <h3 class="mb-3 text-center text-sm font-semibold text-primary">
               Big Purchases (&ge; ${thresholdInput || '500'})
             </h3>
             {#if bigChartData.length > 0}

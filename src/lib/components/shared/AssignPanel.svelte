@@ -138,7 +138,7 @@
         {#if remaining > 0}
           <button
             type="button"
-            class="text-[11px] font-medium text-primary hover:underline dark:text-success-light"
+            class="text-[11px] font-medium text-primary hover:underline"
             on:click={() => assignRest(s.bucket.id)}
             title="Put the remaining {formatCurrency(remaining)} here"
           >

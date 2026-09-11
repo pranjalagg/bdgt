@@ -189,7 +189,7 @@
     <div class="mb-2.5 flex items-center justify-between">
       <h2 class="eyebrow">Envelopes</h2>
       <button
-        class="text-[13px] font-medium text-primary hover:underline dark:text-success-light"
+        class="text-[13px] font-medium text-primary hover:underline"
         on:click={() => openModal('quick-entry')}
       >
         Add transaction
