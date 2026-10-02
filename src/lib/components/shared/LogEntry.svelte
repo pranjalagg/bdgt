@@ -47,6 +47,32 @@
     amountTouched = true;
   }
 
+  let list: HTMLDivElement | undefined;
+
+  // Enter is the keyboard "submit": with one candidate bucket (opened from
+  // an envelope) it logs straight away; otherwise it hops to the first
+  // bucket so a second Enter commits, and arrows walk the list.
+  function handleEnter(e: KeyboardEvent) {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    e.preventDefault();
+    if (!amount || !isValidCurrency(amount)) {
+      amountTouched = true;
+      amountInput?.focus();
+      return;
+    }
+    if (rows.length === 1) commit(rows[0].status.bucket.id);
+    else list?.querySelector<HTMLButtonElement>('button')?.focus();
+  }
+
+  function handleListKeydown(e: KeyboardEvent) {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const items = [...(list?.querySelectorAll<HTMLButtonElement>('button') ?? [])];
+    const i = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (i < 0) return;
+    e.preventDefault();
+    items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+  }
+
   async function commit(bucketId: string) {
     amountTouched = true;
     if (!amount || amountError || !isValidCurrency(amount)) {
@@ -85,6 +111,7 @@
         bind:this={amountInput}
         bind:value={amount}
         on:input={handleAmountInput}
+        on:keydown={handleEnter}
         placeholder="0.00"
         class="money w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-3xl font-medium tracking-tight
                transition-shadow focus:outline-none focus:ring-2 focus:ring-primary/20
@@ -98,17 +125,24 @@
       <p class="mt-1.5 text-sm text-muted dark:text-muted-dark">= ${previewValue.toFixed(2)}</p>
     {:else}
       <p class="mt-1.5 text-[12.5px] text-muted dark:text-muted-dark">
-        {preselectedBucketId ? 'Confirm the amount, then log it' : 'Then tap where it goes — green fits, red breaks it'}
+        {preselectedBucketId ? 'Confirm the amount, then log it' : 'Then tap where it goes, or press Enter and pick with arrows — green fits, red breaks it'}
       </p>
     {/if}
   </div>
 
   <div>
     <label for="log-note" class="label">Note (optional)</label>
-    <input id="log-note" type="text" bind:value={note} placeholder="Add a note…" class="mt-1.5 input-base" />
+    <input id="log-note" type="text" bind:value={note} on:keydown={handleEnter} placeholder="Add a note…" class="mt-1.5 input-base" />
   </div>
 
-  <div class="max-h-[42vh] space-y-1.5 overflow-y-auto pr-1">
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    bind:this={list}
+    on:keydown={handleListKeydown}
+    role="group"
+    aria-label="Buckets"
+    class="max-h-[42vh] space-y-1.5 overflow-y-auto pr-1"
+  >
     {#each rows as row (row.status.bucket.id)}
       <button
         type="button"
