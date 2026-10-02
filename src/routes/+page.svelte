@@ -55,7 +55,6 @@
   // before the last entry is the previous month.
   $: prevSavingsRate = $savingsRateTrend.length >= 2 ? $savingsRateTrend[$savingsRateTrend.length - 2] : null;
   $: prevMonthName = prevSavingsRate ? formatMonthYear(prevSavingsRate.month).split(' ')[0] : '';
-  $: prevMonthShort = prevMonthName.slice(0, 3);
   $: savingsDelta = prevSavingsRate ? savingsRateDelta($savingsRate, prevSavingsRate.rate) : null;
 
   $: savingsRateColor = $savingsRate === null ? 'text-muted dark:text-muted-dark'
@@ -191,40 +190,35 @@
       <p class="metric-value mt-1 text-xl">{formatCurrency(totalSpent)}</p>
       <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">excludes money set aside</p>
     </div>
-    <div class="col-span-2 flex bg-white dark:bg-surface-dark sm:col-span-1">
-      <div class="min-w-0 flex-1 p-4">
-        <p class="metric-label">Savings rate</p>
-        <p class="metric-value mt-1 text-xl {savingsRateColor}">
+    <div class="col-span-2 bg-white p-4 dark:bg-surface-dark sm:col-span-1">
+      <p class="metric-label">Savings rate</p>
+      <div class="mt-1 flex items-baseline gap-2">
+        <p class="metric-value text-xl {savingsRateColor}">
           {$savingsRate !== null ? `${$savingsRate}%` : '—'}
         </p>
-        <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">
-          {$savingsRate !== null ? 'of income kept' : 'add income to see this'}
-        </p>
-      </div>
-      {#if savingsDelta !== null}
-        <!-- Its own cell, same three-row rhythm: the comparison is a
-             separate figure, not a modifier of the caption beside it. -->
-        <div
-          class="flex-none border-l border-border p-4 dark:border-border-dark"
-          aria-label={savingsDelta === 0
-            ? `Unchanged from ${prevMonthName}`
-            : `${savingsDelta > 0 ? 'Up' : 'Down'} ${Math.abs(savingsDelta)} points from ${prevMonthName}`}
-        >
-          <p class="metric-label">vs {prevMonthShort}</p>
-          <p
-            class="metric-value mt-1 flex items-center gap-1 text-xl
+        {#if savingsDelta !== null}
+          <!-- A trend mark on the figure, not a second statistic: the
+               comparison month lives in the tooltip and accessible name. -->
+          <span
+            class="money inline-flex items-center gap-0.5 text-[11.5px] font-medium
                    {savingsDelta > 0 ? 'text-success dark:text-success-light' : savingsDelta < 0 ? 'text-danger dark:text-danger-light' : 'text-muted dark:text-muted-dark'}"
+            title={savingsDelta === 0 ? `Unchanged from ${prevMonthName}` : `${savingsDelta > 0 ? 'Up' : 'Down'} ${Math.abs(savingsDelta)} points from ${prevMonthName}`}
+            aria-label={savingsDelta === 0 ? `Unchanged from ${prevMonthName}` : `${savingsDelta > 0 ? 'Up' : 'Down'} ${Math.abs(savingsDelta)} points from ${prevMonthName}`}
           >
             {#if savingsDelta !== 0}
-              <svg class="h-3.5 w-3.5 {savingsDelta < 0 ? 'rotate-180' : ''}" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="h-3 w-3 {savingsDelta < 0 ? 'rotate-180' : ''}" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M6 10V2M2.5 5.5 6 2l3.5 3.5" />
               </svg>
+              {Math.abs(savingsDelta)} pts
+            {:else}
+              flat
             {/if}
-            {Math.abs(savingsDelta).toFixed(1)}
-          </p>
-          <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">points</p>
-        </div>
-      {/if}
+          </span>
+        {/if}
+      </div>
+      <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">
+        {$savingsRate !== null ? 'of income kept' : 'add income to see this'}
+      </p>
     </div>
   </div>
 
