@@ -54,6 +54,7 @@
   // Trend is the last 6 months ending at the viewed month, so the one
   // before the last entry is the previous month.
   $: prevSavingsRate = $savingsRateTrend.length >= 2 ? $savingsRateTrend[$savingsRateTrend.length - 2] : null;
+  $: prevMonthShort = prevSavingsRate ? formatMonthYear(prevSavingsRate.month).slice(0, 3) : '';
   $: savingsDelta = prevSavingsRate ? savingsRateDelta($savingsRate, prevSavingsRate.rate) : null;
 
   $: savingsRateColor = $savingsRate === null ? 'text-muted dark:text-muted-dark'
@@ -199,8 +200,7 @@
           <span
             class="money inline-flex items-center gap-0.5 text-[11.5px] font-medium
                    {savingsDelta > 0 ? 'text-success dark:text-success-light' : savingsDelta < 0 ? 'text-danger dark:text-danger-light' : 'text-muted dark:text-muted-dark'}"
-            title="Compared with {prevSavingsRate ? formatMonthYear(prevSavingsRate.month) : 'last month'}"
-            aria-label={savingsDelta === 0
+                        aria-label={savingsDelta === 0
               ? 'Unchanged from last month'
               : `${savingsDelta > 0 ? 'Up' : 'Down'} ${Math.abs(savingsDelta)} points from last month`}
           >
@@ -212,13 +212,12 @@
             {:else}
               flat
             {/if}
+            <span class="font-normal text-muted dark:text-muted-dark">vs {prevMonthShort}</span>
           </span>
         {/if}
       </div>
       <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">
-        {$savingsRate !== null
-          ? savingsDelta !== null ? 'of income kept · vs last month' : 'of income kept'
-          : 'add income to see this'}
+        {$savingsRate !== null ? 'of income kept' : 'add income to see this'}
       </p>
     </div>
   </div>
