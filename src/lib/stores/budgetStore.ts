@@ -3,7 +3,7 @@ import { writable, derived, get } from 'svelte/store';
 import { db, DATE_FIELDS, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
 import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, getPreviousMonthKey, getDaysInMonth, isCurrentMonth, reviveDateFields } from '$lib/utils/dates';
-import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers, calculateSafeToSpendPerDay } from '$lib/utils/calculations';
+import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers, calculateSafeToSpendPerDay, bucketExistsInMonth } from '$lib/utils/calculations';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
 
 export const buckets = writable<Bucket[]>([]);
@@ -162,17 +162,19 @@ export const bucketRollovers = derived(
 );
 
 export const bucketStatuses = derived(
-  [buckets, currentSnapshot, currentMonthTransactions, computedAllocations, bucketRollovers],
-  ([$buckets, $snapshot, $transactions, $computed, $rollovers]) => {
+  [buckets, currentSnapshot, currentMonthTransactions, computedAllocations, bucketRollovers, currentMonthKey],
+  ([$buckets, $snapshot, $transactions, $computed, $rollovers, $month]) => {
     const spent: Record<string, number> = {};
     for (const t of $transactions) {
       spent[t.bucketId] = (spent[t.bucketId] || 0) + t.amount;
     }
 
     return $buckets.map((bucket): BucketStatus => {
-      const allocated = bucket.allocationType === 'fixed'
-        ? ($snapshot.allocations[bucket.id] ?? bucket.fixedAmount ?? 0)
-        : $computed[bucket.id];
+      const allocated = !bucketExistsInMonth(bucket, $month)
+        ? 0
+        : bucket.allocationType === 'fixed'
+          ? ($snapshot.allocations[bucket.id] ?? bucket.fixedAmount ?? 0)
+          : $computed[bucket.id];
       const bucketSpent = spent[bucket.id] || 0;
       const rollover = $rollovers[bucket.id] || 0;
       const remaining = calculateBucketRemaining(allocated, bucketSpent, rollover);
