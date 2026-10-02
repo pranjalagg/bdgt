@@ -9,13 +9,17 @@
   export let onClick: (() => void) | undefined = undefined;
 
   $: ({ bucket, allocated, spent, rollover, remaining } = status);
-  $: available = allocated + rollover;
+  // The meter and sub-line judge THIS month against this month's plan;
+  // rollover (past under/overspend) only moves the big "left" figure, so
+  // old damage never hides whether the current month is on track.
+  $: available = allocated;
+  $: monthLeft = allocated - spent;
   // Spend beyond the envelope still caps the fill at 100% — the overspend
   // is carried by the figure turning brick, not by a bar that lies.
   $: fillPct = available > 0 ? Math.min(Math.max(spent, 0) / available, 1) * 100 : spent > 0 ? 100 : 0;
   $: isOver = remaining < 0;
   $: isEmpty = remaining === 0 && available > 0;
-  $: unfunded = available === 0 && spent === 0;
+  $: unfunded = allocated + rollover === 0 && spent === 0;
 </script>
 
 <button
@@ -35,7 +39,7 @@
     aria-hidden="true"
   ></span>
 
-  <span class="relative grid grid-cols-[1fr_auto_2.6rem] items-baseline gap-x-3 gap-y-0.5">
+  <span class="relative grid grid-cols-[1fr_auto_2.6rem] items-center gap-x-3 gap-y-0.5">
     <span class="flex items-center gap-2.5 text-[13.5px] font-medium text-gray-900 dark:text-gray-100">
       <span class="h-4 w-[3px] flex-none rounded-sm" style="background:{bucket.color}"></span>
       {bucket.name}
@@ -72,12 +76,7 @@
         Nothing spent yet
       {:else}
         <span class="money">{formatCurrency(Math.max(spent, 0))}</span> of
-        <span class="money">{formatCurrency(available)}</span> spent
-      {/if}
-      {#if rollover !== 0}
-        <span class="text-muted/80 dark:text-muted-dark/80">
-          &middot; {rollover > 0 ? '+' : '−'}{formatCurrency(Math.abs(rollover))} rolled over
-        </span>
+        <span class="money">{formatCurrency(available)}</span> spent this month
       {/if}
     </span>
 
@@ -87,5 +86,16 @@
       {/if}
     </span>
     <span aria-hidden="true"></span>
+
+    {#if rollover !== 0 && allocated > 0}
+      <!-- Past months are a balance to work down, not a verdict on this one. -->
+      <span class="col-span-3 text-[11.5px] text-muted dark:text-muted-dark">
+        <span class="font-medium {monthLeft >= 0 ? 'text-success dark:text-success-light' : 'text-danger dark:text-danger-light'}">
+          {monthLeft >= 0 ? 'On plan this month' : 'Over plan this month'}
+        </span>
+        &middot; <span class="money">{formatCurrency(Math.abs(monthLeft))}</span> {monthLeft >= 0 ? 'left' : 'over'}
+        &middot; {rollover > 0 ? '+' : '−'}<span class="money">{formatCurrency(Math.abs(rollover))}</span> carried from earlier
+      </span>
+    {/if}
   </span>
 </button>
