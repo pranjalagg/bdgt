@@ -293,7 +293,7 @@ export async function deleteBucket(id: string): Promise<void> {
 export async function addTransaction(transaction: Omit<Transaction, 'id'>): Promise<string> {
   assertCents(transaction.amount);
   const id = crypto.randomUUID();
-  const newTransaction = { ...transaction, id };
+  const newTransaction = { ...transaction, id, createdAt: transaction.createdAt ?? Date.now() };
   await db.transactions.add(newTransaction);
   transactions.update((t) => [...t, newTransaction]);
   return id;

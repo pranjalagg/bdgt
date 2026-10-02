@@ -34,6 +34,7 @@ export interface Transaction {
   date: Date;
   note?: string;
   recurringId?: string;
+  createdAt?: number; // epoch ms entry order; absent on older records
 }
 
 export interface RecurringTransaction {

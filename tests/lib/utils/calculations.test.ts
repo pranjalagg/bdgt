@@ -410,9 +410,13 @@ describe('budget calculations', () => {
       expect(groups[1].total).toBe(90);
     });
 
-    it('orders transactions within a day by amount, largest first', () => {
-      const groups = groupTransactionsByDay([tx('small', 500, 11), tx('big', 2100, 11)]);
-      expect(groups[0].transactions.map((t) => t.id)).toEqual(['big', 'small']);
+    it('orders transactions within a day by entry order, latest first', () => {
+      const groups = groupTransactionsByDay([
+        { ...tx('first', 2100, 11), createdAt: 1000 },
+        { ...tx('third', 50, 11), createdAt: 3000 },
+        { ...tx('second', 500, 11), createdAt: 2000 },
+      ]);
+      expect(groups[0].transactions.map((t) => t.id)).toEqual(['third', 'second', 'first']);
     });
 
     it('excludes savings-bucket transactions from the day total but keeps the rows', () => {

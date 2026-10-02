@@ -134,7 +134,7 @@ export interface DayGroup<T> {
 // A ledger reads by day, not by row. Repeating the same date on nine
 // consecutive rows is noise; one header carrying the day's total is the
 // thing you actually scan for.
-export function groupTransactionsByDay<T extends { amount: number; bucketId: string; date: Date }>(
+export function groupTransactionsByDay<T extends { amount: number; bucketId: string; date: Date; createdAt?: number }>(
   transactions: T[],
   savingsBucketIds: Set<string> | string[] = []
 ): DayGroup<T>[] {
@@ -156,7 +156,9 @@ export function groupTransactionsByDay<T extends { amount: number; bucketId: str
 
   return [...byDay.values()]
     .sort((a, b) => b.date.getTime() - a.date.getTime())
-    .map((g) => ({ ...g, transactions: [...g.transactions].sort((a, b) => b.amount - a.amount) }));
+    .map((g) => ({ ...g, transactions: [...g.transactions].sort(
+      (a, b) => (b.createdAt ?? new Date(b.date).getTime()) - (a.createdAt ?? new Date(a.date).getTime())
+    ) }));
 }
 
 export interface BucketMonthlySeries {
