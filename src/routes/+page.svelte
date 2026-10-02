@@ -5,12 +5,13 @@
   import AssignPanel from '$lib/components/shared/AssignPanel.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
-  import { bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
+  import { savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, openModal, closeModal, openLog } from '$lib/stores/uiStore';
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
-  import { parseMonthKey, getDaysInMonth } from '$lib/utils/dates';
+  import { parseMonthKey, getDaysInMonth, formatMonthYear } from '$lib/utils/dates';
+  import { savingsRateDelta } from '$lib/utils/calculations';
 
   $: daysLeftInMonth = getDaysInMonth($currentMonthKey) - new Date().getDate() + 1;
 
@@ -49,6 +50,11 @@
     && !goalTargetError && isValidCurrency(goalTargetAmount)
     && !goalBalanceError
     && (goalMode !== 'monthly' || (!!goalMonthlyContribution && !goalContribError && isValidCurrency(goalMonthlyContribution)));
+
+  // Trend is the last 6 months ending at the viewed month, so the one
+  // before the last entry is the previous month.
+  $: prevSavingsRate = $savingsRateTrend.length >= 2 ? $savingsRateTrend[$savingsRateTrend.length - 2] : null;
+  $: savingsDelta = prevSavingsRate ? savingsRateDelta($savingsRate, prevSavingsRate.rate) : null;
 
   $: savingsRateColor = $savingsRate === null ? 'text-muted dark:text-muted-dark'
     : $savingsRate >= 20 ? 'text-success dark:text-success-light'
@@ -185,11 +191,34 @@
     </div>
     <div class="col-span-2 bg-white p-4 dark:bg-surface-dark sm:col-span-1">
       <p class="metric-label">Savings rate</p>
-      <p class="metric-value mt-1 text-xl {savingsRateColor}">
-        {$savingsRate !== null ? `${$savingsRate}%` : '—'}
-      </p>
+      <div class="mt-1 flex items-baseline gap-2">
+        <p class="metric-value text-xl {savingsRateColor}">
+          {$savingsRate !== null ? `${$savingsRate}%` : '—'}
+        </p>
+        {#if savingsDelta !== null}
+          <span
+            class="money inline-flex items-center gap-0.5 text-[11.5px] font-medium
+                   {savingsDelta > 0 ? 'text-success dark:text-success-light' : savingsDelta < 0 ? 'text-danger dark:text-danger-light' : 'text-muted dark:text-muted-dark'}"
+            title="Compared with {prevSavingsRate ? formatMonthYear(prevSavingsRate.month) : 'last month'}"
+            aria-label={savingsDelta === 0
+              ? 'Unchanged from last month'
+              : `${savingsDelta > 0 ? 'Up' : 'Down'} ${Math.abs(savingsDelta)} points from last month`}
+          >
+            {#if savingsDelta !== 0}
+              <svg class="h-3 w-3 {savingsDelta < 0 ? 'rotate-180' : ''}" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 10V2M2.5 5.5 6 2l3.5 3.5" />
+              </svg>
+              {Math.abs(savingsDelta)} pts
+            {:else}
+              flat
+            {/if}
+          </span>
+        {/if}
+      </div>
       <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">
-        {$savingsRate !== null ? 'of income kept' : 'add income to see this'}
+        {$savingsRate !== null
+          ? savingsDelta !== null ? 'of income kept · vs last month' : 'of income kept'
+          : 'add income to see this'}
       </p>
     </div>
   </div>

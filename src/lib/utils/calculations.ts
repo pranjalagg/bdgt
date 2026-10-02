@@ -70,6 +70,23 @@ export function calculateSavingsRate(income: number, spent: number): number | nu
   return Math.round(((income - spent) / income) * 1000) / 10;
 }
 
+// A bucket has no plan for months before the one it was created in, so
+// those months must not show its (current) default amount as an
+// allocation. Matches the rollover rule in accumulateRollovers.
+export function bucketExistsInMonth(bucket: Bucket, month: string): boolean {
+  return month >= getMonthKey(bucket.createdAt);
+}
+
+// Change in savings rate, in percentage points, vs the previous month.
+// Null when either month has no income (no rate to compare). Rounded to
+// one decimal like the rates themselves; a move under a tenth of a point
+// is reported as 0 so the UI can show "flat" instead of a phantom arrow.
+export function savingsRateDelta(current: number | null, previous: number | null): number | null {
+  if (current === null || previous === null) return null;
+  const delta = Math.round((current - previous) * 10) / 10;
+  return delta === 0 ? 0 : delta;
+}
+
 // Rollover carried into a month = everything allocated to a bucket in
 // every prior month minus everything spent from it in those months.
 // Because remaining telescopes (each month's leftover feeds the next),

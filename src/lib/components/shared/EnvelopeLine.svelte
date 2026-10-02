@@ -12,6 +12,8 @@
   export let onAssign: (() => void) | undefined = undefined;
   export let compact = false;
 
+  let showAll = false;
+
   $: assigned = income - unallocated;
   $: segments = statuses
     .filter((s) => s.allocated > 0)
@@ -95,7 +97,7 @@
 
     {#if segments.length > 0}
       <ul class="mt-4 flex flex-wrap gap-x-5 gap-y-1">
-        {#each segments.slice(0, 6) as s (s.bucket.id)}
+        {#each showAll ? segments : segments.slice(0, 6) as s (s.bucket.id)}
           <li class="flex items-center gap-2 text-[13px] text-muted dark:text-muted-dark">
             <span class="h-2 w-2 flex-none rounded-[2px]" style="background:{s.bucket.color}"></span>
             {s.bucket.name}
@@ -105,8 +107,15 @@
           </li>
         {/each}
         {#if segments.length > 6}
-          <li class="text-[13px] text-muted dark:text-muted-dark">
-            +{segments.length - 6} more
+          <li class="text-[13px]">
+            <button
+              type="button"
+              class="rounded text-muted underline-offset-2 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-muted-dark dark:hover:text-gray-100"
+              aria-expanded={showAll}
+              on:click={() => (showAll = !showAll)}
+            >
+              {showAll ? 'Show less' : `+${segments.length - 6} more`}
+            </button>
           </li>
         {/if}
       </ul>

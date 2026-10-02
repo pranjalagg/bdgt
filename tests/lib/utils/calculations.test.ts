@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  bucketExistsInMonth,
+  savingsRateDelta,
   calculateUnallocated,
   calculateBucketRemaining,
   getBucketStatus,
@@ -497,5 +499,38 @@ describe('budget calculations', () => {
     it('is tight when the bucket is already overspent (remaining negative)', () => {
       expect(calculateBucketFit(100, -2000, 10000)).toBe('tight');
     });
+  });
+});
+
+describe('savingsRateDelta', () => {
+  it('returns points gained or lost vs last month', () => {
+    expect(savingsRateDelta(28.2, 20)).toBe(8.2);
+    expect(savingsRateDelta(10, 15.5)).toBe(-5.5);
+  });
+
+  it('is null when either month has no rate', () => {
+    expect(savingsRateDelta(null, 20)).toBeNull();
+    expect(savingsRateDelta(20, null)).toBeNull();
+  });
+
+  it('reports 0 for an unchanged rate', () => {
+    expect(savingsRateDelta(12.3, 12.3)).toBe(0);
+  });
+});
+
+describe('bucketExistsInMonth', () => {
+  const bucket = (createdAt: Date) => ({ createdAt }) as Parameters<typeof bucketExistsInMonth>[0];
+
+  it('is false for months before the bucket was created', () => {
+    expect(bucketExistsInMonth(bucket(new Date(2026, 9, 1)), '2026-09')).toBe(false);
+  });
+
+  it('is true from the creation month on', () => {
+    expect(bucketExistsInMonth(bucket(new Date(2026, 9, 15)), '2026-10')).toBe(true);
+    expect(bucketExistsInMonth(bucket(new Date(2026, 9, 1)), '2026-11')).toBe(true);
+  });
+
+  it('treats migrated epoch buckets as always existing', () => {
+    expect(bucketExistsInMonth(bucket(new Date(0)), '2026-04')).toBe(true);
   });
 });
