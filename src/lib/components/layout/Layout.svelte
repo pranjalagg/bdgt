@@ -24,7 +24,7 @@
 
 <div class="flex h-screen bg-background dark:bg-background-dark">
   <Nav />
-  <main class="flex-1 overflow-auto pb-20 md:pb-0">
+  <main class="flex-1 overflow-auto pb-36 md:pb-24">
     <div class="mx-auto max-w-5xl p-6">
       <slot />
     </div>

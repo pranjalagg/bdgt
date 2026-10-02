@@ -166,7 +166,7 @@
   <!-- Supporting figures, subordinate to the line above. -->
   <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border dark:border-border-dark dark:bg-border-dark sm:grid-cols-3">
     <button
-      class="bg-white p-4 text-left transition-colors hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:bg-surface-dark dark:hover:bg-white/[0.03]"
+      class="flex flex-col items-start bg-white p-4 text-left transition-colors hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:bg-surface-dark dark:hover:bg-white/[0.03]"
       on:click={() => openModal('income')}
     >
       <p class="metric-label">Income</p>

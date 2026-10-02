@@ -112,7 +112,7 @@
   <div class="grid gap-4 sm:grid-cols-3">
     <div class="card p-5">
       <p class="metric-label">Total Income</p>
-      <p class="metric-value text-success">{formatCurrency($currentMonthIncome)}</p>
+      <p class="metric-value" class:text-success={$currentMonthIncome > 0}>{formatCurrency($currentMonthIncome)}</p>
       {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
         <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
           <span class="flex items-center gap-1">
@@ -128,11 +128,11 @@
     </div>
     <div class="card p-5">
       <p class="metric-label">Total Spent</p>
-      <p class="metric-value text-danger">{formatCurrency(totalSpending)}</p>
+      <p class="metric-value" class:text-danger={totalSpending > 0}>{formatCurrency(totalSpending)}</p>
     </div>
     <div class="card p-5">
       <p class="metric-label">Net</p>
-      <p class="metric-value" class:text-success={netIncome >= 0} class:text-danger={netIncome < 0}>
+      <p class="metric-value" class:text-success={netIncome > 0} class:text-danger={netIncome < 0}>
         {formatCurrency(netIncome)}
       </p>
     </div>
@@ -252,10 +252,14 @@
         <p class="mt-0.5 text-xs text-muted">Last 6 months</p>
       </div>
       <div class="p-5">
-        <BarChart
-          labels={monthLabels}
-          datasets={[{ label: 'Spending', data: monthlySpending, color: '#ef4444' }]}
-        />
+        {#if monthlySpending.some((v) => v !== 0)}
+          <BarChart
+            labels={monthLabels}
+            datasets={[{ label: 'Spending', data: monthlySpending, color: '#ef4444' }]}
+          />
+        {:else}
+          <p class="py-12 text-center text-sm text-muted">No spending in the last 6 months</p>
+        {/if}
       </div>
     </div>
 
@@ -265,13 +269,17 @@
         <p class="mt-0.5 text-xs text-muted">Last 6 months</p>
       </div>
       <div class="p-5">
-        <LineChart
-          labels={monthLabels}
-          datasets={[
-            { label: 'Income', data: monthlyIncome, color: '#22c55e' },
-            { label: 'Spending', data: monthlySpending, color: '#ef4444' },
-          ]}
-        />
+        {#if monthlyIncome.some((v) => v !== 0) || monthlySpending.some((v) => v !== 0)}
+          <LineChart
+            labels={monthLabels}
+            datasets={[
+              { label: 'Income', data: monthlyIncome, color: '#22c55e' },
+              { label: 'Spending', data: monthlySpending, color: '#ef4444' },
+            ]}
+          />
+        {:else}
+          <p class="py-12 text-center text-sm text-muted">No income or spending in the last 6 months</p>
+        {/if}
       </div>
     </div>
   </div>
@@ -294,12 +302,16 @@
       <p class="mt-0.5 text-xs text-muted">Last 6 months</p>
     </div>
     <div class="p-5">
-      <LineChart
-        labels={savingsRateLabels}
-        datasets={[
-          { label: 'Savings Rate', data: savingsRateData, color: '#22c55e' },
-        ]}
-      />
+      {#if $savingsRateTrend.some((m) => m.rate !== null)}
+        <LineChart
+          labels={savingsRateLabels}
+          datasets={[
+            { label: 'Savings Rate', data: savingsRateData, color: '#22c55e' },
+          ]}
+        />
+      {:else}
+        <p class="py-12 text-center text-sm text-muted">Add income to see your savings rate</p>
+      {/if}
     </div>
   </div>
 </div>

@@ -73,6 +73,13 @@
           title="{s.bucket.name} — {formatCurrency(s.allocated)}"
         ></span>
       {/each}
+      {#if income === 0 && segments.length === 0}
+        <!-- Nothing to measure yet: hatched like the gap, not a solid slab. -->
+        <span
+          class="flex-1 bg-[repeating-linear-gradient(135deg,theme(colors.rule),theme(colors.rule)_5px,transparent_5px,transparent_10px)] dark:bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.16)_5px,transparent_5px,transparent_10px)]"
+          aria-hidden="true"
+        ></span>
+      {/if}
       {#if unallocated > 0}
         <!-- The gap. Hatched so it reads as absence, not as another bucket. -->
         <button

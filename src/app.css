@@ -21,6 +21,22 @@ body {
   @apply bg-background text-gray-800 antialiased;
 }
 
+/* Browser surfaces themed from the ink palette, not left at defaults. */
+::selection {
+  background: rgb(var(--color-ctl) / 0.16);
+}
+
+:root {
+  accent-color: rgb(var(--color-ctl));
+  caret-color: rgb(var(--color-ctl));
+  scrollbar-color: theme('colors.rule') transparent;
+}
+
+:root.dark {
+  color-scheme: dark;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
 :root.dark body {
   @apply bg-background-dark text-gray-100;
 }
