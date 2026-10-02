@@ -10,6 +10,9 @@ const SAVINGS_BUCKET_NAMES = new Set(['Savings', 'Investments', 'Emergency Fund'
 // plain string — which crashes any code that calls .getMonthKey()/etc.
 // on it. Shared by the v7 repair migration and export.ts's import path.
 export const DATE_FIELDS: Record<string, string[]> = {
+  // Rollover math calls getMonthKey(bucket.createdAt); a string here throws
+  // inside the derived stores and blanks the dashboard.
+  buckets: ['createdAt'],
   transactions: ['date'],
   recurringTransactions: ['nextDueDate'],
   incomes: ['date'],

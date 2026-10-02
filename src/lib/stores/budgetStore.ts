@@ -23,7 +23,8 @@ export async function loadData(): Promise<void> {
     db.monthSnapshots.toArray(),
   ]);
 
-  buckets.set(loadedBuckets);
+  // Also repairs databases already imported before bucket dates were revived.
+  buckets.set(loadedBuckets.map((b) => reviveDateFields(b, DATE_FIELDS.buckets)));
   transactions.set(loadedTransactions.map((t) => reviveDateFields(t, DATE_FIELDS.transactions)));
   incomes.set(loadedIncomes.map((i) => reviveDateFields(i, DATE_FIELDS.incomes)));
   monthSnapshots.set(loadedSnapshots);

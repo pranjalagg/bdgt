@@ -21,6 +21,14 @@ function validPayload() {
 }
 
 describe('parseImport', () => {
+  it('revives bucket createdAt into a Date so rollover math cannot throw', () => {
+    const payload = validPayload();
+    // @ts-expect-error minimal bucket
+    payload.data.buckets = [{ id: 'b1', name: 'Rent', createdAt: '2026-10-01T12:00:00.000Z' }];
+    const result = parseImport(JSON.stringify(payload));
+    expect(result.data.buckets[0].createdAt).toBeInstanceOf(Date);
+  });
+
   it('accepts a well-formed payload', () => {
     const result = parseImport(JSON.stringify(validPayload()));
     expect(result.data.transactions).toHaveLength(1);
