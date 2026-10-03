@@ -2,7 +2,8 @@
 // Usage: node scripts/rebucket.mjs <backup.json> <out.json>
 // Reads the backup, restructures buckets, re-labels transactions, and
 // writes a NEW file to re-import via Setup -> Import. The input is never
-// modified. Transactions are only ever moved between buckets; the script
+// modified (the output is created exclusively, never overwritten).
+// Transactions are only ever moved between buckets; the script
 // aborts if any transaction's id, amount, date or note would change, or
 // if the count differs.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -24,12 +25,44 @@ const FROM_MONTH_ISO = '2026-10-01T12:00:00.000Z';
 const byName = (n) => data.buckets.find((b) => b.name === n);
 const need = (n) => byName(n) ?? fail(`bucket "${n}" not found (already migrated?)`);
 
-// Every past month must already pin every existing fixed bucket's amount;
-// otherwise changing a bucket's default would rewrite that month.
-for (const s of data.monthSnapshots) {
+// Months before FROM_MONTH keep exactly the allocations they have today.
+// monthlyLedger spans every month from the first activity to now,
+// including quiet months and months that never got a snapshot; those fall
+// back to each bucket's *current default*, so changing a default would
+// silently rewrite them. Pin the old default explicitly for every such
+// month before touching anything.
+const monthOf = (d) => {
+  const x = new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`;
+};
+const nextMonth = (m) => {
+  const [y, mo] = m.split('-').map(Number);
+  return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
+};
+const FROM_MONTH = monthOf(FROM_MONTH_ISO);
+const seen = [
+  ...data.monthSnapshots.map((s) => s.month),
+  ...data.incomes.map((i) => monthOf(i.date)),
+  ...data.transactions.map((t) => monthOf(t.date)),
+].filter((m) => m < FROM_MONTH);
+const pastMonths = [];
+if (seen.length > 0) {
+  for (let m = seen.reduce((a, b) => (a < b ? a : b)); m < FROM_MONTH; m = nextMonth(m)) pastMonths.push(m);
+}
+const snapshotFor = (month) => {
+  let snap = data.monthSnapshots.find((s) => s.month === month);
+  if (!snap) {
+    snap = { month, incomeTotal: 0, allocations: {}, spent: {}, rollovers: {} };
+    data.monthSnapshots.push(snap);
+  }
+  snap.allocations ??= {};
+  return snap;
+};
+for (const month of pastMonths) {
+  const snap = snapshotFor(month);
   for (const b of data.buckets) {
-    if (b.allocationType === 'fixed' && b.id !== need('Savings').id && s.allocations?.[b.id] === undefined) {
-      fail(`snapshot ${s.month} has no saved amount for "${b.name}"; changing it would rewrite history`);
+    if (b.allocationType === 'fixed' && snap.allocations[b.id] === undefined) {
+      snap.allocations[b.id] = b.fixedAmount ?? 0;
     }
   }
 }
@@ -67,6 +100,15 @@ for (const nb of newBuckets) {
   });
 }
 const id = (n) => byName(n)?.id ?? fail(`missing ${n}`);
+
+// Refiled expenses must keep counting against *something* in every past
+// month. A bucket created in October is otherwise skipped for earlier
+// months, so the spend would vanish from rollover. A pinned zero makes
+// each of those months count for it: no plan then, so the spend carries
+// forward as a balance to work down.
+for (const nb of newBuckets) {
+  for (const month of pastMonths) snapshotFor(month).allocations[id(nb.name)] = 0;
+}
 
 // Move rules: [from bucket, predicate on transaction, to bucket]
 const note = (t) => (t.note ?? '').toLowerCase();
@@ -120,6 +162,14 @@ for (let i = 0; i < before.length; i++) {
   if (!live.has(bid)) fail(`transaction ${before[i].id} points at a missing bucket`);
 }
 
-writeFileSync(outPath, JSON.stringify(backup, null, 2));
+// 'wx' creates the file exclusively: it refuses an existing path, so the
+// source can never be overwritten, however it is spelled (relative path,
+// symlink, hard link).
+try {
+  writeFileSync(outPath, JSON.stringify(backup, null, 2), { flag: 'wx' });
+} catch (e) {
+  if (e.code === 'EEXIST') fail(`${outPath} already exists; choose a new output path`);
+  throw e;
+}
 console.log(`${data.transactions.length} transactions, ${moved.length} moved, 0 deleted`);
 for (const m of moved) console.log(m.join(' | '));
