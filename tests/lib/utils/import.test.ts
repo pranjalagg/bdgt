@@ -102,6 +102,17 @@ describe('parseImport: older and richer backups', () => {
     expect([rent.isEveryday, invest.isEveryday, emerg.isEveryday]).toEqual([true, false, false]);
   });
 
+  it('keeps committed obligations out of safe-to-spend when the backup predates isEveryday', () => {
+    const payload = validPayload();
+    // pre-isEveryday buckets
+    (payload.data as { buckets: unknown[] }).buckets = [
+      { id: 'b1', name: 'Rent/Mortgage' }, { id: 'b2', name: 'Utilities' },
+      { id: 'b3', name: 'Subscriptions' }, { id: 'b4', name: 'Grocery' },
+    ];
+    const flags = parseImport(JSON.stringify(payload)).data.buckets.map((b) => b.isEveryday);
+    expect(flags).toEqual([false, false, false, true]);
+  });
+
   it('rejects bucket ids that would alias Object.prototype', () => {
     const payload = validPayload();
     // @ts-expect-error minimal bucket

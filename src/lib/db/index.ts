@@ -4,6 +4,11 @@ import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, 
 
 export const SAVINGS_BUCKET_NAMES = new Set(['Savings', 'Investments', 'Emergency Fund']);
 
+// Default buckets that are committed obligations, not everyday spend: same
+// split as DEFAULT_BUCKETS below, so migrated and imported data match fresh
+// installs and unpaid rent never counts toward "safe to spend".
+export const FIXED_OBLIGATION_NAMES = new Set(['Rent/Mortgage', 'Utilities', 'Subscriptions']);
+
 // Date-valued fields per collection. Dexie preserves real Date objects
 // through IndexedDB, but a record that ever round-tripped through JSON
 // (an import predating date-revival there) can leave one of these as a
@@ -177,7 +182,7 @@ export class BudgetDatabase extends Dexie {
     }).upgrade(tx => {
       return tx.table('buckets').toCollection().modify(bucket => {
         if (bucket.isEveryday === undefined) {
-          bucket.isEveryday = !bucket.isSavings;
+          bucket.isEveryday = !bucket.isSavings && !FIXED_OBLIGATION_NAMES.has(bucket.name);
         }
       });
     });

@@ -1,4 +1,4 @@
-import { db, DATE_FIELDS, SAVINGS_BUCKET_NAMES } from '$lib/db';
+import { db, DATE_FIELDS, SAVINGS_BUCKET_NAMES, FIXED_OBLIGATION_NAMES } from '$lib/db';
 import { centsToDollars } from './currency';
 import { formatDate, reviveDateFields } from './dates';
 import { normalizeMonthNotes } from './monthNotes';
@@ -118,16 +118,17 @@ export function parseImport(json: string): ExportData {
   // Older backups predate some bucket fields. Restoring raw skips the
   // database upgrade steps that backfill them, and a bucket without
   // createdAt breaks rollover math, so apply the same defaults here.
-  // isSavings falls back to the same default-name rule as database
-  // migration v5, so an old backup's Savings/Investments/Emergency Fund stay
-  // savings rather than becoming spending buckets in the safe-to-spend pool.
+  // isSavings and isEveryday fall back to the same default-name rules as
+  // database migrations v5 and v9, so an old backup's Savings/Investments/
+  // Emergency Fund stay savings and Rent/Utilities/Subscriptions stay out of
+  // the safe-to-spend pool.
   data.buckets = (data.buckets as Record<string, unknown>[]).map((b) => {
     const isSavings = (b.isSavings as boolean | undefined) ?? SAVINGS_BUCKET_NAMES.has(b.name as string);
     return {
       ...b,
       createdAt: b.createdAt ?? new Date(0),
       isSavings,
-      isEveryday: b.isEveryday ?? !isSavings,
+      isEveryday: b.isEveryday ?? (!isSavings && !FIXED_OBLIGATION_NAMES.has(b.name as string)),
     };
   });
 
