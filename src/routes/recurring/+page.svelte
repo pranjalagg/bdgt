@@ -178,7 +178,7 @@
       <label for="rec-bucket" class="label">Bucket</label>
       <select id="rec-bucket" bind:value={bucketId} class="mt-1.5 select-base" required>
         <option value="">Select bucket</option>
-        {#each $buckets as bucket}
+        {#each $buckets.filter((b) => !b.isSystem) as bucket}
           <option value={bucket.id}>{bucket.name}</option>
         {/each}
       </select>

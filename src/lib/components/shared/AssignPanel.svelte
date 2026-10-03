@@ -2,7 +2,7 @@
   // Closing the gap in one sitting: every bucket, one field each, with a
   // live remainder at the top. Previously assigning money meant visiting
   // the Buckets page and editing one field at a time.
-  import { bucketStatuses, currentMonthIncome, setAllocations, carryForwardAllocations } from '$lib/stores/budgetStore';
+  import { bucketStatuses, currentMonthIncome, setAllocations, getCarryForwardAllocations } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
   import { formatCurrency, evaluateExpression, centsToDollars } from '$lib/utils/currency';
 
@@ -67,25 +67,21 @@
     }
   }
 
-  async function handleCarryForward() {
+  // Fills the draft only; nothing is written until Save, so Cancel really
+  // cancels.
+  function handleCarryForward() {
     error = '';
-    isSaving = true;
-    try {
-      const count = await carryForwardAllocations();
-      if (count === 0) {
-        error = 'Last month has no assignments to carry over.';
-      } else {
-        draft = Object.fromEntries(
-          $bucketStatuses
-            .filter((s) => s.bucket.allocationType === 'fixed')
-            .map((s) => [s.bucket.id, s.allocated ? centsToDollars(s.allocated).toFixed(2) : ''])
-        );
-      }
-    } catch (e) {
-      error = e instanceof Error ? e.message : 'Could not carry last month forward';
-    } finally {
-      isSaving = false;
+    const carried = getCarryForwardAllocations();
+    const fixedIds = new Set($bucketStatuses.filter((s) => s.bucket.allocationType === 'fixed').map((s) => s.bucket.id));
+    const entries = Object.entries(carried).filter(([id]) => fixedIds.has(id));
+    if (entries.length === 0) {
+      error = 'Last month has no assignments to carry over.';
+      return;
     }
+    draft = {
+      ...draft,
+      ...Object.fromEntries(entries.map(([id, cents]) => [id, cents ? centsToDollars(cents).toFixed(2) : ''])),
+    };
   }
 
   function assignRest(bucketId: string) {
