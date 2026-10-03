@@ -256,28 +256,28 @@
   </div>
 
   <!-- Goals Section -->
-  <div class="mt-8">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="section-title">Savings Goals</h2>
+  <div>
+    <div class="mb-2.5 flex items-center justify-between">
+      <h2 class="eyebrow">Savings goals</h2>
       {#if $goalStatuses.length > 0}
         <button
-          class="text-sm font-medium text-primary hover:text-primary-hover transition-colors"
+          class="text-[13px] font-medium text-primary hover:underline"
           on:click={() => openModal('add-goal')}
         >
-          + Add Goal
+          Add goal
         </button>
       {/if}
     </div>
 
     {#if $goalStatuses.length === 0}
       <button
-        class="w-full rounded-xl border-2 border-dashed border-gray-200 py-10 text-sm font-medium text-muted transition-colors hover:border-primary hover:text-primary dark:border-border-dark dark:text-gray-400"
+        class="w-full rounded border border-dashed border-rule px-3.5 py-3 text-left text-[13.5px] font-medium text-muted transition-colors hover:border-primary hover:text-primary dark:border-border-dark dark:text-muted-dark"
         on:click={() => openModal('add-goal')}
       >
-        Create Your First Savings Goal
+        Create your first savings goal
       </button>
     {:else}
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-1.5 lg:grid-cols-2">
         {#each $goalStatuses as status}
           <GoalCard {status} />
         {/each}
