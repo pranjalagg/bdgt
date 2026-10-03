@@ -2,13 +2,16 @@
   import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
-  import { currentMonthTransactions, buckets, deleteTransaction } from '$lib/stores/budgetStore';
+  import { page } from '$app/stores';
+  import { currentMonthTransactions, transactions, buckets, deleteTransaction } from '$lib/stores/budgetStore';
+  import { UNSORTED_BUCKET_ID } from '$lib/utils/unsorted';
   import { groupTransactionsByDay } from '$lib/utils/calculations';
   import { formatCurrency } from '$lib/utils/currency';
   import { openModal, openLog } from '$lib/stores/uiStore';
   import type { Transaction } from '$lib/types';
 
-  let filterBucketId = '';
+  // Arrives from the dashboard's "needs a bucket" banner.
+  let filterBucketId = $page.url.searchParams.get('bucket') ?? '';
   let query = '';
   let editingTransaction: Transaction | null = null;
 
@@ -25,7 +28,11 @@
   $: bucketById = new Map($buckets.map((b) => [b.id, b]));
   $: savingsBucketIds = new Set($buckets.filter((b) => b.isSavings).map((b) => b.id));
 
-  $: filtered = $currentMonthTransactions.filter((t) => {
+  // Unsorted ignores the month: they are spread across whenever the old
+  // bucket was used, and the point is to clear them all.
+  $: source = filterBucketId === UNSORTED_BUCKET_ID ? $transactions : $currentMonthTransactions;
+
+  $: filtered = source.filter((t) => {
     if (filterBucketId && t.bucketId !== filterBucketId) return false;
     if (!query.trim()) return true;
     // Free-text over note and bucket name — "what did I spend at Costco"
@@ -119,7 +126,7 @@
                 {t.note || bucket?.name || 'Transaction'}
               </p>
               <p class="truncate text-[11.5px] text-muted dark:text-muted-dark">
-                {bucket?.name ?? 'Unknown bucket'}{#if isSetAside}<span class="text-success dark:text-success-light"> · set aside</span>{/if}
+                {bucket?.name ?? 'Unknown bucket'}{#if bucket?.isSystem}<span class="ml-1 text-warning">· needs a bucket, tap edit</span>{/if}{#if isSetAside}<span class="ml-1 text-success dark:text-success-light">· set aside</span>{/if}
               </p>
             </div>
 

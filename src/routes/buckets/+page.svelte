@@ -83,7 +83,7 @@
   async function handleDelete(id: string) {
     const status = $bucketStatuses.find((s) => s.bucket.id === id);
     if (!confirm(
-      `Delete "${status?.bucket.name ?? 'this bucket'}"? This also deletes all of its transactions, recurring items and linked savings goals. This cannot be undone.`
+      `Delete "${status?.bucket.name ?? 'this bucket'}"? Its transactions are kept and moved to "Unsorted" so you can re-file them. Its recurring items and linked savings goals are deleted. This cannot be undone.`
     )) return;
     await deleteBucket(id);
     await loadRecurring();
@@ -145,7 +145,7 @@
   {/if}
 
   <div class="space-y-2">
-    {#each $bucketStatuses as status}
+    {#each $bucketStatuses.filter((s) => !s.bucket.isSystem) as status}
       <div class="card flex items-center gap-4 p-4 transition-colors hover:border-gray-300 dark:hover:border-gray-600">
         <span
           class="h-4 w-4 rounded-full ring-2 ring-white dark:ring-surface-dark"

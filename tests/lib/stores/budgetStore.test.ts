@@ -4,14 +4,15 @@ import { get } from 'svelte/store';
 const { txChain, recChain, goalChain } = vi.hoisted(() => {
   const make = () => {
     const del = vi.fn().mockResolvedValue(1);
-    return { where: vi.fn(() => ({ equals: vi.fn(() => ({ delete: del })) })), del };
+    const modify = vi.fn().mockResolvedValue(1);
+    return { where: vi.fn(() => ({ equals: vi.fn(() => ({ delete: del, modify })) })), del, modify };
   };
   return { txChain: make(), recChain: make(), goalChain: make() };
 });
 
 vi.mock('$lib/db', () => ({
   initializeDefaultBuckets: vi.fn().mockResolvedValue(undefined),
-  DATE_FIELDS: { transactions: ['date'], incomes: ['date'] },
+  DATE_FIELDS: { buckets: ['createdAt'], transactions: ['date'], incomes: ['date'] },
   db: {
     transaction: vi.fn((_mode: string, _tables: unknown, cb: () => unknown) => cb()),
     buckets: {
@@ -22,6 +23,9 @@ vi.mock('$lib/db', () => ({
     },
     transactions: {
       where: txChain.where,
+      bulkUpdate: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(1),
+      delete: vi.fn().mockResolvedValue(undefined),
       add: vi.fn().mockResolvedValue(undefined),
       toArray: vi.fn().mockResolvedValue([]),
     },
@@ -36,7 +40,7 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, updateBucketAllocation, safeToSpendPerDay } from '$lib/stores/budgetStore';
+import { updateTransaction, deleteTransaction, buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, updateBucketAllocation, safeToSpendPerDay } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
 import { currentMonthKey } from '$lib/stores/uiStore';
 
@@ -46,7 +50,7 @@ const bucket = (id: string, over: Partial<import('$lib/types').Bucket> = {}) => 
   createdAt: new Date(2000, 0, 1), ...over,
 });
 
-describe('deleteBucket cascade', () => {
+describe('deleteBucket', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     buckets.set([
@@ -62,19 +66,82 @@ describe('deleteBucket cascade', () => {
 
   it('removes the bucket from the store', async () => {
     await deleteBucket('b1');
-    expect(get(buckets).map((b) => b.id)).toEqual(['b2']);
+    expect(get(buckets).map((b) => b.id)).toEqual(['b2', 'unsorted']);
   });
 
-  it('drops the deleted bucket\'s transactions from the store', async () => {
+  it('keeps every transaction, moving the deleted bucket\'s to Unsorted', async () => {
     await deleteBucket('b1');
-    expect(get(transactions).map((t) => t.id)).toEqual(['t2']);
+    expect(get(transactions).map((t) => [t.id, t.bucketId])).toEqual([
+      ['t1', 'unsorted'],
+      ['t2', 'b2'],
+      ['t3', 'unsorted'],
+    ]);
   });
 
-  it('deletes the bucket\'s transactions, recurring items and goals in the db', async () => {
+  it('never deletes transactions in the db, only re-points them', async () => {
     await deleteBucket('b1');
-    expect(txChain.del).toHaveBeenCalled();
+    expect(txChain.del).not.toHaveBeenCalled();
+    expect(txChain.modify).toHaveBeenCalledWith({ bucketId: 'unsorted' });
+  });
+
+  it('still deletes the bucket\'s recurring items and goals', async () => {
+    await deleteBucket('b1');
     expect(recChain.del).toHaveBeenCalled();
     expect(goalChain.del).toHaveBeenCalled();
+  });
+
+  it('does not create Unsorted when the bucket had no transactions', async () => {
+    buckets.set([bucket('b1'), bucket('empty', { order: 1 })]);
+    await deleteBucket('empty');
+    expect(get(buckets).map((b) => b.id)).toEqual(['b1']);
+  });
+
+  it('refuses to delete the system bucket', async () => {
+    buckets.set([bucket('unsorted', { isSystem: true })]);
+    await expect(deleteBucket('unsorted')).rejects.toThrow(/managed by the app/);
+  });
+});
+
+describe('Unsorted lifecycle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    buckets.set([bucket('b1'), bucket('unsorted', { isSystem: true, order: 1 })]);
+    transactions.set([
+      { id: 't1', amount: 100, bucketId: 'unsorted', date: new Date(2026, 0, 1) },
+      { id: 't2', amount: 200, bucketId: 'unsorted', date: new Date(2026, 0, 2) },
+    ]);
+  });
+
+  it('survives while it still holds a transaction', async () => {
+    await updateTransaction('t1', { bucketId: 'b1' });
+    expect(get(buckets).map((b) => b.id)).toContain('unsorted');
+  });
+
+  it('disappears once the last transaction is re-filed', async () => {
+    await updateTransaction('t1', { bucketId: 'b1' });
+    await updateTransaction('t2', { bucketId: 'b1' });
+    expect(get(buckets).map((b) => b.id)).toEqual(['b1']);
+  });
+
+  it('disappears when its last transaction is deleted', async () => {
+    await deleteTransaction('t1');
+    await deleteTransaction('t2');
+    expect(get(buckets).map((b) => b.id)).toEqual(['b1']);
+  });
+});
+
+describe('loadData orphan rescue', () => {
+  it('files transactions with a missing bucket under Unsorted, deleting nothing', async () => {
+    vi.clearAllMocks();
+    vi.mocked(db.buckets.orderBy('order').toArray).mockResolvedValueOnce([bucket('b1')] as never);
+    vi.mocked(db.transactions.toArray).mockResolvedValueOnce([
+      { id: 't1', amount: 100, bucketId: 'b1', date: new Date(2026, 0, 1) },
+      { id: 't2', amount: 200, bucketId: 'gone', date: new Date(2026, 0, 2) },
+    ] as never);
+    await loadData();
+    expect(get(transactions).map((t) => [t.id, t.bucketId])).toEqual([['t1', 'b1'], ['t2', 'unsorted']]);
+    expect(get(buckets).map((b) => b.id)).toEqual(['b1', 'unsorted']);
+    expect(db.transactions.bulkUpdate).toHaveBeenCalledWith([{ key: 't2', changes: { bucketId: 'unsorted' } }]);
   });
 });
 

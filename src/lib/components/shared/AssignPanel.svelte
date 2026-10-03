@@ -14,8 +14,8 @@
   let error = '';
   let isSaving = false;
 
-  $: fixedStatuses = $bucketStatuses.filter((s) => s.bucket.allocationType === 'fixed');
-  $: derivedStatuses = $bucketStatuses.filter((s) => s.bucket.allocationType !== 'fixed');
+  $: fixedStatuses = $bucketStatuses.filter((s) => !s.bucket.isSystem && s.bucket.allocationType === 'fixed');
+  $: derivedStatuses = $bucketStatuses.filter((s) => !s.bucket.isSystem && s.bucket.allocationType !== 'fixed');
 
   // Seed once from what's already assigned, so reopening doesn't wipe work.
   $: if (!seeded && $bucketStatuses.length > 0) {

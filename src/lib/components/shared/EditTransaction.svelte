@@ -81,7 +81,7 @@
       required
     >
       <option value="">Select a bucket</option>
-      {#each $buckets as bucket}
+      {#each $buckets.filter((b) => !b.isSystem || b.id === transaction.bucketId) as bucket}
         <option value={bucket.id}>{bucket.name}</option>
       {/each}
     </select>

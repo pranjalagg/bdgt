@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import EnvelopeLine from '$lib/components/shared/EnvelopeLine.svelte';
   import EnvelopeRow from '$lib/components/shared/EnvelopeRow.svelte';
@@ -6,7 +7,7 @@
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import MonthNotes from '$lib/components/shared/MonthNotes.svelte';
-  import { savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
+  import { unsortedTransactions, savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, openModal, closeModal, openLog } from '$lib/stores/uiStore';
@@ -171,6 +172,17 @@
     </div>
   {/if}
 
+  {#if $unsortedTransactions.length > 0}
+    <!-- Nothing was deleted: these lost their bucket and need a new one. -->
+    <div class="card flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-sm text-gray-700 dark:text-gray-200">
+        <span class="font-medium text-warning">{$unsortedTransactions.length} {$unsortedTransactions.length === 1 ? 'transaction needs' : 'transactions need'} a bucket.</span>
+        Their bucket was removed, so they are kept as Unsorted until you move them.
+      </p>
+      <a href="{base}/transactions?bucket=unsorted" class="btn-secondary flex-none">Review</a>
+    </div>
+  {/if}
+
   <!-- Supporting figures, subordinate to the line above. -->
   <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border dark:border-border-dark dark:bg-border-dark sm:grid-cols-3">
     <button
@@ -237,7 +249,7 @@
       </button>
     </div>
     <div class="grid gap-1.5 lg:grid-cols-2">
-      {#each $bucketStatuses as status (status.bucket.id)}
+      {#each $bucketStatuses.filter((s) => !s.bucket.isSystem) as status (status.bucket.id)}
         <EnvelopeRow {status} onClick={() => openLog(status.bucket.id)} />
       {/each}
     </div>

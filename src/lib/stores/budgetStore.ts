@@ -4,6 +4,7 @@ import { db, DATE_FIELDS, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
 import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, getPreviousMonthKey, getDaysInMonth, isCurrentMonth, reviveDateFields } from '$lib/utils/dates';
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers, calculateSafeToSpendPerDay, bucketExistsInMonth } from '$lib/utils/calculations';
+import { UNSORTED_BUCKET_ID, makeUnsortedBucket, findOrphans } from '$lib/utils/unsorted';
 import { cleanNoteText, normalizeMonthNotes } from '$lib/utils/monthNotes';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus, MonthNote, MonthNoteEffect } from '$lib/types';
 
@@ -25,12 +26,38 @@ export async function loadData(): Promise<void> {
   ]);
 
   // Also repairs databases already imported before bucket dates were revived.
-  buckets.set(loadedBuckets.map((b) => reviveDateFields(b, DATE_FIELDS.buckets)));
-  transactions.set(loadedTransactions.map((t) => reviveDateFields(t, DATE_FIELDS.transactions)));
+  let allBuckets = loadedBuckets.map((b) => reviveDateFields(b, DATE_FIELDS.buckets));
+  let allTransactions = loadedTransactions.map((t) => reviveDateFields(t, DATE_FIELDS.transactions));
+
+  // A transaction whose bucket no longer exists (an import, an older
+  // delete) would vanish from every bucket view while still counting in
+  // raw totals. File it under Unsorted so it can be re-filed by hand.
+  const orphans = findOrphans(allTransactions, allBuckets.map((b) => b.id));
+  if (orphans.length > 0) {
+    if (!allBuckets.some((b) => b.id === UNSORTED_BUCKET_ID)) {
+      const unsorted = makeUnsortedBucket(Math.max(-1, ...allBuckets.map((b) => b.order)) + 1);
+      await db.buckets.add(unsorted);
+      allBuckets = [...allBuckets, unsorted];
+    }
+    await db.transactions.bulkUpdate(
+      orphans.map((t) => ({ key: t.id, changes: { bucketId: UNSORTED_BUCKET_ID } }))
+    );
+    const orphanIds = new Set(orphans.map((t) => t.id));
+    allTransactions = allTransactions.map((t) =>
+      orphanIds.has(t.id) ? { ...t, bucketId: UNSORTED_BUCKET_ID } : t
+    );
+  }
+
+  buckets.set(allBuckets);
+  transactions.set(allTransactions);
   incomes.set(loadedIncomes.map((i) => reviveDateFields(i, DATE_FIELDS.incomes)));
   monthSnapshots.set(loadedSnapshots);
   isLoading.set(false);
 }
+
+export const unsortedTransactions = derived(transactions, ($t) =>
+  $t.filter((t) => t.bucketId === UNSORTED_BUCKET_ID)
+);
 
 export const currentMonthTransactions = derived(
   [transactions, currentMonthKey],
@@ -280,17 +307,42 @@ export async function updateBucket(id: string, updates: Partial<Bucket>): Promis
   buckets.update((b) => b.map((bucket) => (bucket.id === id ? { ...bucket, ...updates } : bucket)));
 }
 
-// Deleting a bucket cascades to everything scoped to it. Without this,
-// transactions kept a dead bucketId: money vanished from category views
-// while still counting in raw-transaction totals.
+// Deleting a bucket never deletes money records: its transactions move
+// to the Unsorted system bucket so they can be re-filed by hand. Recurring
+// rules and savings goals are tied to the bucket itself and go with it.
 export async function deleteBucket(id: string): Promise<void> {
+  if (get(buckets).find((b) => b.id === id)?.isSystem) {
+    throw new Error('This bucket is managed by the app and cannot be deleted');
+  }
+
+  const hasTransactions = get(transactions).some((t) => t.bucketId === id);
+  if (hasTransactions) await ensureUnsortedBucket();
+
   await db.buckets.delete(id);
-  await db.transactions.where('bucketId').equals(id).delete();
+  await db.transactions.where('bucketId').equals(id).modify({ bucketId: UNSORTED_BUCKET_ID });
   await db.recurringTransactions.where('bucketId').equals(id).delete();
   await db.savingsGoals.where('bucketId').equals(id).delete();
 
   buckets.update((b) => b.filter((bucket) => bucket.id !== id));
-  transactions.update((t) => t.filter((tx) => tx.bucketId !== id));
+  transactions.update((t) =>
+    t.map((tx) => (tx.bucketId === id ? { ...tx, bucketId: UNSORTED_BUCKET_ID } : tx))
+  );
+}
+
+async function ensureUnsortedBucket(): Promise<void> {
+  if (get(buckets).some((b) => b.id === UNSORTED_BUCKET_ID)) return;
+  const unsorted = makeUnsortedBucket(Math.max(-1, ...get(buckets).map((b) => b.order)) + 1);
+  await db.buckets.add(unsorted);
+  buckets.update((b) => [...b, unsorted]);
+}
+
+// Unsorted exists only while it holds something; once the last
+// transaction is re-filed it has no purpose and would just clutter lists.
+async function pruneUnsortedBucket(): Promise<void> {
+  if (!get(buckets).some((b) => b.id === UNSORTED_BUCKET_ID)) return;
+  if (get(transactions).some((t) => t.bucketId === UNSORTED_BUCKET_ID)) return;
+  await db.buckets.delete(UNSORTED_BUCKET_ID);
+  buckets.update((b) => b.filter((bucket) => bucket.id !== UNSORTED_BUCKET_ID));
 }
 
 // Transaction and income mutations no longer touch MonthSnapshot: spend,
@@ -311,11 +363,13 @@ export async function updateTransaction(id: string, updates: Partial<Transaction
   if (updates.amount !== undefined) assertCents(updates.amount);
   await db.transactions.update(id, updates);
   transactions.update((t) => t.map((tx) => (tx.id === id ? { ...tx, ...updates } : tx)));
+  if (updates.bucketId !== undefined) await pruneUnsortedBucket();
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
   await db.transactions.delete(id);
   transactions.update((t) => t.filter((tx) => tx.id !== id));
+  await pruneUnsortedBucket();
 }
 
 export async function addIncome(income: Omit<Income, 'id'>): Promise<string> {

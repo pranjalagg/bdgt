@@ -29,6 +29,7 @@
   $: amountCents = isValidCurrency(amount) ? parseCurrency(amount) : 0;
 
   $: rows = $bucketStatuses
+    .filter((s) => !s.bucket.isSystem)
     .filter((s) => !preselectedBucketId || s.bucket.id === preselectedBucketId)
     .map((s) => ({
       status: s,
