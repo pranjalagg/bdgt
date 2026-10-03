@@ -31,8 +31,15 @@ export function getMonthRange(monthKey: string): { start: Date; end: Date } {
   return { start, end };
 }
 
-export function isCurrentMonth(monthKey: string): boolean {
-  return monthKey === getCurrentMonthKey();
+export function isCurrentMonth(monthKey: string, now: Date = new Date()): boolean {
+  return monthKey === getMonthKey(now);
+}
+
+// Milliseconds until the first moment of the next local day (plus a second
+// of slack so a timer that fires a hair early still lands on the new day).
+export function msUntilNextDay(now: Date = new Date()): number {
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+  return next.getTime() - now.getTime();
 }
 
 export function formatDate(date: Date): string {

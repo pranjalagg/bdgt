@@ -7,6 +7,7 @@ import {
   getNextMonthKey,
   formatDate,
   isCurrentMonth,
+  msUntilNextDay,
   getMonthRange,
   getLast6Months,
   getDaysInMonth,
@@ -210,3 +211,23 @@ describe('date utils', () => {
   });
 });
 
+
+describe('msUntilNextDay', () => {
+  it('counts to just after the next local midnight', () => {
+    const now = new Date(2026, 9, 3, 23, 0, 0);
+    expect(msUntilNextDay(now)).toBe(60 * 60 * 1000 + 1000);
+  });
+
+  it('rolls over a month boundary', () => {
+    const now = new Date(2026, 8, 30, 12, 0, 0);
+    const next = new Date(now.getTime() + msUntilNextDay(now));
+    expect([next.getMonth(), next.getDate()]).toEqual([9, 1]);
+  });
+});
+
+describe('isCurrentMonth with an explicit clock', () => {
+  it('compares against the given date, not the system clock', () => {
+    expect(isCurrentMonth('2026-10', new Date(2026, 9, 1))).toBe(true);
+    expect(isCurrentMonth('2026-09', new Date(2026, 9, 1))).toBe(false);
+  });
+});
