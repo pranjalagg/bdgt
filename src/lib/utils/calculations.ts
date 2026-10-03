@@ -72,9 +72,11 @@ export function calculateSavingsRate(income: number, spent: number): number | nu
 
 // A bucket has no plan for months before the one it was created in, so
 // those months must not show its (current) default amount as an
-// allocation. Matches the rollover rule in accumulateRollovers.
-export function bucketExistsInMonth(bucket: Bucket, month: string): boolean {
-  return month >= getMonthKey(bucket.createdAt);
+// allocation. An explicit assignment for that month overrides this: the
+// user (or a migration) decided it had a plan then, and the same rule must
+// hold for the displayed allocation and for rollover.
+export function bucketExistsInMonth(bucket: Bucket, month: string, hasExplicitAllocation = false): boolean {
+  return hasExplicitAllocation || month >= getMonthKey(bucket.createdAt);
 }
 
 // Change in savings rate, in percentage points, vs the previous month.
@@ -107,15 +109,16 @@ export function accumulateRollovers(
     const spent = spentByMonthBucket[month] ?? {};
 
     for (const bucket of buckets) {
-      // A bucket accrues no rollover for a month before it existed --
-      // its current fixed amount must not retroactively backfill history.
-      if (month < getMonthKey(bucket.createdAt)) continue;
-
       // Per-month overrides only make sense for fixed buckets; percentage
       // and hybrid always re-derive from that month's income.
-      const allocated = bucket.allocationType === 'fixed'
-        ? (overrides[bucket.id] ?? computeAllocation(bucket, monthIncome))
-        : computeAllocation(bucket, monthIncome);
+      const override = bucket.allocationType === 'fixed' ? overrides[bucket.id] : undefined;
+
+      // A bucket accrues no rollover for a month before it existed --
+      // its current fixed amount must not retroactively backfill history --
+      // unless that month carries an explicit assignment for it.
+      if (!bucketExistsInMonth(bucket, month, override !== undefined)) continue;
+
+      const allocated = override ?? computeAllocation(bucket, monthIncome);
       const delta = allocated - (spent[bucket.id] ?? 0);
       if (delta !== 0) {
         rollovers[bucket.id] = (rollovers[bucket.id] ?? 0) + delta;

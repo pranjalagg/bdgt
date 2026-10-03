@@ -202,10 +202,11 @@ export const bucketStatuses = derived(
     }
 
     return $buckets.map((bucket): BucketStatus => {
-      const allocated = !bucketExistsInMonth(bucket, $month)
+      const override = bucket.allocationType === 'fixed' ? $snapshot.allocations[bucket.id] : undefined;
+      const allocated = !bucketExistsInMonth(bucket, $month, override !== undefined)
         ? 0
         : bucket.allocationType === 'fixed'
-          ? ($snapshot.allocations[bucket.id] ?? bucket.fixedAmount ?? 0)
+          ? (override ?? bucket.fixedAmount ?? 0)
           : $computed[bucket.id];
       const bucketSpent = spent[bucket.id] || 0;
       const rollover = $rollovers[bucket.id] || 0;

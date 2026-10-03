@@ -251,6 +251,26 @@ describe('safeToSpendPerDay', () => {
   });
 });
 
+describe('bucketStatuses before a bucket was created', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    incomes.set([]);
+    transactions.set([]);
+    currentMonthKey.set('2026-09');
+    buckets.set([bucket('late', { fixedAmount: 15000, createdAt: new Date(2026, 9, 1) })]);
+  });
+
+  it('shows no default allocation for a month before creation', () => {
+    monthSnapshots.set([]);
+    expect(get(bucketStatuses)[0].allocated).toBe(0);
+  });
+
+  it('honors an explicit assignment saved for that month', () => {
+    monthSnapshots.set([{ month: '2026-09', incomeTotal: 0, allocations: { late: 8000 }, spent: {}, rollovers: {} }]);
+    expect(get(bucketStatuses)[0].allocated).toBe(8000);
+  });
+});
+
 describe('bucketStatuses rollover', () => {
   beforeEach(() => {
     vi.clearAllMocks();

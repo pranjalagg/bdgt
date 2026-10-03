@@ -567,3 +567,36 @@ describe('monthlyBucketSpend with hostile ids', () => {
     expect(series.find((x) => x.bucketId === '__proto__')?.data).toEqual([100]);
   });
 });
+
+describe('explicit allocations before a bucket existed', () => {
+  const mk = (createdAt: Date): Bucket => ({
+    id: 'new', name: 'new', color: '#000', order: 0, isDefault: false, allocationType: 'fixed',
+    fixedAmount: 15000, percentageAmount: 0, isSavings: false, isEveryday: true, createdAt,
+  });
+
+  it('counts a month as existing when it has an explicit assignment', () => {
+    expect(bucketExistsInMonth(mk(new Date(2026, 9, 1)), '2026-09', true)).toBe(true);
+  });
+
+  it('keeps the historical debit when a pinned zero covers months before creation', () => {
+    const rollovers = accumulateRollovers(
+      ['2026-08', '2026-09'],
+      [mk(new Date(2026, 9, 1))],
+      { '2026-08': { new: 0 }, '2026-09': { new: 0 } },
+      {},
+      { '2026-08': { new: 3000 }, '2026-09': { new: 1000 } }
+    );
+    expect(rollovers.new).toBe(-4000);
+  });
+
+  it('still ignores those months when nothing was assigned for them', () => {
+    const rollovers = accumulateRollovers(
+      ['2026-08', '2026-09'],
+      [mk(new Date(2026, 9, 1))],
+      {},
+      {},
+      { '2026-08': { new: 3000 }, '2026-09': { new: 1000 } }
+    );
+    expect(rollovers.new).toBeUndefined();
+  });
+});
