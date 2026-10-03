@@ -67,7 +67,7 @@
   // Money moved into a savings bucket isn't spending — same rule the
   // savings rate and the Analytics page already use.
   $: totalSpent = $bucketStatuses.reduce(
-    (sum, s) => (s.bucket.isSavings ? sum : sum + Math.max(s.spent, 0)),
+    (sum, s) => (s.bucket.isSavings ? sum : sum + s.spent),
     0
   );
 

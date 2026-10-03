@@ -76,7 +76,7 @@
     return centsToDollars(spentExcludingSavings(monthTransactions, savingsBucketIds));
   });
 
-  $: bucketSpendSeries = monthlyBucketSpend($buckets, $transactions, last6Months).map((s) => ({
+  $: bucketSpendSeries = monthlyBucketSpend($buckets.filter((b) => !b.isSavings), $transactions, last6Months).map((s) => ({
     label: s.label,
     color: s.color,
     data: s.data.map(centsToDollars),
