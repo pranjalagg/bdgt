@@ -48,12 +48,24 @@ export interface RecurringTransaction {
   isActive: boolean;
 }
 
+// Context for a month ("Family visit", "Bonus"), not a calculation input.
+// `effect` is what it did to that month's savings.
+export type MonthNoteEffect = 'up' | 'down' | 'none';
+
+export interface MonthNote {
+  id: string;
+  text: string;
+  effect: MonthNoteEffect;
+  createdAt: number; // epoch ms, for stable ordering
+}
+
 export interface MonthSnapshot {
   month: string; // YYYY-MM
   incomeTotal: number; // cents
   allocations: Record<string, number>; // bucketId -> cents
   spent: Record<string, number>; // bucketId -> cents
   rollovers: Record<string, number>; // bucketId -> cents
+  notes?: MonthNote[];
 }
 
 export interface BucketStatus {

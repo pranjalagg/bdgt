@@ -4,7 +4,8 @@ import { db, DATE_FIELDS, initializeDefaultBuckets } from '$lib/db';
 import { currentMonthKey } from './uiStore';
 import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, getPreviousMonthKey, getDaysInMonth, isCurrentMonth, reviveDateFields } from '$lib/utils/dates';
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers, calculateSafeToSpendPerDay, bucketExistsInMonth } from '$lib/utils/calculations';
-import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus } from '$lib/types';
+import { cleanNoteText, normalizeMonthNotes } from '$lib/utils/monthNotes';
+import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus, MonthNote, MonthNoteEffect } from '$lib/types';
 
 export const buckets = writable<Bucket[]>([]);
 export const transactions = writable<Transaction[]>([]);
@@ -71,6 +72,10 @@ export const currentSnapshot = derived(
       spent: {},
       rollovers: {},
     }
+);
+
+export const currentMonthNotes = derived(currentSnapshot, ($s) =>
+  normalizeMonthNotes($s.notes).sort((a, b) => a.createdAt - b.createdAt)
 );
 
 export const computedAllocations = derived(
@@ -449,3 +454,50 @@ export async function updateBucketAllocation(
   }
 }
 
+
+// Month notes live on the month's snapshot, so they ride along with
+// export/import and need no schema change.
+async function mutateNotes(update: (notes: MonthNote[]) => MonthNote[]): Promise<void> {
+  const month = get(currentMonthKey);
+
+  const saved = await db.transaction('rw', db.monthSnapshots, async () => {
+    const existing = await db.monthSnapshots.get(month);
+    const snapshot: MonthSnapshot = existing ?? {
+      month,
+      incomeTotal: 0,
+      allocations: {},
+      spent: {},
+      rollovers: {},
+    };
+    snapshot.notes = update(normalizeMonthNotes(snapshot.notes));
+    await db.monthSnapshots.put(snapshot);
+    return snapshot;
+  });
+
+  monthSnapshots.update((all) => {
+    const idx = all.findIndex((s) => s.month === month);
+    if (idx >= 0) {
+      const next = [...all];
+      next[idx] = saved;
+      return next;
+    }
+    return [...all, saved];
+  });
+}
+
+export async function addMonthNote(text: string, effect: MonthNoteEffect): Promise<void> {
+  const cleaned = cleanNoteText(text);
+  if (cleaned === null) throw new Error('Note cannot be empty');
+  const note: MonthNote = { id: crypto.randomUUID(), text: cleaned, effect, createdAt: Date.now() };
+  await mutateNotes((notes) => [...notes, note]);
+}
+
+export async function updateMonthNote(id: string, text: string, effect: MonthNoteEffect): Promise<void> {
+  const cleaned = cleanNoteText(text);
+  if (cleaned === null) throw new Error('Note cannot be empty');
+  await mutateNotes((notes) => notes.map((n) => (n.id === id ? { ...n, text: cleaned, effect } : n)));
+}
+
+export async function deleteMonthNote(id: string): Promise<void> {
+  await mutateNotes((notes) => notes.filter((n) => n.id !== id));
+}

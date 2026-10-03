@@ -5,6 +5,7 @@
   import AssignPanel from '$lib/components/shared/AssignPanel.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
+  import MonthNotes from '$lib/components/shared/MonthNotes.svelte';
   import { savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
@@ -221,6 +222,8 @@
       </p>
     </div>
   </div>
+
+  <MonthNotes />
 
   <!-- Envelopes -->
   <div>
