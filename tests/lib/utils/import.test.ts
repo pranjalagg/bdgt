@@ -93,6 +93,16 @@ describe('parseImport', () => {
 });
 
 describe('parseImport: older and richer backups', () => {
+  it('preserves bucket colors and flags exactly', () => {
+    const payload = validPayload();
+    // @ts-expect-error minimal bucket
+    payload.data.buckets = [{ id: 'b1', name: 'Rent', color: '#6366f1', isSavings: true, isEveryday: false, createdAt: '2026-04-01T00:00:00.000Z' }];
+    const [b] = parseImport(JSON.stringify(payload)).data.buckets;
+    expect(b.color).toBe('#6366f1');
+    expect(b.isSavings).toBe(true);
+    expect(b.isEveryday).toBe(false);
+  });
+
   it('backfills bucket fields that older backups lack', () => {
     const payload = validPayload();
     // @ts-expect-error pre-migration bucket: no createdAt/isSavings/isEveryday
