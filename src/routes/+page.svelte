@@ -7,6 +7,7 @@
   import Modal from '$lib/components/shared/Modal.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import MonthNotes from '$lib/components/shared/MonthNotes.svelte';
+  import InfoPopover from '$lib/components/shared/InfoPopover.svelte';
   import { unsortedTransactions, savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
@@ -14,6 +15,11 @@
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
   import { parseMonthKey, getDaysInMonth, formatMonthYear } from '$lib/utils/dates';
   import { savingsRateDelta } from '$lib/utils/calculations';
+
+  // The same rule calculateSafeToSpendPerDay applies, spelled out for the popover.
+  $: everydayStatuses = $bucketStatuses.filter((s) => !s.bucket.isSystem && !s.bucket.isSavings && s.bucket.isEveryday);
+  $: notCountedStatuses = $bucketStatuses.filter((s) => !s.bucket.isSystem && (s.bucket.isSavings || !s.bucket.isEveryday));
+  $: everydayLeft = everydayStatuses.reduce((sum, s) => sum + s.remaining, 0);
 
   $: daysLeftInMonth = getDaysInMonth($currentMonthKey) - $today.getDate() + 1;
 
@@ -137,8 +143,30 @@
   {#if $safeToSpendPerDay !== null}
     <!-- The number this app exists to answer: what's actually free to
          spend today, once fixed obligations and savings are set aside. -->
-    <div class="card p-5">
-      <p class="eyebrow">Safe to spend</p>
+    <div class="card relative p-5">
+      <p class="flex items-center gap-1.5">
+        <span class="eyebrow">Safe to spend</span>
+        <InfoPopover label="How safe to spend is calculated">
+          <p class="font-medium text-gray-900 dark:text-gray-50">How this is worked out</p>
+          <p>What is left in your everyday envelopes, spread over the days remaining this month (today included).</p>
+          <p class="money rounded bg-background px-2 py-1 text-[12px] dark:bg-white/[0.05]">
+            {formatCurrency(everydayLeft)} left &divide; {daysLeftInMonth} day{daysLeftInMonth === 1 ? '' : 's'} = {formatCurrency($safeToSpendPerDay)}/day
+          </p>
+          <p>
+            <span class="font-medium text-gray-900 dark:text-gray-50">Counted:</span>
+            {everydayStatuses.length > 0 ? everydayStatuses.map((s) => s.bucket.name).join(', ') : 'none'}.
+            Each one's balance includes what carried over from earlier months.
+          </p>
+          <p>
+            <span class="font-medium text-gray-900 dark:text-gray-50">Not counted:</span>
+            {notCountedStatuses.length > 0 ? notCountedStatuses.map((s) => s.bucket.name).join(', ') : 'none'}.
+            Those are committed money or savings.
+          </p>
+          <p class="text-muted dark:text-muted-dark">
+            Change this per bucket under Setup &rarr; Buckets &rarr; Edit &rarr; &ldquo;Everyday spending&rdquo;.
+          </p>
+        </InfoPopover>
+      </p>
       <p class="mt-1 flex items-baseline gap-1.5">
         <span
           class="money text-[34px] font-medium leading-none tracking-tight
