@@ -86,6 +86,25 @@ for (const [from, to, cents] of edits) {
   b.fixedAmount = cents;
 }
 
+// Rent, Utilities and Subscriptions are committed obligations. Older
+// databases marked every non-savings bucket as everyday (migration v9), so
+// unpaid rent counted toward "safe to spend"; match the app's defaults.
+for (const n of ['Rent', 'Utilities', 'Subscriptions']) need(n).isEveryday = false;
+
+// Allocations already saved for FROM_MONTH or later (say the user opened
+// the month and assigned before migrating) would override the new
+// defaults. This migration's intent is "new amounts from this month on",
+// so replace them and say so.
+const replaced = [];
+for (const snap of data.monthSnapshots.filter((s) => s.month >= FROM_MONTH)) {
+  for (const b of data.buckets) {
+    if (b.allocationType === 'fixed' && edits.some(([, to]) => to === b.name) && snap.allocations?.[b.id] !== undefined) {
+      replaced.push(`${snap.month} ${b.name}: ${snap.allocations[b.id] / 100} -> ${b.fixedAmount / 100}`);
+      snap.allocations[b.id] = b.fixedAmount;
+    }
+  }
+}
+
 const newBuckets = [
   { name: 'Home & Shopping', color: '#afb42b', fixedAmount: 10000, isSavings: false, isEveryday: true },
   { name: 'Personal Care', color: '#9c27b0', fixedAmount: 4000, isSavings: false, isEveryday: true },
@@ -174,4 +193,5 @@ try {
   throw e;
 }
 console.log(`${data.transactions.length} transactions, ${moved.length} moved, 0 deleted`);
+if (replaced.length > 0) console.log('Replaced saved allocations from ' + FROM_MONTH + ' on with the new amounts:\n  ' + replaced.join('\n  '));
 for (const m of moved) console.log(m.join(' | '));
