@@ -90,10 +90,12 @@ const newBuckets = [
   { name: 'Home & Shopping', color: '#afb42b', fixedAmount: 10000, isSavings: false, isEveryday: true },
   { name: 'Personal Care', color: '#9c27b0', fixedAmount: 4000, isSavings: false, isEveryday: true },
   { name: 'Life Admin', color: '#795548', fixedAmount: 15000, isSavings: false, isEveryday: false },
-  // Money moved between your own accounts, not budget spending.
-  { name: 'One-time Transfers', color: '#b0bec5', fixedAmount: 0, isSavings: true, isEveryday: false },
+  // Money moved between your own accounts, not budget spending: its history
+  // must not carry as a debt (pinHistory: false), unlike the real spending
+  // buckets above.
+  { name: 'One-time Transfers', color: '#b0bec5', fixedAmount: 0, isSavings: true, isEveryday: false, pinHistory: false },
 ];
-for (const nb of newBuckets) {
+for (const { pinHistory: _pin, ...nb } of newBuckets) {
   data.buckets.push({
     ...nb, id: crypto.randomUUID(), order: 0, isDefault: false,
     allocationType: 'fixed', percentageAmount: 0, createdAt: FROM_MONTH_ISO,
@@ -106,7 +108,7 @@ const id = (n) => byName(n)?.id ?? fail(`missing ${n}`);
 // months, so the spend would vanish from rollover. A pinned zero makes
 // each of those months count for it: no plan then, so the spend carries
 // forward as a balance to work down.
-for (const nb of newBuckets) {
+for (const nb of newBuckets.filter((b) => b.pinHistory !== false)) {
   for (const month of pastMonths) snapshotFor(month).allocations[id(nb.name)] = 0;
 }
 
