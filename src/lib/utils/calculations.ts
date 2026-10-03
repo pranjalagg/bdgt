@@ -195,13 +195,16 @@ export function monthlyBucketSpend(
   months: string[]
 ): BucketMonthlySeries[] {
   const monthSet = new Set(months);
-  const byBucketMonth: Record<string, Record<string, number>> = {};
+  // Maps, not plain objects: bucket ids come from imported files, and an id
+  // like "__proto__" must not alias Object.prototype.
+  const byBucketMonth = new Map<string, Map<string, number>>();
 
   for (const t of transactions) {
     const m = getMonthKey(new Date(t.date));
     if (!monthSet.has(m)) continue;
-    const bucketTotals = (byBucketMonth[t.bucketId] ??= {});
-    bucketTotals[m] = (bucketTotals[m] ?? 0) + t.amount;
+    let bucketTotals = byBucketMonth.get(t.bucketId);
+    if (!bucketTotals) byBucketMonth.set(t.bucketId, (bucketTotals = new Map()));
+    bucketTotals.set(m, (bucketTotals.get(m) ?? 0) + t.amount);
   }
 
   return buckets
@@ -209,7 +212,7 @@ export function monthlyBucketSpend(
       bucketId: b.id,
       label: b.name,
       color: b.color,
-      data: months.map((m) => byBucketMonth[b.id]?.[m] ?? 0),
+      data: months.map((m) => byBucketMonth.get(b.id)?.get(m) ?? 0),
     }))
     .filter((series) => series.data.some((v) => v !== 0));
 }
@@ -241,6 +244,8 @@ export function calculateBucketFit(
   allocated: number
 ): BucketFitStatus {
   if (amountCents <= 0) return 'neutral';
-  if (allocated === 0) return 'unfunded';
+  // Nothing assigned this month, but a positive balance carried from
+  // earlier months still funds the spend.
+  if (allocated === 0 && remaining <= 0) return 'unfunded';
   return amountCents <= remaining ? 'fits' : 'tight';
 }

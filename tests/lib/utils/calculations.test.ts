@@ -534,3 +534,36 @@ describe('bucketExistsInMonth', () => {
     expect(bucketExistsInMonth(bucket(new Date(0)), '2026-04')).toBe(true);
   });
 });
+
+describe('calculateBucketFit with a carried balance', () => {
+  it('fits when nothing is assigned this month but a balance carried over covers it', () => {
+    expect(calculateBucketFit(5000, 10000, 0)).toBe('fits');
+  });
+
+  it('is tight when the carried balance does not cover it', () => {
+    expect(calculateBucketFit(5000, 2000, 0)).toBe('tight');
+  });
+
+  it('stays unfunded when nothing is assigned and the balance is negative', () => {
+    expect(calculateBucketFit(1000, -500, 0)).toBe('unfunded');
+  });
+});
+
+describe('monthlyBucketSpend with hostile ids', () => {
+  it('does not let a __proto__ bucket id leak into other totals', () => {
+    const mk = (id: string): Bucket => ({
+      id, name: id, color: '#000', order: 0, isDefault: false, allocationType: 'fixed',
+      fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true, createdAt: new Date(2000, 0, 1),
+    });
+    const series = monthlyBucketSpend(
+      [mk('__proto__'), mk('other')],
+      [
+        { bucketId: '__proto__', amount: 100, date: new Date(2026, 8, 5) },
+        { bucketId: 'other', amount: 50, date: new Date(2026, 8, 6) },
+      ],
+      ['2026-09']
+    );
+    expect(series.find((x) => x.bucketId === 'other')?.data).toEqual([50]);
+    expect(series.find((x) => x.bucketId === '__proto__')?.data).toEqual([100]);
+  });
+});

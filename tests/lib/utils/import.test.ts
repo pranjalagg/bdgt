@@ -93,6 +93,22 @@ describe('parseImport', () => {
 });
 
 describe('parseImport: older and richer backups', () => {
+  it('treats default savings buckets as savings when the backup predates isSavings', () => {
+    const payload = validPayload();
+    // @ts-expect-error pre-isSavings buckets
+    payload.data.buckets = [{ id: 'b1', name: 'Rent' }, { id: 'b2', name: 'Investments' }, { id: 'b3', name: 'Emergency Fund' }];
+    const [rent, invest, emerg] = parseImport(JSON.stringify(payload)).data.buckets;
+    expect([rent.isSavings, invest.isSavings, emerg.isSavings]).toEqual([false, true, true]);
+    expect([rent.isEveryday, invest.isEveryday, emerg.isEveryday]).toEqual([true, false, false]);
+  });
+
+  it('rejects bucket ids that would alias Object.prototype', () => {
+    const payload = validPayload();
+    // @ts-expect-error minimal bucket
+    payload.data.buckets = [{ id: '__proto__', name: 'x' }];
+    expect(() => parseImport(JSON.stringify(payload))).toThrow(/unusable id/);
+  });
+
   it('preserves bucket colors and flags exactly', () => {
     const payload = validPayload();
     // @ts-expect-error minimal bucket

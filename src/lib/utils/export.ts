@@ -1,4 +1,4 @@
-import { db, DATE_FIELDS } from '$lib/db';
+import { db, DATE_FIELDS, SAVINGS_BUCKET_NAMES } from '$lib/db';
 import { centsToDollars } from './currency';
 import { formatDate, reviveDateFields } from './dates';
 import { normalizeMonthNotes } from './monthNotes';
@@ -79,6 +79,8 @@ function reviveDates<T extends Record<string, unknown>>(rows: T[], fields: strin
   return rows.map((row) => reviveDateFields(row, fields));
 }
 
+const RESERVED_IDS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export function parseImport(json: string): ExportData {
   let parsed: unknown;
   try {
@@ -116,12 +118,26 @@ export function parseImport(json: string): ExportData {
   // Older backups predate some bucket fields. Restoring raw skips the
   // database upgrade steps that backfill them, and a bucket without
   // createdAt breaks rollover math, so apply the same defaults here.
-  data.buckets = (data.buckets as Record<string, unknown>[]).map((b) => ({
-    ...b,
-    createdAt: b.createdAt ?? new Date(0),
-    isSavings: b.isSavings ?? false,
-    isEveryday: b.isEveryday ?? !b.isSavings,
-  }));
+  // isSavings falls back to the same default-name rule as database
+  // migration v5, so an old backup's Savings/Investments/Emergency Fund stay
+  // savings rather than becoming spending buckets in the safe-to-spend pool.
+  data.buckets = (data.buckets as Record<string, unknown>[]).map((b) => {
+    const isSavings = (b.isSavings as boolean | undefined) ?? SAVINGS_BUCKET_NAMES.has(b.name as string);
+    return {
+      ...b,
+      createdAt: b.createdAt ?? new Date(0),
+      isSavings,
+      isEveryday: b.isEveryday ?? !isSavings,
+    };
+  });
+
+  // Ids key plain-object lookups throughout the app; these would alias
+  // Object.prototype.
+  for (const b of data.buckets as { id: unknown }[]) {
+    if (typeof b.id !== 'string' || RESERVED_IDS.has(b.id)) {
+      throw new Error(`Backup contains a bucket with an unusable id: "${String(b.id)}"`);
+    }
+  }
 
   data.monthSnapshots = (data.monthSnapshots as Record<string, unknown>[]).map((s) => {
     const { notes, ...rest } = s;
