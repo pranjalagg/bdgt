@@ -157,7 +157,7 @@
             {formatAllocationDisplay(status.bucket, $computedAllocations[status.bucket.id], status.allocated)}
           </p>
           {#if status.rollover !== 0}
-            <p class="text-xs text-muted">Rollover: {formatCurrency(status.rollover)}</p>
+            <p class="text-xs text-muted">Rollover: <span class="amt">{formatCurrency(status.rollover)}</span></p>
           {/if}
         </div>
         {#if status.bucket.allocationType === 'fixed'}

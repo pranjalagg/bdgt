@@ -382,7 +382,7 @@
           <div class="flex items-center justify-between rounded-lg border border-gray-100 p-3 dark:border-border-dark">
             <div>
               <div class="flex items-center gap-2">
-                <p class="font-semibold tabular-nums dark:text-gray-100">{formatCurrency(income.amount)}</p>
+                <p class="amt font-semibold tabular-nums dark:text-gray-100">{formatCurrency(income.amount)}</p>
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-medium {income.type === 'fixed' ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning'}">
                   {income.type === 'fixed' ? 'Fixed' : 'One-time'}
                 </span>

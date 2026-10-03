@@ -19,6 +19,12 @@
 				if (isDark) {
 					document.documentElement.classList.add('dark');
 				}
+				// Apply "hide amounts" before first paint so figures never flash.
+				try {
+					if (localStorage.getItem('bdgt-hide-amounts') === 'true') {
+						document.documentElement.classList.add('privacy');
+					}
+				} catch (e) {}
 			})();
 		</script>
 		%sveltekit.head%

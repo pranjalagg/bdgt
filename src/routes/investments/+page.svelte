@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { openModal } from '$lib/stores/uiStore';
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
+  import PrivacyToggle from '$lib/components/shared/PrivacyToggle.svelte';
   import {
     loadInvestments,
     isLoadingInvestments,
@@ -34,7 +35,10 @@
 <div class="space-y-6">
   <SectionTabs tabs={[{ href: '/analytics', label: 'Analytics' }, { href: '/investments', label: 'Investments' }]} />
 
-  <h1 class="page-title">Investments</h1>
+  <div class="flex items-center justify-between gap-4">
+    <h1 class="page-title">Investments</h1>
+    <PrivacyToggle />
+  </div>
 
   {#if $isLoadingInvestments}
     <div class="flex items-center justify-center py-12">

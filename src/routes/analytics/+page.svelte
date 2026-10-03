@@ -162,8 +162,8 @@
         {#if totalSpending > 0}
           <div class="mb-6">
             <div class="mb-2 flex justify-between text-sm">
-              <span class="font-medium text-gray-700 dark:text-gray-200">Big: {bigPct}% ({formatCurrency(bigTotal)})</span>
-              <span class="font-medium text-gray-700 dark:text-gray-200">Small: {smallPct}% ({formatCurrency(smallTotal)})</span>
+              <span class="font-medium text-gray-700 dark:text-gray-200">Big: {bigPct}% (<span class="amt">{formatCurrency(bigTotal)}</span>)</span>
+              <span class="font-medium text-gray-700 dark:text-gray-200">Small: {smallPct}% (<span class="amt">{formatCurrency(smallTotal)}</span>)</span>
             </div>
             <div class="flex h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/50">
               {#if bigTotal > 0}
@@ -195,7 +195,7 @@
                   >
                     <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenBig[cat.bucketId]}></span>
                     <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenBig[cat.bucketId]}>{cat.label}</span>
-                    <span class="text-right text-sm tabular-nums text-muted">
+                    <span class="amt text-right text-sm tabular-nums text-muted">
                       {formatCurrency(cat.cents)} ({pct}%){#if incomePct} <span class="text-xs text-primary">{incomePct}% inc</span>{/if}
                     </span>
                   </button>
@@ -223,7 +223,7 @@
                   >
                     <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" style="background-color: {cat.color}" class:opacity-30={hiddenSmall[cat.bucketId]}></span>
                     <span class="flex-1 text-sm text-gray-700 dark:text-gray-200" class:line-through={hiddenSmall[cat.bucketId]}>{cat.label}</span>
-                    <span class="text-right text-sm tabular-nums text-muted">
+                    <span class="amt text-right text-sm tabular-nums text-muted">
                       {formatCurrency(cat.cents)} ({pct}%){#if incomePct} <span class="text-xs text-primary">{incomePct}% inc</span>{/if}
                     </span>
                   </button>
