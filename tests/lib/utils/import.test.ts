@@ -91,3 +91,55 @@ describe('parseImport', () => {
     expect(result.data.incomes[0].type).toBe('fixed');
   });
 });
+
+describe('parseImport: older and richer backups', () => {
+  it('backfills bucket fields that older backups lack', () => {
+    const payload = validPayload();
+    // @ts-expect-error pre-migration bucket: no createdAt/isSavings/isEveryday
+    payload.data.buckets = [{ id: 'b1', name: 'Rent' }, { id: 'b2', name: 'Savings', isSavings: true }];
+    const [rent, savings] = parseImport(JSON.stringify(payload)).data.buckets;
+    expect(rent.createdAt).toEqual(new Date(0));
+    expect(rent.isSavings).toBe(false);
+    expect(rent.isEveryday).toBe(true);
+    expect(savings.isEveryday).toBe(false);
+  });
+
+  it('keeps month notes and drops malformed ones', () => {
+    const payload = validPayload();
+    // @ts-expect-error minimal snapshot
+    payload.data.monthSnapshots = [{
+      month: '2026-09', incomeTotal: 0, allocations: {}, spent: {}, rollovers: {},
+      notes: [
+        { id: 'n1', text: 'Family visit', effect: 'down', createdAt: 5 },
+        { id: 'n2', text: '   ', effect: 'up', createdAt: 6 },
+        { text: 'no id', effect: 'up' },
+        { id: 'n3', text: 'Bonus', effect: 'sideways', createdAt: 7 },
+      ],
+    }];
+    const [snap] = parseImport(JSON.stringify(payload)).data.monthSnapshots;
+    expect(snap.notes?.map((n) => [n.id, n.effect])).toEqual([['n1', 'down'], ['n3', 'none']]);
+  });
+
+  it('revives every date field in every collection', () => {
+    const iso = '2026-09-01T12:00:00.000Z';
+    const payload = validPayload();
+    Object.assign(payload.data, {
+      buckets: [{ id: 'b1', createdAt: iso }],
+      recurringTransactions: [{ id: 'r1', frequency: 'monthly', nextDueDate: iso }],
+      incomes: [{ id: 'i1', date: iso }],
+      savingsGoals: [{ id: 'g1', createdAt: iso, targetDate: iso }],
+      investmentLots: [{ id: 'l1', purchaseDate: iso }],
+      investmentSells: [{ id: 's1', sellDate: iso }],
+      investmentPrices: [{ symbol: 'X', updatedAt: iso }],
+    });
+    const { data } = parseImport(JSON.stringify(payload)) as unknown as { data: Record<string, Record<string, unknown>[]> };
+    const dates: [string, string][] = [
+      ['buckets', 'createdAt'], ['transactions', 'date'], ['recurringTransactions', 'nextDueDate'],
+      ['incomes', 'date'], ['savingsGoals', 'createdAt'], ['savingsGoals', 'targetDate'],
+      ['investmentLots', 'purchaseDate'], ['investmentSells', 'sellDate'], ['investmentPrices', 'updatedAt'],
+    ];
+    for (const [table, field] of dates) {
+      expect(data[table][0][field], `${table}.${field}`).toBeInstanceOf(Date);
+    }
+  });
+});

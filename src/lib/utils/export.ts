@@ -1,6 +1,7 @@
 import { db, DATE_FIELDS } from '$lib/db';
 import { centsToDollars } from './currency';
 import { formatDate, reviveDateFields } from './dates';
+import { normalizeMonthNotes } from './monthNotes';
 import type { ExportData } from '$lib/types';
 
 export async function exportToJson(): Promise<string> {
@@ -111,6 +112,22 @@ export function parseImport(json: string): ExportData {
       data[name] = reviveDates(data[name] as Record<string, unknown>[], DATE_FIELDS[name]);
     }
   }
+
+  // Older backups predate some bucket fields. Restoring raw skips the
+  // database upgrade steps that backfill them, and a bucket without
+  // createdAt breaks rollover math, so apply the same defaults here.
+  data.buckets = (data.buckets as Record<string, unknown>[]).map((b) => ({
+    ...b,
+    createdAt: b.createdAt ?? new Date(0),
+    isSavings: b.isSavings ?? false,
+    isEveryday: b.isEveryday ?? !b.isSavings,
+  }));
+
+  data.monthSnapshots = (data.monthSnapshots as Record<string, unknown>[]).map((s) => {
+    const { notes, ...rest } = s;
+    const clean = normalizeMonthNotes(notes);
+    return { ...rest, allocations: s.allocations ?? {}, ...(clean.length > 0 ? { notes: clean } : {}) };
+  });
 
   data.incomes = (data.incomes as Record<string, unknown>[]).map((i) => ({
     ...i,
