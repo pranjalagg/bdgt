@@ -75,6 +75,8 @@
   }
 
   async function commit(bucketId: string) {
+    // Inputs stay enabled during the write, so Enter can fire again.
+    if (isSubmitting) return;
     amountTouched = true;
     if (!amount || amountError || !isValidCurrency(amount)) {
       amountInput?.focus();
