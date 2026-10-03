@@ -14,6 +14,12 @@
 
   let showAll = false;
 
+  // Hover/focus/tap detail for a segment: which bucket it is and its
+  // amount, without relying on the browser's slow native tooltip (which
+  // never appears on touch).
+  type Tip = { name: string; color: string | null; amount: number; share: number; center: number; hint?: string };
+  let tip: Tip | null = null;
+
   $: assigned = income - unallocated;
   $: segments = statuses
     .filter((s) => s.allocated > 0)
@@ -23,6 +29,17 @@
   $: overAssigned = unallocated < 0;
   $: denominator = overAssigned ? assigned : Math.max(income, assigned);
   $: pct = (n: number) => (denominator > 0 ? (n / denominator) * 100 : 0);
+
+  // Where each segment sits along the bar, so its tooltip can anchor to it.
+  $: layout = (() => {
+    let start = 0;
+    return segments.map((s) => {
+      const width = pct(s.allocated);
+      const entry = { s, width, center: start + width / 2 };
+      start += width;
+      return entry;
+    });
+  })();
 </script>
 
 {#if compact}
@@ -64,38 +81,72 @@
       </p>
     </div>
 
-    <div
-      class="flex h-11 overflow-hidden rounded bg-rule dark:bg-white/[0.07]"
-      role="img"
-      aria-label={`${formatCurrency(assigned)} of ${formatCurrency(income)} assigned across ${segments.length} buckets`}
-    >
-      {#each segments as s (s.bucket.id)}
-        <!-- Card-colored hairline between segments so neighbours with
-             similar hues stay separable. -->
-        <span
-          class="border-r-[1.5px] border-white last:border-r-0 dark:border-surface-dark"
-          style="flex:{s.allocated};background:{s.bucket.color}"
-          title="{s.bucket.name} — {formatCurrency(s.allocated)}"
-        ></span>
-      {/each}
-      {#if income === 0 && segments.length === 0}
-        <!-- Nothing to measure yet: hatched like the gap, not a solid slab. -->
-        <span
-          class="flex-1 bg-[repeating-linear-gradient(135deg,theme(colors.rule),theme(colors.rule)_5px,transparent_5px,transparent_10px)] dark:bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.16)_5px,transparent_5px,transparent_10px)]"
-          aria-hidden="true"
-        ></span>
+    <div class="relative">
+      {#if tip}
+        <!-- Below the bar so it never covers the totals above; it overlays the
+             legend, which repeats the same names and amounts. Clamped so the
+             first and last segments stay inside the card. -->
+        <div
+          class="pointer-events-none absolute top-full z-10 mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2.5 py-1.5 text-[12.5px] text-white shadow-md dark:bg-gray-100 dark:text-gray-900"
+          style="left:{Math.min(Math.max(tip.center, 14), 86)}%"
+          role="tooltip"
+        >
+          <span class="flex items-center gap-2">
+            {#if tip.color}
+              <span class="h-2 w-2 flex-none rounded-[2px]" style="background:{tip.color}"></span>
+            {/if}
+            <span class="font-medium">{tip.name}</span>
+            <span class="money">{formatCurrency(tip.amount)}</span>
+            <span class="money opacity-70">{Math.round(tip.share)}%</span>
+          </span>
+          {#if tip.hint}<span class="mt-0.5 block text-[11.5px] opacity-70">{tip.hint}</span>{/if}
+        </div>
       {/if}
-      {#if unallocated > 0}
-        <!-- The gap. Hatched so it reads as absence, not as another bucket. -->
-        <button
-          type="button"
-          style="flex:{unallocated}"
-          on:click={onAssign}
-          title="Assign {formatCurrency(unallocated)}"
-          class="group relative min-w-[3px] cursor-pointer border-l-2 border-muted bg-[repeating-linear-gradient(135deg,theme(colors.rule),theme(colors.rule)_5px,transparent_5px,transparent_10px)] transition-colors hover:bg-[repeating-linear-gradient(135deg,theme(colors.muted),theme(colors.muted)_5px,transparent_5px,transparent_10px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-muted-dark dark:bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.16)_5px,transparent_5px,transparent_10px)]"
-          aria-label="Assign {formatCurrency(unallocated)} to buckets"
-        ></button>
-      {/if}
+
+      <div
+        class="flex h-11 overflow-hidden rounded bg-rule dark:bg-white/[0.07]"
+        role="group"
+        aria-label={`${formatCurrency(assigned)} of ${formatCurrency(income)} assigned across ${segments.length} buckets`}
+      >
+        {#each layout as { s, width, center } (s.bucket.id)}
+          <!-- Card-colored hairline between segments so neighbours with
+               similar hues stay separable. -->
+          <!-- Tapping focuses the segment, which is what shows the tooltip on touch. -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+          <span
+            class="border-r-[1.5px] border-white outline-none last:border-r-0 focus-visible:brightness-90 dark:border-surface-dark"
+            style="flex:{s.allocated};background:{s.bucket.color}"
+            role="img"
+            tabindex="0"
+            aria-label="{s.bucket.name}: {formatCurrency(s.allocated)}"
+            on:mouseenter={() => (tip = { name: s.bucket.name, color: s.bucket.color, amount: s.allocated, share: width, center })}
+            on:focus={() => (tip = { name: s.bucket.name, color: s.bucket.color, amount: s.allocated, share: width, center })}
+            on:mouseleave={() => (tip = null)}
+            on:blur={() => (tip = null)}
+          ></span>
+        {/each}
+        {#if income === 0 && segments.length === 0}
+          <!-- Nothing to measure yet: hatched like the gap, not a solid slab. -->
+          <span
+            class="flex-1 bg-[repeating-linear-gradient(135deg,theme(colors.rule),theme(colors.rule)_5px,transparent_5px,transparent_10px)] dark:bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.16)_5px,transparent_5px,transparent_10px)]"
+            aria-hidden="true"
+          ></span>
+        {/if}
+        {#if unallocated > 0}
+          <!-- The gap. Hatched so it reads as absence, not as another bucket. -->
+          <button
+            type="button"
+            style="flex:{unallocated}"
+            on:click={onAssign}
+            on:mouseenter={() => (tip = { name: 'Unassigned', color: null, amount: unallocated, share: pct(unallocated), center: 100 - pct(unallocated) / 2, hint: 'Click to assign' })}
+            on:focus={() => (tip = { name: 'Unassigned', color: null, amount: unallocated, share: pct(unallocated), center: 100 - pct(unallocated) / 2, hint: 'Click to assign' })}
+            on:mouseleave={() => (tip = null)}
+            on:blur={() => (tip = null)}
+            class="group relative min-w-[3px] cursor-pointer border-l-2 border-muted bg-[repeating-linear-gradient(135deg,theme(colors.rule),theme(colors.rule)_5px,transparent_5px,transparent_10px)] transition-colors hover:bg-[repeating-linear-gradient(135deg,theme(colors.muted),theme(colors.muted)_5px,transparent_5px,transparent_10px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-muted-dark dark:bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.16)_5px,transparent_5px,transparent_10px)]"
+            aria-label="Assign {formatCurrency(unallocated)} to buckets"
+          ></button>
+        {/if}
+      </div>
     </div>
 
     {#if segments.length > 0}
