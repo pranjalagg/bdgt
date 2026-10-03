@@ -1,7 +1,7 @@
 // src/lib/stores/budgetStore.ts
 import { writable, derived, get } from 'svelte/store';
 import { db, DATE_FIELDS, initializeDefaultBuckets } from '$lib/db';
-import { currentMonthKey } from './uiStore';
+import { currentMonthKey, today } from './uiStore';
 import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, getPreviousMonthKey, getDaysInMonth, isCurrentMonth, reviveDateFields } from '$lib/utils/dates';
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers, calculateSafeToSpendPerDay, bucketExistsInMonth } from '$lib/utils/calculations';
 import { UNSORTED_BUCKET_ID, makeUnsortedBucket, findOrphans } from '$lib/utils/unsorted';
@@ -239,11 +239,10 @@ export const savingsRate = derived(
 // the real current month; null otherwise so the UI can hide it rather
 // than show a number for a month that's already closed or hasn't started.
 export const safeToSpendPerDay = derived(
-  [bucketStatuses, currentMonthKey],
-  ([$statuses, $month]) => {
-    if (!isCurrentMonth($month)) return null;
-    const today = new Date();
-    const daysLeft = getDaysInMonth($month) - today.getDate() + 1;
+  [bucketStatuses, currentMonthKey, today],
+  ([$statuses, $month, $today]) => {
+    if (!isCurrentMonth($month, $today)) return null;
+    const daysLeft = getDaysInMonth($month) - $today.getDate() + 1;
     return calculateSafeToSpendPerDay($statuses, daysLeft);
   }
 );
@@ -341,6 +340,12 @@ async function ensureUnsortedBucket(): Promise<void> {
 async function pruneUnsortedBucket(): Promise<void> {
   if (!get(buckets).some((b) => b.id === UNSORTED_BUCKET_ID)) return;
   if (get(transactions).some((t) => t.bucketId === UNSORTED_BUCKET_ID)) return;
+  // Never delete a bucket something else still points at.
+  const [recurring, goals] = await Promise.all([
+    db.recurringTransactions.where('bucketId').equals(UNSORTED_BUCKET_ID).count(),
+    db.savingsGoals.where('bucketId').equals(UNSORTED_BUCKET_ID).count(),
+  ]);
+  if (recurring > 0 || goals > 0) return;
   await db.buckets.delete(UNSORTED_BUCKET_ID);
   buckets.update((b) => b.filter((bucket) => bucket.id !== UNSORTED_BUCKET_ID));
 }
@@ -463,11 +468,11 @@ export async function setAllocations(allocations: Record<string, number>): Promi
 // the single most tedious thing about keeping one. Copies last month's
 // assignments onto this month, skipping buckets that no longer exist.
 // Returns how many were carried.
-export async function carryForwardAllocations(): Promise<number> {
+export function getCarryForwardAllocations(): Record<string, number> {
   const month = get(currentMonthKey);
   const previous = getPreviousMonthKey(month);
   const previousSnapshot = get(monthSnapshots).find((s) => s.month === previous);
-  if (!previousSnapshot) return 0;
+  if (!previousSnapshot) return {};
 
   const liveBucketIds = new Set(get(buckets).map((b) => b.id));
   const carried: Record<string, number> = {};
@@ -476,7 +481,13 @@ export async function carryForwardAllocations(): Promise<number> {
       carried[bucketId] = amount;
     }
   }
+  return carried;
+}
 
+// Persists immediately. The Assign panel has Save/Cancel semantics and
+// uses getCarryForwardAllocations() into its draft instead.
+export async function carryForwardAllocations(): Promise<number> {
+  const carried = getCarryForwardAllocations();
   const count = Object.keys(carried).length;
   if (count === 0) return 0;
 

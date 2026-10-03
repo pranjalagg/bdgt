@@ -10,12 +10,12 @@
   import { unsortedTransactions, savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
-  import { currentMonthKey, openModal, closeModal, openLog } from '$lib/stores/uiStore';
+  import { currentMonthKey, today, openModal, closeModal, openLog } from '$lib/stores/uiStore';
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
   import { parseMonthKey, getDaysInMonth, formatMonthYear } from '$lib/utils/dates';
   import { savingsRateDelta } from '$lib/utils/calculations';
 
-  $: daysLeftInMonth = getDaysInMonth($currentMonthKey) - new Date().getDate() + 1;
+  $: daysLeftInMonth = getDaysInMonth($currentMonthKey) - $today.getDate() + 1;
 
   let incomeAmount = '';
   let incomeNote = '';
@@ -400,7 +400,7 @@
       <label for="goal-bucket" class="label">Linked Bucket</label>
       <select id="goal-bucket" bind:value={goalBucketId} class="mt-1.5 select-base">
         <option value="">Select a bucket</option>
-        {#each $buckets as bucket}
+        {#each $buckets.filter((b) => !b.isSystem) as bucket}
           <option value={bucket.id}>{bucket.name}</option>
         {/each}
       </select>

@@ -5,7 +5,8 @@ const { txChain, recChain, goalChain } = vi.hoisted(() => {
   const make = () => {
     const del = vi.fn().mockResolvedValue(1);
     const modify = vi.fn().mockResolvedValue(1);
-    return { where: vi.fn(() => ({ equals: vi.fn(() => ({ delete: del, modify })) })), del, modify };
+    const count = vi.fn().mockResolvedValue(0);
+    return { where: vi.fn(() => ({ equals: vi.fn(() => ({ delete: del, modify, count })) })), del, modify, count };
   };
   return { txChain: make(), recChain: make(), goalChain: make() };
 });
@@ -40,9 +41,9 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { updateTransaction, deleteTransaction, buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, updateBucketAllocation, safeToSpendPerDay } from '$lib/stores/budgetStore';
+import { updateTransaction, deleteTransaction, buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, getCarryForwardAllocations, updateBucketAllocation, safeToSpendPerDay } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
-import { currentMonthKey } from '$lib/stores/uiStore';
+import { currentMonthKey, today } from '$lib/stores/uiStore';
 
 const bucket = (id: string, over: Partial<import('$lib/types').Bucket> = {}) => ({
   id, name: id, color: '#000', order: 0, isDefault: false,
@@ -123,6 +124,13 @@ describe('Unsorted lifecycle', () => {
     expect(get(buckets).map((b) => b.id)).toEqual(['b1']);
   });
 
+  it('is kept while a recurring rule or goal still points at it', async () => {
+    recChain.count.mockResolvedValueOnce(1);
+    await updateTransaction('t1', { bucketId: 'b1' });
+    await updateTransaction('t2', { bucketId: 'b1' });
+    expect(get(buckets).map((b) => b.id)).toContain('unsorted');
+  });
+
   it('disappears when its last transaction is deleted', async () => {
     await deleteTransaction('t1');
     await deleteTransaction('t2');
@@ -198,6 +206,7 @@ describe('safeToSpendPerDay', () => {
   it('is null when viewing a month other than the current one', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 2, 15)); // today: March 15
+    today.set(new Date());
     buckets.set([bucket('groceries', { fixedAmount: 30000 })]);
     transactions.set([]);
     currentMonthKey.set('2026-02'); // viewing February, not the current month
@@ -207,6 +216,7 @@ describe('safeToSpendPerDay', () => {
   it('divides remaining everyday-bucket money by the days left including today', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 2, 21)); // March has 31 days; 11 days left incl. today
+    today.set(new Date());
     buckets.set([
       bucket('groceries', { fixedAmount: 60000, isEveryday: true, createdAt: new Date(2026, 2, 1) }),
       bucket('rent', { fixedAmount: 210000, isEveryday: false, createdAt: new Date(2026, 2, 1) }),
@@ -220,6 +230,24 @@ describe('safeToSpendPerDay', () => {
     // groceries remaining 60000-15000=45000, rent excluded (not everyday)
     // 45000 / 11 = 4090.9 -> rounds to 4091
     expect(get(safeToSpendPerDay)).toBe(4091);
+  });
+
+  it('recomputes when the day rolls over without any other store changing', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 2, 21));
+    today.set(new Date());
+    buckets.set([bucket('groceries', { fixedAmount: 60000, isEveryday: true, createdAt: new Date(2026, 2, 1) })]);
+    transactions.set([]);
+    currentMonthKey.set('2026-03');
+    expect(get(safeToSpendPerDay)).toBe(Math.round(60000 / 11));
+
+    vi.setSystemTime(new Date(2026, 2, 22));
+    today.set(new Date()); // what startClock does at midnight / on resume
+    expect(get(safeToSpendPerDay)).toBe(Math.round(60000 / 10));
+
+    vi.setSystemTime(new Date(2026, 3, 1)); // March is now a past month
+    today.set(new Date());
+    expect(get(safeToSpendPerDay)).toBeNull();
   });
 });
 
@@ -366,6 +394,22 @@ describe('setAllocations (bulk assign)', () => {
 
   it('rejects a non-finite amount', async () => {
     await expect(setAllocations({ b1: NaN })).rejects.toThrow(/amount|finite/i);
+    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+  });
+});
+
+describe('getCarryForwardAllocations', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    currentMonthKey.set('2026-03');
+    buckets.set([bucket('b1')]);
+    monthSnapshots.set([
+      { month: '2026-02', incomeTotal: 0, allocations: { b1: 50000, deleted: 1 }, spent: {}, rollovers: {} },
+    ]);
+  });
+
+  it('returns last month\'s live allocations without writing anything', () => {
+    expect(getCarryForwardAllocations()).toEqual({ b1: 50000 });
     expect(db.monthSnapshots.put).not.toHaveBeenCalled();
   });
 });
