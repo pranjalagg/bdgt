@@ -70,7 +70,10 @@
       aria-label={`${formatCurrency(assigned)} of ${formatCurrency(income)} assigned across ${segments.length} buckets`}
     >
       {#each segments as s (s.bucket.id)}
+        <!-- Card-colored hairline between segments so neighbours with
+             similar hues stay separable. -->
         <span
+          class="border-r-[1.5px] border-white last:border-r-0 dark:border-surface-dark"
           style="flex:{s.allocated};background:{s.bucket.color}"
           title="{s.bucket.name} — {formatCurrency(s.allocated)}"
         ></span>

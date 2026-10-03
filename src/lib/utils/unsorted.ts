@@ -11,7 +11,7 @@ export function makeUnsortedBucket(order: number, now: Date = new Date()): Bucke
   return {
     id: UNSORTED_BUCKET_ID,
     name: UNSORTED_NAME,
-    color: '#94a3b8',
+    color: '#b0bec5',
     order,
     isDefault: false,
     allocationType: 'fixed',

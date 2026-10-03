@@ -54,11 +54,11 @@ for (const [from, to, cents] of edits) {
 }
 
 const newBuckets = [
-  { name: 'Home & Shopping', color: '#14b8a6', fixedAmount: 10000, isSavings: false, isEveryday: true },
-  { name: 'Personal Care', color: '#ec4899', fixedAmount: 4000, isSavings: false, isEveryday: true },
-  { name: 'Life Admin', color: '#64748b', fixedAmount: 15000, isSavings: false, isEveryday: false },
+  { name: 'Home & Shopping', color: '#afb42b', fixedAmount: 10000, isSavings: false, isEveryday: true },
+  { name: 'Personal Care', color: '#9c27b0', fixedAmount: 4000, isSavings: false, isEveryday: true },
+  { name: 'Life Admin', color: '#795548', fixedAmount: 15000, isSavings: false, isEveryday: false },
   // Money moved between your own accounts, not budget spending.
-  { name: 'One-time Transfers', color: '#94a3b8', fixedAmount: 0, isSavings: true, isEveryday: false },
+  { name: 'One-time Transfers', color: '#b0bec5', fixedAmount: 0, isSavings: true, isEveryday: false },
 ];
 for (const nb of newBuckets) {
   data.buckets.push({
