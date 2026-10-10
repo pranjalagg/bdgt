@@ -146,8 +146,8 @@ pair, an unrelated pair, constant spending, tied months, fewer than 4 months, a
 bucket added late, refunds, the tier boundaries, and the Watching band edges (0.3 and each tier's cutoff). A regression test uses
 anonymised monthly numbers shaped like the user's six months and expects
 Groceries and Eating Out to come out as a Watching trade-off with rank
-correlation near -0.37, and expects that dropping any one month never turns it
-into an early signal. Then check in the running app at desktop and phone
+correlation near -0.37, and a second test shows the fragility: with September
+removed the same pair has no pattern at all. Then check in the running app at desktop and phone
 widths with hide-amounts on and off.
 
 ## Build order
