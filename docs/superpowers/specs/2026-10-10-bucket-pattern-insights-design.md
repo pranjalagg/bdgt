@@ -1,7 +1,7 @@
 # Bucket pattern insights: design
 
 Date: 2026-10-10
-Status: awaiting review
+Status: approved; amended 2026-10-10 to add the Watching tier after the worked example showed the original example was below the cutoff
 Branch: `feat/bucket-pattern-insights`
 
 ## Purpose
@@ -68,14 +68,23 @@ dependencies.
 
 | Tier | Months | Strength (absolute correlation) |
 |---|---|---|
-| Not enough data | fewer than 4 | any (no insight shown) |
+| Not enough data | fewer than 4 | any (nothing shown) |
 | Early signal | 4 to 7 | at least 0.5 |
 | Likely | 8 to 11 | at least 0.6 |
 | Strong | 12 or more | at least 0.6 |
+| Watching | 4 or more | at least 0.3 but below the tier's cutoff above |
 
-Pairs below the strength threshold for their tier are not returned. At 6 data
-points, rank correlation only reaches conventional significance near 0.9, which
-is why the lower tiers are named as signals and not findings.
+Pairs below 0.3 are not returned. At 6 data points, rank correlation only
+reaches conventional significance near 0.9, which is why even the top tiers at
+low month counts are named as signals and not findings. "Watching" pairs lean
+one way but are not reliable; they are shown only as a quiet one-line note and
+become a real insight automatically if more data strengthens them.
+
+Worked example (the author's first six months, rank correlation): Groceries
+against Eating Out is -0.37, so it is **Watching**, not an early signal. The
+plain correlation of -0.57 quoted during design is not what the engine uses,
+and dropping September alone erases the pattern, which is exactly the fragility
+the Watching tier is for.
 
 ### Output
 
@@ -86,12 +95,14 @@ is why the lower tiers are named as signals and not findings.
   rho: number,
   relation: 'trade-off' | 'move-together',
   steadierBy: number | null,   // percent, only when relation is trade-off
-  confidence: 'early' | 'likely' | 'strong',
+  confidence: 'early' | 'likely' | 'strong' | 'watching',
   series: { months: string[], a: number[], b: number[] }  // cents, for the chart
 }
 ```
 
-Results are ranked by absolute correlation, then by months of data.
+Results are ranked by absolute correlation, then by months of data. `steadierBy`
+is computed for every trade-off, including Watching ones, but the UI only shows
+it for early, likely and strong.
 
 ## Presentation
 
@@ -110,11 +121,15 @@ Each result is a row:
   separately. A combined budget may fit better than two separate ones."
 - An info popover (existing `InfoPopover`) explaining how it was worked out.
 
-The strongest 3 show by default with a "Show more" control. Empty states:
+The strongest 3 (early, likely and strong only) show by default with a "Show
+more" control. Watching pairs appear below them as quiet one-line notes with no
+chart, at most 2: "Eating Out and Groceries lean opposite, but 6 months isn't
+enough to be sure." Empty states:
 
 - Fewer than 4 complete months, or fewer than two eligible buckets: "Patterns
   appear after 4 complete months of spending in at least two everyday buckets."
-- Enough data but nothing clear: "No clear patterns between your buckets yet."
+- Enough data but nothing clear (and no Watching pairs): "No clear patterns
+  between your buckets yet."
 
 Copy rules: "tends to", never "causes"; always name the number of months.
 
@@ -128,10 +143,11 @@ budgets" slice.
 
 Unit tests on fixed data for: a clear trade-off pair, a clear move-together
 pair, an unrelated pair, constant spending, tied months, fewer than 4 months, a
-bucket added late, refunds, and the tier boundaries. A regression test uses
+bucket added late, refunds, the tier boundaries, and the Watching band edges (0.3 and each tier's cutoff). A regression test uses
 anonymised monthly numbers shaped like the user's six months and expects
-Groceries and Eating Out to come out as an early-signal trade-off with
-correlation near -0.57. Then check in the running app at desktop and phone
+Groceries and Eating Out to come out as a Watching trade-off with rank
+correlation near -0.37, and expects that dropping any one month never turns it
+into an early signal. Then check in the running app at desktop and phone
 widths with hide-amounts on and off.
 
 ## Build order
