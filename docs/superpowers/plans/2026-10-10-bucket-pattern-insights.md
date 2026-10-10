@@ -728,7 +728,6 @@ export function findBucketRelations(
 
 Run: `npx vitest run tests/lib/insights/`
 Expected: PASS for all insights tests. Then `npm run check` (0 errors).
-Note for the `ranks by strength` test: if the leftover `expect(out[0].a.id < out[0].b.id || true)` line is flagged by lint, delete that line; it is a no-op.
 
 - [ ] **Step 5: Commit**
 
