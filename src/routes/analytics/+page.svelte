@@ -5,6 +5,7 @@
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
+  import PatternInsights from '$lib/components/insights/PatternInsights.svelte';
   import { buckets, bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome, savingsRateTrend } from '$lib/stores/budgetStore';
   import { currentMonthKey } from '$lib/stores/uiStore';
   import { spentExcludingSavings, monthlyBucketSpend } from '$lib/utils/calculations';
@@ -314,4 +315,6 @@
       {/if}
     </div>
   </div>
+
+  <PatternInsights />
 </div>
