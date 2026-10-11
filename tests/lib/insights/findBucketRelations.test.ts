@@ -130,6 +130,46 @@ describe('findBucketRelations', () => {
     expect(r.series.months[5]).toBe('2026-09');
   });
 
+  it('does not let one stray transaction make a sparse bucket look related', () => {
+    // a: active Oct-Jan 2025/26 (eligible on its own), then one $5 in June.
+    // b: starts in Feb. Within the pair's months a has a single nonzero month.
+    const a = [
+      { bucketId: 'a', amount: 5000, date: new Date(2025, 9, 5) },
+      { bucketId: 'a', amount: 5000, date: new Date(2025, 10, 5) },
+      { bucketId: 'a', amount: 5000, date: new Date(2025, 11, 5) },
+      { bucketId: 'a', amount: 5000, date: new Date(2026, 0, 5) },
+      { bucketId: 'a', amount: 500, date: new Date(2026, 5, 5) },
+    ];
+    const tx = [...a, ...series('b', 1, [10, 20, 30, 40, 50, 60, 70, 80])];
+    expect(findBucketRelations([bucket('a'), bucket('b')], tx, NOW)).toEqual([]);
+    expect(countComparablePairs([bucket('a'), bucket('b')], tx, NOW)).toBe(0);
+  });
+
+  it('stops comparing once a bucket is abandoned instead of counting empty months as low', () => {
+    // a: used Oct 2025 - Mar 2026 then abandoned; b ramps up from April.
+    const a = [
+      { bucketId: 'a', amount: 9000, date: new Date(2025, 9, 5) },
+      { bucketId: 'a', amount: 8000, date: new Date(2025, 10, 5) },
+      { bucketId: 'a', amount: 9500, date: new Date(2025, 11, 5) },
+      { bucketId: 'a', amount: 7000, date: new Date(2026, 0, 5) },
+      { bucketId: 'a', amount: 8500, date: new Date(2026, 1, 5) },
+      { bucketId: 'a', amount: 8200, date: new Date(2026, 2, 5) },
+    ];
+    const b = [
+      ...series('b', 0, [10, 12, 11]), // Jan-Mar
+      ...series('b', 3, [60, 70, 80, 90, 100, 110]), // Apr-Sep
+    ];
+    const bPre = [
+      { bucketId: 'b', amount: 1000, date: new Date(2025, 9, 9) },
+      { bucketId: 'b', amount: 1100, date: new Date(2025, 10, 9) },
+      { bucketId: 'b', amount: 1200, date: new Date(2025, 11, 9) },
+    ];
+    const out = findBucketRelations([bucket('a'), bucket('b')], [...a, ...bPre, ...b], NOW);
+    // the pair must end where a ends (2026-03), never reach the empty months
+    for (const r of out) expect(r.series.months.at(-1)! <= '2026-03').toBe(true);
+    expect(out.some((r) => r.confidence === 'strong' && r.relation === 'trade-off')).toBe(false);
+  });
+
   it('returns nothing for no data or no buckets', () => {
     expect(findBucketRelations([], [], NOW)).toEqual([]);
     expect(findBucketRelations([bucket('a'), bucket('b')], [], NOW)).toEqual([]);

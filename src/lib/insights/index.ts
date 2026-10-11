@@ -59,8 +59,18 @@ function comparablePairs(buckets: Bucket[], transactions: Tx[], now: Date): Comp
       const startB = firstMonth(b.id);
       if (!startA || !startB) continue;
       const start = startA > startB ? startA : startB;
-      const months = window.filter((m) => m >= start);
+      // A bucket that stopped being used has no more months to compare, so the
+      // pair ends at the earlier of the two last active months. Otherwise the
+      // empty months after it would read as genuinely low spending.
+      const lastA = activeMonths(a.id).at(-1)!;
+      const lastB = activeMonths(b.id).at(-1)!;
+      const end = lastA < lastB ? lastA : lastB;
+      const months = window.filter((m) => m >= start && m <= end);
       if (months.length < MIN_MONTHS) continue;
+      // Each bucket must be active in enough of the pair's own months; a few
+      // stray transactions elsewhere in the window do not count.
+      const activeIn = (id: string) => months.filter((m) => (totals.get(id)?.get(m) ?? 0) !== 0).length;
+      if (activeIn(a.id) < MIN_MONTHS || activeIn(b.id) < MIN_MONTHS) continue;
       pairs.push({
         a,
         b,
