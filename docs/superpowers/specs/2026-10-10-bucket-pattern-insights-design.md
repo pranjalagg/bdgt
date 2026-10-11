@@ -52,6 +52,9 @@ dependencies.
 - Eligible buckets: not savings (`isSavings`), not system (`isSystem`), and
   everyday (`isEveryday`). A bucket needs spend in at least 4 months of the
   window.
+- A bucket with 3 or more empty complete months in a row at the end of the
+  window is treated as no longer in use, and the pair ends where it did. A
+  shorter gap counts as real zero-spend months.
 - For a pair, the window starts at the first month in which both buckets could
   have spent (the later of their first months with activity), so a bucket added
   late is compared only over the months it existed.
@@ -73,6 +76,12 @@ dependencies.
 | Likely | 8 to 11 | at least 0.6 |
 | Strong | 12 or more | at least 0.6 |
 | Watching | 4 or more | at least 0.3 but below the tier's cutoff above |
+
+A pair is only shown as early, likely or strong if it is also stable: with any
+single month left out, the correlation keeps its sign and still meets the
+tier's cutoff. Rank correlation ignores how big a spike is, but a month that
+changes rank can still create or flip a relation, so an unstable pair is
+shown as Watching instead.
 
 Pairs below 0.3 are not returned. At 6 data points, rank correlation only
 reaches conventional significance near 0.9, which is why even the top tiers at

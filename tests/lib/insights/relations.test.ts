@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rankWithTies, pearson, spearman, steadierBy } from '$lib/insights/relations';
+import { rankWithTies, pearson, spearman, steadierBy, isStable } from '$lib/insights/relations';
 
 describe('rankWithTies', () => {
   it('ranks ascending from 1', () => {
@@ -71,5 +71,19 @@ describe('steadierBy', () => {
     const groceries = [74, 320, 294, 236, 229, 69];
     const eatingOut = [304, 336, 78, 347, 83, 580];
     expect(steadierBy(groceries, eatingOut)).toBe(29);
+  });
+});
+
+describe('isStable', () => {
+  it('is false when dropping a single month removes or flips the relation', () => {
+    const x = [100, 2, 3, 4, 5, 6];
+    const y = [1, 3, 5, 6, 4, 2];
+    expect(spearman(x, y)).toBeCloseTo(-0.6, 6);
+    // dropping the first month leaves -0.3: same sign, but under a 0.5 cutoff
+    expect(isStable(x, y, 0.5)).toBe(false);
+  });
+
+  it('is true for a relation that survives dropping any one month', () => {
+    expect(isStable([10, 20, 30, 40, 50, 60], [60, 50, 40, 30, 20, 10], 0.5)).toBe(true);
   });
 });

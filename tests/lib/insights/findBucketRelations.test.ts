@@ -130,6 +130,29 @@ describe('findBucketRelations', () => {
     expect(r.series.months[5]).toBe('2026-09');
   });
 
+  it('keeps a recent zero-spend month as a real observation (a short gap is not abandonment)', () => {
+    // g has nothing in September (Apr-Aug only) but is still an active bucket
+    const tx = [
+      ...series('g', 3, [10, 20, 30, 40, 50]),
+      ...series('e', 3, [10, 20, 30, 40, 50, 5]),
+    ];
+    const [r] = findBucketRelations([bucket('g'), bucket('e')], tx, NOW);
+    expect(r.months).toBe(6);
+    expect(r.series.months.at(-1)).toBe('2026-09');
+    expect(r.series.a.at(-1)).toBe(0);
+  });
+
+  it('does not surface a relation that one rank-changing month creates', () => {
+    // dropping the first month, rho is 0.257 (nothing); with it, -0.6 (early)
+    const tx = [
+      ...series('a', 3, [100, 2, 3, 4, 5, 6]),
+      ...series('b', 3, [1, 3, 5, 6, 4, 2]),
+    ];
+    const [r] = findBucketRelations([bucket('a'), bucket('b')], tx, NOW);
+    expect(r.rho).toBeCloseTo(-0.6, 6);
+    expect(r.confidence).toBe('watching');
+  });
+
   it('does not let one stray transaction make a sparse bucket look related', () => {
     // a: active Oct-Jan 2025/26 (eligible on its own), then one $5 in June.
     // b: starts in Feb. Within the pair's months a has a single nonzero month.

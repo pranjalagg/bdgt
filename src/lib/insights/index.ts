@@ -1,7 +1,7 @@
 import type { Bucket } from '$lib/types';
-import { classify, type Confidence } from './confidence';
+import { classify, tierCutoff, type Confidence } from './confidence';
 import { completeMonths, monthlyTotals } from './monthlySeries';
-import { spearman, steadierBy } from './relations';
+import { isStable, spearman, steadierBy } from './relations';
 
 export interface BucketRef {
   id: string;
@@ -23,6 +23,10 @@ export interface BucketRelation {
 type Tx = { bucketId: string; amount: number; date: Date | string };
 
 const MIN_MONTHS = 4;
+// A bucket with this many empty complete months in a row at the end of the
+// window is treated as no longer in use. A shorter gap is a real run of
+// zero-spend months, not abandonment.
+const INACTIVE_AFTER = 3;
 
 interface Comparable {
   a: Bucket;
@@ -59,12 +63,18 @@ function comparablePairs(buckets: Bucket[], transactions: Tx[], now: Date): Comp
       const startB = firstMonth(b.id);
       if (!startA || !startB) continue;
       const start = startA > startB ? startA : startB;
-      // A bucket that stopped being used has no more months to compare, so the
-      // pair ends at the earlier of the two last active months. Otherwise the
-      // empty months after it would read as genuinely low spending.
-      const lastA = activeMonths(a.id).at(-1)!;
-      const lastB = activeMonths(b.id).at(-1)!;
-      const end = lastA < lastB ? lastA : lastB;
+      // A bucket unused for INACTIVE_AFTER months or more at the end of the
+      // window has stopped, so the pair ends where it did; otherwise the empty
+      // months after it would read as genuinely low spending.
+      const lastUsed = (id: string) => {
+        const active = activeMonths(id);
+        const last = active[active.length - 1];
+        const emptyAtEnd = window.length - 1 - window.indexOf(last);
+        return emptyAtEnd >= INACTIVE_AFTER ? last : window[window.length - 1];
+      };
+      const endA = lastUsed(a.id);
+      const endB = lastUsed(b.id);
+      const end = endA < endB ? endA : endB;
       const months = window.filter((m) => m >= start && m <= end);
       if (months.length < MIN_MONTHS) continue;
       // Each bucket must be active in enough of the pair's own months; a few
@@ -99,8 +109,13 @@ export function findBucketRelations(
   for (const p of comparablePairs(buckets, transactions, now)) {
     const rho = spearman(p.aSeries, p.bSeries);
     if (rho === null) continue;
-    const confidence = classify(p.months.length, Math.abs(rho));
+    let confidence = classify(p.months.length, Math.abs(rho));
     if (confidence === null) continue;
+    // A finding must still clear its own cutoff with any single month left
+    // out; a relation that one month creates or flips is only a lean.
+    if (confidence !== 'watching' && !isStable(p.aSeries, p.bSeries, tierCutoff(p.months.length))) {
+      confidence = 'watching';
+    }
 
     const relation = rho < 0 ? 'trade-off' : 'move-together';
     results.push({

@@ -40,9 +40,27 @@ export function pearson(x: number[], y: number[]): number | null {
 }
 
 // Rank correlation: compares which months were high or low, not by how much,
-// so one-off spikes cannot dominate. Null when either series is constant.
+// so the size of a one-off spike cannot dominate. It does not make the result
+// immune to one month: a month that moves to a new rank can still swing it,
+// which is what isStable checks. Null when either series is constant.
 export function spearman(x: number[], y: number[]): number | null {
   return pearson(rankWithTies(x), rankWithTies(y));
+}
+
+// Leave-one-month-out check: the relation holds only if dropping any single
+// month still leaves a correlation of the same sign and at least `floor` in
+// strength. A relation that one month creates or flips is not stable.
+export function isStable(x: number[], y: number[], floor: number): boolean {
+  const rho = spearman(x, y);
+  if (rho === null) return false;
+  for (let i = 0; i < x.length; i++) {
+    const r = spearman(
+      x.filter((_, k) => k !== i),
+      y.filter((_, k) => k !== i)
+    );
+    if (r === null || Math.sign(r) !== Math.sign(rho) || Math.abs(r) < floor) return false;
+  }
+  return true;
 }
 
 // How much steadier the combined total is than if the two were independent:
