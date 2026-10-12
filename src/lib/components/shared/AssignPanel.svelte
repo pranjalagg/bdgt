@@ -105,7 +105,7 @@
       {remaining === 0 ? 'Fully assigned' : remaining < 0 ? 'Over-assigned by' : 'Left to assign'}
     </span>
     <span
-      class="money text-xl font-semibold
+      class="money amt text-xl font-semibold
              {remaining === 0
         ? 'text-success dark:text-success-light'
         : remaining < 0
@@ -169,7 +169,7 @@
             · {s.bucket.percentageAmount}% of income
           </span>
         </span>
-        <span class="money w-28 flex-none pr-2 text-right text-sm text-muted dark:text-muted-dark">
+        <span class="money w-28 flex-none pr-2 text-right text-sm text-muted dark:text-muted-dark amt">
           {formatCurrency(s.allocated)}
         </span>
       </div>

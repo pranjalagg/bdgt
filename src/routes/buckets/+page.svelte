@@ -153,7 +153,7 @@
         ></span>
         <div class="flex-1 min-w-0">
           <h3 class="font-semibold text-gray-800 dark:text-gray-100">{status.bucket.name}</h3>
-          <p class="text-sm text-muted">
+          <p class="amt text-sm text-muted">
             {formatAllocationDisplay(status.bucket, $computedAllocations[status.bucket.id], status.allocated)}
           </p>
           {#if status.rollover !== 0}
@@ -172,7 +172,7 @@
             />
           </div>
         {:else}
-          <div class="money text-right text-muted">
+          <div class="money text-right text-muted amt">
             {formatCurrency(status.allocated)}
           </div>
         {/if}

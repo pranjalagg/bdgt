@@ -7,7 +7,7 @@
   class="btn-icon rounded-lg border border-gray-200 bg-white p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary
          dark:border-border-dark dark:bg-surface-dark {$hideAmounts ? 'text-gray-900 dark:text-gray-50' : ''}"
   aria-pressed={$hideAmounts}
-  aria-label={$hideAmounts ? 'Show amounts' : 'Hide amounts'}
+  aria-label="Hide amounts"
   title={$hideAmounts ? 'Show amounts' : 'Hide amounts'}
   on:click={toggleHideAmounts}
 >

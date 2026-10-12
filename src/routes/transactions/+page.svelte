@@ -98,9 +98,9 @@
     <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border pb-2 dark:border-border-dark">
       <span class="eyebrow">{filtered.length} transaction{filtered.length === 1 ? '' : 's'}</span>
       <span class="text-sm text-muted dark:text-muted-dark">
-        <span class="money font-semibold text-gray-900 dark:text-gray-50">{formatCurrency(monthSpent)}</span> spent
+        <span class="money font-semibold text-gray-900 dark:text-gray-50 amt">{formatCurrency(monthSpent)}</span> spent
         {#if monthSetAside > 0}
-          &middot; <span class="money font-semibold text-success dark:text-success-light">{formatCurrency(monthSetAside)}</span> set aside
+          &middot; <span class="money font-semibold text-success dark:text-success-light amt">{formatCurrency(monthSetAside)}</span> set aside
         {/if}
       </span>
     </div>
@@ -109,7 +109,7 @@
       {#each days as day (day.key)}
         <div class="flex items-baseline justify-between gap-4 border-b border-border pb-1.5 pt-5 dark:border-border-dark">
           <h2 class="eyebrow">{dayLabel(day.date)}</h2>
-          <span class="money text-xs text-muted dark:text-muted-dark">{formatCurrency(day.total)}</span>
+          <span class="money text-xs text-muted dark:text-muted-dark amt">{formatCurrency(day.total)}</span>
         </div>
 
         {#each day.transactions as t (t.id)}
@@ -131,7 +131,7 @@
             </div>
 
             <span
-              class="money text-[13.5px] font-medium
+              class="money amt text-[13.5px] font-medium
                      {isSetAside ? 'text-success dark:text-success-light' : 'text-gray-900 dark:text-gray-100'}"
             >
               {formatCurrency(t.amount)}

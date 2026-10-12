@@ -25,7 +25,7 @@
       <span class="h-2.5 w-2.5 rounded-full" style="background-color: {bucket.color}"></span>
     {/if}
     <div>
-      <p class="font-semibold tabular-nums text-gray-800 dark:text-gray-100">{formatCurrency(transaction.amount)}</p>
+      <p class="amt font-semibold tabular-nums text-gray-800 dark:text-gray-100">{formatCurrency(transaction.amount)}</p>
       <p class="text-sm text-muted dark:text-gray-400">
         {formatDate(new Date(transaction.date))}
         {#if transaction.note}

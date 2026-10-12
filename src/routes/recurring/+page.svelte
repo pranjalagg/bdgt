@@ -113,7 +113,7 @@
             style="background-color: {bucket?.color || '#ccc'}"
           ></span>
           <div class="flex-1 min-w-0">
-            <p class="money font-semibold dark:text-gray-100">{formatCurrency(rec.amount)}</p>
+            <p class="money font-semibold dark:text-gray-100 amt">{formatCurrency(rec.amount)}</p>
             <p class="text-sm text-muted">
               {bucket?.name || 'Unknown'} &middot; {rec.frequency}
               {#if rec.note} &middot; {rec.note}{/if}

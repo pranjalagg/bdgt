@@ -87,7 +87,7 @@
 
             <div class="hidden text-right sm:block">
               <p class="text-xs text-muted">Cost</p>
-              <p class="money text-sm font-medium text-gray-700 dark:text-gray-200">{formatCurrency(holding.totalCost)}</p>
+              <p class="money text-sm font-medium text-gray-700 dark:text-gray-200 amt">{formatCurrency(holding.totalCost)}</p>
             </div>
 
             <div class="text-right">
@@ -108,7 +108,7 @@
                   <p class="mt-0.5 text-xs text-danger">{priceError}</p>
                 {/if}
               {:else}
-                <button class="money text-sm font-medium text-primary hover:underline" on:click={() => startEditPrice(holding)}>
+                <button class="money text-sm font-medium text-primary hover:underline amt" on:click={() => startEditPrice(holding)}>
                   {holding.currentPrice != null ? formatCurrency(holding.currentPrice) : 'Set'}
                 </button>
               {/if}
@@ -116,11 +116,11 @@
 
             <div class="w-24 text-right">
               <p class="text-xs text-muted">Value</p>
-              <p class="money text-sm font-medium text-gray-800 dark:text-gray-100">
+              <p class="money text-sm font-medium text-gray-800 dark:text-gray-100 amt">
                 {holding.marketValue != null ? formatCurrency(holding.marketValue) : '—'}
               </p>
               {#if holding.unrealizedGain != null}
-                <p class="text-xs money {gainClass(holding.unrealizedGain)}">
+                <p class="text-xs money {gainClass(holding.unrealizedGain)} amt">
                   {holding.unrealizedGain > 0 ? '+' : ''}{formatCurrency(holding.unrealizedGain)}{#if holding.unrealizedGainPct != null} ({holding.unrealizedGainPct > 0 ? '+' : ''}{holding.unrealizedGainPct}%){/if}
                 </p>
               {/if}
@@ -136,7 +136,7 @@
                   <div class="flex items-center justify-between rounded-lg bg-white p-3 dark:bg-surface-dark">
                     <div>
                       <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
-                        {formatShares(remainingShares)} shares @ {formatCurrency(lot.pricePerShare)}
+                        {formatShares(remainingShares)} shares @ <span class="amt">{formatCurrency(lot.pricePerShare)}</span>
                       </p>
                       <p class="text-xs text-muted">
                         Purchased {new Date(lot.purchaseDate).toLocaleDateString()}

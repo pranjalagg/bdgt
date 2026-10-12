@@ -49,7 +49,7 @@
          column; baking " left" into the string breaks the alignment mono
          is here to provide. -->
     <span
-      class="money text-right text-[13px] font-medium
+      class="money amt text-right text-[13px] font-medium
              {isOver ? 'text-danger dark:text-danger-light' : 'text-gray-900 dark:text-gray-100'}"
     >
       {#if unfunded}
@@ -75,12 +75,12 @@
       {:else if spent === 0}
         Nothing spent yet
       {:else}
-        <span class="money">{formatCurrency(Math.max(spent, 0))}</span> of
-        <span class="money">{formatCurrency(available)}</span> spent this month
+        <span class="money amt">{formatCurrency(Math.max(spent, 0))}</span> of
+        <span class="money amt">{formatCurrency(available)}</span> spent this month
       {/if}
     </span>
 
-    <span class="money text-right text-[11.5px] text-muted dark:text-muted-dark">
+    <span class="money text-right text-[11.5px] text-muted dark:text-muted-dark amt">
       {#if !unfunded && available > 0}
         {Math.round(fillPct)}%
       {/if}
@@ -93,8 +93,8 @@
         <span class="font-medium {monthLeft >= 0 ? 'text-success dark:text-success-light' : 'text-danger dark:text-danger-light'}">
           {monthLeft >= 0 ? 'On plan this month' : 'Over plan this month'}
         </span>
-        &middot; <span class="money">{formatCurrency(Math.abs(monthLeft))}</span> {monthLeft >= 0 ? 'left' : 'over'}
-        &middot; {rollover > 0 ? '+' : '−'}<span class="money">{formatCurrency(Math.abs(rollover))}</span> carried from earlier
+        &middot; <span class="money amt">{formatCurrency(Math.abs(monthLeft))}</span> {monthLeft >= 0 ? 'left' : 'over'}
+        &middot; {rollover > 0 ? '+' : '−'}<span class="money amt">{formatCurrency(Math.abs(rollover))}</span> carried from earlier
       </span>
     {/if}
   </span>

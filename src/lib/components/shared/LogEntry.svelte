@@ -164,7 +164,7 @@
           {row.status.bucket.name}
         </span>
         <span
-          class="money flex-none text-[12.5px] font-medium
+          class="money amt flex-none text-[12.5px] font-medium
                  {row.fit === 'fits'
             ? 'text-success dark:text-success-light'
             : row.fit === 'tight' || row.fit === 'unfunded'

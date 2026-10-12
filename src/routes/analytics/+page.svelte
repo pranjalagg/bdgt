@@ -113,27 +113,27 @@
   <div class="grid gap-4 sm:grid-cols-3">
     <div class="card p-5">
       <p class="metric-label">Total Income</p>
-      <p class="metric-value" class:text-success={$currentMonthIncome > 0}>{formatCurrency($currentMonthIncome)}</p>
+      <p class="metric-value amt" class:text-success={$currentMonthIncome > 0}>{formatCurrency($currentMonthIncome)}</p>
       {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
         <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
           <span class="flex items-center gap-1">
             <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
-            {formatCurrency($currentMonthFixedIncome)} fixed
+            <span class="amt">{formatCurrency($currentMonthFixedIncome)}</span> fixed
           </span>
           <span class="flex items-center gap-1">
             <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
-            {formatCurrency($currentMonthIncome - $currentMonthFixedIncome)} variable
+            <span class="amt">{formatCurrency($currentMonthIncome - $currentMonthFixedIncome)}</span> variable
           </span>
         </div>
       {/if}
     </div>
     <div class="card p-5">
       <p class="metric-label">Total Spent</p>
-      <p class="metric-value" class:text-danger={totalSpending > 0}>{formatCurrency(totalSpending)}</p>
+      <p class="metric-value amt" class:text-danger={totalSpending > 0}>{formatCurrency(totalSpending)}</p>
     </div>
     <div class="card p-5">
       <p class="metric-label">Net</p>
-      <p class="metric-value" class:text-success={netIncome > 0} class:text-danger={netIncome < 0}>
+      <p class="metric-value amt" class:text-success={netIncome > 0} class:text-danger={netIncome < 0}>
         {formatCurrency(netIncome)}
       </p>
     </div>

@@ -66,7 +66,7 @@
           {lot.symbol} · {availableShares} shares available
         </p>
         <p class="text-xs text-muted">
-          Cost basis: {formatCurrency(lot.pricePerShare)}/share
+          Cost basis: <span class="amt">{formatCurrency(lot.pricePerShare)}</span>/share
         </p>
       </div>
 

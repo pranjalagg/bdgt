@@ -65,14 +65,14 @@
     <div class="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
       <h2 class="eyebrow">Assigned this month</h2>
       <p class="text-sm text-muted dark:text-muted-dark">
-        <span class="money font-semibold text-gray-900 dark:text-gray-50">{formatCurrency(assigned)}</span>
-        of <span class="money text-gray-700 dark:text-gray-300">{formatCurrency(income)}</span>
+        <span class="money font-semibold text-gray-900 dark:text-gray-50 amt">{formatCurrency(assigned)}</span>
+        of <span class="money text-gray-700 dark:text-gray-300 amt">{formatCurrency(income)}</span>
         {#if overAssigned}
-          &middot; <span class="money font-semibold text-danger dark:text-danger-light"
+          &middot; <span class="money font-semibold text-danger dark:text-danger-light amt"
             >{formatCurrency(Math.abs(unallocated))}</span
           > over
         {:else if unallocated > 0}
-          &middot; <span class="money font-semibold text-gray-900 dark:text-gray-50"
+          &middot; <span class="money font-semibold text-gray-900 dark:text-gray-50 amt"
             >{formatCurrency(unallocated)}</span
           > still unassigned
         {:else if income > 0}
@@ -96,7 +96,7 @@
               <span class="h-2 w-2 flex-none rounded-[2px]" style="background:{tip.color}"></span>
             {/if}
             <span class="font-medium">{tip.name}</span>
-            <span class="money">{formatCurrency(tip.amount)}</span>
+            <span class="money amt">{formatCurrency(tip.amount)}</span>
             <span class="money opacity-70">{Math.round(tip.share)}%</span>
           </span>
           {#if tip.hint}<span class="mt-0.5 block text-[11.5px] opacity-70">{tip.hint}</span>{/if}
@@ -155,7 +155,7 @@
           <li class="flex items-center gap-2 text-[13px] text-muted dark:text-muted-dark">
             <span class="h-2 w-2 flex-none rounded-[2px]" style="background:{s.bucket.color}"></span>
             {s.bucket.name}
-            <span class="money text-[12.5px] font-medium text-gray-800 dark:text-gray-200"
+            <span class="money text-[12.5px] font-medium text-gray-800 dark:text-gray-200 amt"
               >{formatCurrency(s.allocated)}</span
             >
           </li>

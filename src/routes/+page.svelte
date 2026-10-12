@@ -149,7 +149,7 @@
         <InfoPopover label="How safe to spend is calculated">
           <p class="font-medium text-gray-900 dark:text-gray-50">How this is worked out</p>
           <p>What is left in your everyday envelopes, spread over the days remaining this month (today included).</p>
-          <p class="money rounded bg-background px-2 py-1 text-[12px] dark:bg-white/[0.05]">
+          <p class="money rounded bg-background px-2 py-1 text-[12px] dark:bg-white/[0.05] amt">
             {formatCurrency(everydayLeft)} left &divide; {daysLeftInMonth} day{daysLeftInMonth === 1 ? '' : 's'} = {formatCurrency($safeToSpendPerDay)}/day
           </p>
           <p>
@@ -169,7 +169,7 @@
       </p>
       <p class="mt-1 flex items-baseline gap-1.5">
         <span
-          class="money text-[34px] font-medium leading-none tracking-tight
+          class="money amt text-[34px] font-medium leading-none tracking-tight
                  {$safeToSpendPerDay < 0 ? 'text-danger dark:text-danger-light' : 'text-gray-900 dark:text-gray-50'}"
         >
           {formatCurrency($safeToSpendPerDay)}
@@ -218,30 +218,30 @@
       on:click={() => openModal('income')}
     >
       <p class="metric-label">Income</p>
-      <p class="metric-value mt-1 text-xl">{formatCurrency($currentMonthIncome)}</p>
+      <p class="metric-value mt-1 text-xl amt">{formatCurrency($currentMonthIncome)}</p>
       {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
         <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">
-          <span class="money">{formatCurrency($currentMonthFixedIncome)}</span> fixed ·
-          <span class="money">{formatCurrency($currentMonthIncome - $currentMonthFixedIncome)}</span> variable
+          <span class="money amt">{formatCurrency($currentMonthFixedIncome)}</span> fixed ·
+          <span class="money amt">{formatCurrency($currentMonthIncome - $currentMonthFixedIncome)}</span> variable
         </p>
       {/if}
     </button>
     <div class="bg-white p-4 dark:bg-surface-dark">
       <p class="metric-label">Spent</p>
-      <p class="metric-value mt-1 text-xl">{formatCurrency(totalSpent)}</p>
+      <p class="metric-value mt-1 text-xl amt">{formatCurrency(totalSpent)}</p>
       <p class="mt-1 text-[11.5px] text-muted dark:text-muted-dark">excludes money set aside</p>
     </div>
     <div class="col-span-2 bg-white p-4 dark:bg-surface-dark sm:col-span-1">
       <p class="metric-label">Savings rate</p>
       <div class="mt-1 flex items-baseline gap-2">
-        <p class="metric-value text-xl {savingsRateColor}">
+        <p class="metric-value text-xl {savingsRateColor} amt">
           {$savingsRate !== null ? `${$savingsRate}%` : '—'}
         </p>
         {#if savingsDelta !== null}
           <!-- A trend mark on the figure, not a second statistic: the
                comparison month lives in the tooltip and accessible name. -->
           <span
-            class="money inline-flex items-center gap-0.5 text-[11.5px] font-medium
+            class="money amt inline-flex items-center gap-0.5 text-[11.5px] font-medium
                    {savingsDelta > 0 ? 'text-success dark:text-success-light' : savingsDelta < 0 ? 'text-danger dark:text-danger-light' : 'text-muted dark:text-muted-dark'}"
             title={savingsDelta === 0 ? `Unchanged from ${prevMonthName}` : `${savingsDelta > 0 ? 'Up' : 'Down'} ${Math.abs(savingsDelta)} points from ${prevMonthName}`}
             aria-label={savingsDelta === 0 ? `Unchanged from ${prevMonthName}` : `${savingsDelta > 0 ? 'Up' : 'Down'} ${Math.abs(savingsDelta)} points from ${prevMonthName}`}

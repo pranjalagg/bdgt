@@ -33,28 +33,28 @@
   </div>
 
   <div class="mb-1 flex items-center justify-between text-xs tabular-nums">
-    <span class="text-muted">{formatCurrency(Math.max(spent, 0))} spent</span>
-    <span class="font-medium text-gray-600 dark:text-gray-300">{formatCurrency(available)}</span>
+    <span class="text-muted"><span class="amt">{formatCurrency(Math.max(spent, 0))}</span> spent</span>
+    <span class="amt font-medium text-gray-600 dark:text-gray-300">{formatCurrency(available)}</span>
   </div>
   <ProgressBar allocated={available} {spent} showLabel={false} />
 
   {#if spent < 0}
     <div class="mt-2.5 flex items-center gap-1.5">
       <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-        ↩ {formatCurrency(Math.abs(spent))} owed back
+        ↩ <span class="amt">{formatCurrency(Math.abs(spent))}</span> owed back
       </span>
     </div>
   {/if}
 
   <div class="mt-3">
     <p class="metric-label">Remaining</p>
-    <p class="font-semibold tabular-nums {remainingColor}">{formatCurrency(remaining)}</p>
+    <p class="amt font-semibold tabular-nums {remainingColor}">{formatCurrency(remaining)}</p>
     {#if incomePercent}
       <p class="mt-0.5 text-xs text-muted">{incomePercent}% of fixed income</p>
     {/if}
   </div>
 
   {#if rollover !== 0}
-    <p class="mt-2 text-xs text-muted">Rollover: {formatCurrency(rollover)}</p>
+    <p class="mt-2 text-xs text-muted">Rollover: <span class="amt">{formatCurrency(rollover)}</span></p>
   {/if}
 </button>

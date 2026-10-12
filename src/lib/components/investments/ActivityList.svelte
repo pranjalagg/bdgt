@@ -33,10 +33,10 @@
               {activity.type === 'buy' ? 'Bought' : 'Sold'} {formatShares(activity.shares)} {activity.symbol}
             </p>
             <p class="text-xs text-muted">
-              @ {formatCurrency(activity.pricePerShare)} · {activity.date.toLocaleDateString()}
+              @ <span class="amt">{formatCurrency(activity.pricePerShare)}</span> · {activity.date.toLocaleDateString()}
             </p>
           </div>
-          <p class="money font-medium {activity.type === 'buy' ? 'text-gray-800 dark:text-gray-100' : 'text-success'}">
+          <p class="money font-medium {activity.type === 'buy' ? 'text-gray-800 dark:text-gray-100' : 'text-success'} amt">
             {activity.type === 'buy' ? '' : '+'}{formatCurrency(activity.shares * activity.pricePerShare)}
           </p>
         </li>

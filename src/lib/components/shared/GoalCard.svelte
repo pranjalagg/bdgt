@@ -49,14 +49,14 @@
       <span class="h-4 w-[3px] flex-none rounded-sm" style="background:{color}"></span>
       {status.goal.name}
     </span>
-    <span class="money text-right text-[13px] font-medium text-gray-900 dark:text-gray-100">
+    <span class="money text-right text-[13px] font-medium text-gray-900 dark:text-gray-100 amt">
       {formatCurrency(status.currentAmount)}
     </span>
     <span class="text-[11.5px] text-muted dark:text-muted-dark">saved</span>
 
     <span class="text-[11.5px] text-muted dark:text-muted-dark">
       <span class="font-medium {statusColor}">{statusLabel}</span>
-      &middot; of <span class="money">{formatCurrency(status.goal.targetAmount)}</span>
+      &middot; of <span class="money amt">{formatCurrency(status.goal.targetAmount)}</span>
     </span>
     <span class="money text-right text-[11.5px] text-muted dark:text-muted-dark">{Math.round(pct)}%</span>
     <span aria-hidden="true"></span>
@@ -64,9 +64,9 @@
     {#if status.status !== 'completed' && (status.goal.targetDate || status.projectedDate)}
       <span class="col-span-3 text-[11.5px] text-muted dark:text-muted-dark">
         {#if status.goal.targetDate}
-          Need <span class="money">{formatCurrency(status.monthlyNeeded)}</span>/month to reach it by {formatDate(status.goal.targetDate)}
+          Need <span class="money amt">{formatCurrency(status.monthlyNeeded)}</span>/month to reach it by {formatDate(status.goal.targetDate)}
         {:else if status.projectedDate}
-          At <span class="money">{formatCurrency(status.goal.monthlyContribution || 0)}</span>/month, reached by {formatDate(status.projectedDate)}
+          At <span class="money amt">{formatCurrency(status.goal.monthlyContribution || 0)}</span>/month, reached by {formatDate(status.projectedDate)}
         {/if}
       </span>
     {/if}
