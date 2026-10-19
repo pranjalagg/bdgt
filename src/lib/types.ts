@@ -1,3 +1,5 @@
+import type { CurrencySettings } from '$lib/currency/settings';
+
 // src/lib/types.ts
 
 export type AllocationType = 'fixed' | 'percentage' | 'hybrid';
@@ -126,5 +128,6 @@ export type ExportData = {
     investmentLots: InvestmentLot[];
     investmentSells: InvestmentSell[];
     investmentPrices: InvestmentPrice[];
+    settings: CurrencySettings;
   };
 };

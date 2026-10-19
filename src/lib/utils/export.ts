@@ -1,3 +1,4 @@
+import { normalizeCurrencySettings, rowsToSettings, settingsToRows } from '$lib/currency/settings';
 import { db, DATE_FIELDS, SAVINGS_BUCKET_NAMES, FIXED_OBLIGATION_NAMES } from '$lib/db';
 import { centsToDollars } from './currency';
 import { formatDate, reviveDateFields } from './dates';
@@ -17,10 +18,12 @@ export async function exportToJson(): Promise<string> {
     db.investmentPrices.toArray(),
   ]);
 
+  const storedSettings = rowsToSettings(await db.settings.toArray());
+
   const data: ExportData = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells, investmentPrices },
+    data: { buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells, investmentPrices, settings: storedSettings ?? normalizeCurrencySettings(undefined) },
   };
 
   return JSON.stringify(data, null, 2);
@@ -161,23 +164,28 @@ export function parseImport(json: string): ExportData {
     }
   }
 
+  // Optional section: backups from before currencies have none, and an
+  // unsupported code is never trusted. Both land on unconfirmed USD.
+  data.settings = normalizeCurrencySettings(data.settings);
+
   return obj as unknown as ExportData;
 }
 
 export async function importFromJson(json: string): Promise<void> {
   const { data } = parseImport(json);
-  const tables = COLLECTIONS.map((name) => db.table(name));
+  const tables = [...COLLECTIONS.map((name) => db.table(name)), db.settings];
 
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()));
     for (const name of COLLECTIONS) {
-      await db.table(name).bulkAdd((data as Record<string, unknown[]>)[name]);
+      await db.table(name).bulkAdd((data as unknown as Record<string, unknown[]>)[name]);
     }
+    await db.settings.bulkAdd(settingsToRows(data.settings));
   });
 }
 
 export async function resetAllData(): Promise<void> {
-  const tables = COLLECTIONS.map((name) => db.table(name));
+  const tables = [...COLLECTIONS.map((name) => db.table(name)), db.settings];
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()));
   });

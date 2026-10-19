@@ -180,3 +180,31 @@ describe('parseImport: older and richer backups', () => {
     }
   });
 });
+
+describe('parseImport currency settings', () => {
+  it('defaults an old backup with no settings to unconfirmed USD', () => {
+    const result = parseImport(JSON.stringify(validPayload()));
+    expect(result.data.settings).toEqual({ baseCurrency: 'USD', currencyConfirmed: false });
+  });
+
+  it('keeps valid settings from the backup', () => {
+    const payload = validPayload();
+    (payload.data as Record<string, unknown>).settings = { baseCurrency: 'INR', currencyConfirmed: true };
+    const result = parseImport(JSON.stringify(payload));
+    expect(result.data.settings).toEqual({ baseCurrency: 'INR', currencyConfirmed: true });
+  });
+
+  it('falls back to unconfirmed USD for an unsupported currency code', () => {
+    const payload = validPayload();
+    (payload.data as Record<string, unknown>).settings = { baseCurrency: 'XXX', currencyConfirmed: true };
+    const result = parseImport(JSON.stringify(payload));
+    expect(result.data.settings).toEqual({ baseCurrency: 'USD', currencyConfirmed: false });
+  });
+
+  it('falls back for a malformed settings section', () => {
+    const payload = validPayload();
+    (payload.data as Record<string, unknown>).settings = 'INR';
+    const result = parseImport(JSON.stringify(payload));
+    expect(result.data.settings).toEqual({ baseCurrency: 'USD', currencyConfirmed: false });
+  });
+});
