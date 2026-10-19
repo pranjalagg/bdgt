@@ -3,15 +3,13 @@
   import Modal from '$lib/components/shared/Modal.svelte';
   import LogEntry from '$lib/components/shared/LogEntry.svelte';
   import CurrencyModal from '$lib/components/shared/CurrencyModal.svelte';
-  import { currencyConfirmed } from '$lib/stores/currencyStore';
-  import { onMount } from 'svelte';
+  import { currencyConfirmed, takeCurrencyPrompt } from '$lib/stores/currencyStore';
   import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId } from '$lib/stores/uiStore';
 
-  // Ask once per mount until the user confirms. Closing the modal with
-  // Escape just defers it to the next launch; it does not reopen in a loop.
-  onMount(() => {
-    if (!$currencyConfirmed) openModal('currency');
-  });
+  // Ask until the user confirms, once per load of the saved settings.
+  // Reactive so an import or reset that keeps the same currency code (and so
+  // does not rebuild this layout) still shows the modal.
+  $: if (takeCurrencyPrompt($currencyConfirmed)) openModal('currency');
 
   function handleLogComplete() {
     closeModal();

@@ -11,6 +11,21 @@ export const currencyConfirmed = writable<boolean>(true);
 
 baseCurrency.subscribe(setActiveCurrency);
 
+// The confirm modal opens once per load of the saved settings. Escape
+// leaves currencyConfirmed false but must not reopen it in a loop; a fresh
+// load (an import or reset that keeps the same code) must ask again.
+let prompted = false;
+
+export function takeCurrencyPrompt(confirmed: boolean): boolean {
+  if (confirmed || prompted) return false;
+  prompted = true;
+  return true;
+}
+
+export function resetCurrencyPrompt(): void {
+  prompted = false;
+}
+
 function detectOnDevice(): CurrencyCode {
   if (!browser) return DEFAULT_CURRENCY;
   let timeZone: string | undefined;
@@ -27,6 +42,7 @@ function detectOnDevice(): CurrencyCode {
 export async function loadCurrency(): Promise<void> {
   const stored = rowsToSettings(await db.settings.toArray());
   const settings = resolveStartupSettings(stored, detectOnDevice());
+  resetCurrencyPrompt();
   baseCurrency.set(settings.baseCurrency);
   currencyConfirmed.set(settings.currencyConfirmed);
 }

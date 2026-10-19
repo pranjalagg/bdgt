@@ -2,7 +2,7 @@
   import Modal from '$lib/components/shared/Modal.svelte';
   import { closeModal } from '$lib/stores/uiStore';
   import { addLot } from '$lib/stores/investmentStore';
-  import { parseCurrency, isValidCurrency } from '$lib/utils/currency';
+  import { parseCurrency, isValidCurrency, currencySymbol } from '$lib/utils/currency';
   import { parseLocalDate } from '$lib/utils/dates';
 
   let symbol = '';
@@ -86,7 +86,7 @@
           id="price"
           type="text"
           bind:value={pricePerShare}
-          placeholder="$150.00"
+          placeholder="{currencySymbol()}150.00"
           class="input-base mt-1"
           required
         />
