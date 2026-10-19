@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { base } from '$app/paths';
+  import CurrencyChip from '$lib/components/shared/CurrencyChip.svelte';
 
   const iconPaths: Record<string, string> = {
     home: '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
@@ -63,6 +64,10 @@
       </li>
     {/each}
   </ul>
+
+  <div class="border-t border-border px-3 py-3 dark:border-border-dark">
+    <CurrencyChip />
+  </div>
 </nav>
 
 <!-- Mobile bottom nav -->

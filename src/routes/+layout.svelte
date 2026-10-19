@@ -7,6 +7,7 @@
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
 	import { loadGoals } from '$lib/stores/goalsStore';
 	import { startClock } from '$lib/stores/uiStore';
+	import { loadCurrency, baseCurrency } from '$lib/stores/currencyStore';
 	import '$lib/stores/themeStore';
 
 	let { children } = $props();
@@ -18,6 +19,7 @@
 	});
 
 	async function init() {
+		await loadCurrency();
 		await loadData();
 		await loadRecurring();
 		await loadGoals();
@@ -34,7 +36,9 @@
 		<p class="text-gray-500 dark:text-gray-400">Loading...</p>
 	</div>
 {:else}
-	<Layout>
-		{@render children()}
-	</Layout>
+	{#key $baseCurrency}
+		<Layout>
+			{@render children()}
+		</Layout>
+	{/key}
 {/if}

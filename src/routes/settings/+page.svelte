@@ -5,6 +5,8 @@
   import { loadGoals } from '$lib/stores/goalsStore';
   import { loadInvestments } from '$lib/stores/investmentStore';
   import { themePreference, setTheme, type ThemePreference } from '$lib/stores/themeStore';
+  import { loadCurrency } from '$lib/stores/currencyStore';
+  import CurrencyChip from '$lib/components/shared/CurrencyChip.svelte';
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
 
   let fileInput: HTMLInputElement;
@@ -43,6 +45,7 @@
     try {
       const text = await file.text();
       await importFromJson(text);
+      await loadCurrency();
       await loadData();
       await loadRecurring();
       await loadGoals();
@@ -61,6 +64,7 @@
     if (!confirm('Are you really sure?')) return;
 
     await resetAllData();
+    await loadCurrency();
     await loadData();
     await loadRecurring();
     await loadGoals();
@@ -95,6 +99,16 @@
         <option value="light">Light</option>
         <option value="dark">Dark</option>
       </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <h2 class="section-title">Currency</h2>
+    </div>
+    <div class="flex flex-wrap items-center gap-4 px-5 py-4">
+      <CurrencyChip />
+      <p class="text-sm text-muted">Changing it only relabels amounts; it does not convert them.</p>
     </div>
   </div>
 

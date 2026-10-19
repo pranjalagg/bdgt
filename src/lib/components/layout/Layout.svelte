@@ -2,7 +2,16 @@
   import Nav from './Nav.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import LogEntry from '$lib/components/shared/LogEntry.svelte';
-  import { openLog, closeModal, activeModal, logPreselectedBucketId } from '$lib/stores/uiStore';
+  import CurrencyModal from '$lib/components/shared/CurrencyModal.svelte';
+  import { currencyConfirmed } from '$lib/stores/currencyStore';
+  import { onMount } from 'svelte';
+  import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId } from '$lib/stores/uiStore';
+
+  // Ask once per mount until the user confirms. Closing the modal with
+  // Escape just defers it to the next launch; it does not reopen in a loop.
+  onMount(() => {
+    if (!$currencyConfirmed) openModal('currency');
+  });
 
   function handleLogComplete() {
     closeModal();
@@ -55,3 +64,5 @@
 <Modal id="log" title="Add Transaction">
   <LogEntry preselectedBucketId={$logPreselectedBucketId} onComplete={handleLogComplete} />
 </Modal>
+
+<CurrencyModal />
