@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { formatCurrency, parseCurrency, centsToDollars, dollarsToCents, isValidCurrency, evaluateExpression, isExpression } from '$lib/utils/currency';
+import { describe, it, expect, afterEach } from 'vitest';
+import { formatCurrency, parseCurrency, centsToDollars, dollarsToCents, isValidCurrency, evaluateExpression, isExpression, setActiveCurrency, getActiveCurrency, currencySymbol, symbolPadding } from '$lib/utils/currency';
 
 describe('currency utils', () => {
   describe('centsToDollars', () => {
@@ -298,5 +298,69 @@ describe('currency utils', () => {
       expect(isExpression('-5')).toBe(false);
       expect(isExpression('-12.34')).toBe(false);
     });
+  });
+});
+
+describe('active currency', () => {
+  afterEach(() => setActiveCurrency('USD'));
+
+  it('defaults to USD', () => {
+    expect(getActiveCurrency()).toBe('USD');
+    expect(currencySymbol()).toBe('$');
+  });
+
+  it('formats INR with the rupee sign and lakh grouping', () => {
+    setActiveCurrency('INR');
+    expect(formatCurrency(123456789)).toBe('₹12,34,567.89');
+    expect(formatCurrency(1000000000)).toBe('₹1,00,00,000.00');
+    expect(currencySymbol()).toBe('₹');
+  });
+
+  it('keeps the minus sign first for negatives', () => {
+    setActiveCurrency('INR');
+    expect(formatCurrency(-500)).toBe('-₹5.00');
+    setActiveCurrency('GBP');
+    expect(formatCurrency(-500)).toBe('-£5.00');
+  });
+
+  it('formats zero and small amounts', () => {
+    setActiveCurrency('EUR');
+    expect(formatCurrency(0)).toBe('€0.00');
+    expect(formatCurrency(5)).toBe('€0.05');
+  });
+
+  it('formats AED with its code', () => {
+    setActiveCurrency('AED');
+    expect(formatCurrency(1250).replace(/\s/g, ' ')).toMatch(/AED\s?12\.50/);
+  });
+
+  it('adds left padding only for multi-character symbols', () => {
+    expect(symbolPadding(1.75)).toBeUndefined();
+    setActiveCurrency('AED');
+    expect(symbolPadding(1.75)).toBe('3.35rem');
+  });
+});
+
+describe('parsing with currency symbols', () => {
+  afterEach(() => setActiveCurrency('USD'));
+
+  it('strips any supported symbol, whatever the active currency', () => {
+    expect(parseCurrency('$12.50')).toBe(1250);
+    expect(parseCurrency('₹12.50')).toBe(1250);
+    expect(parseCurrency('€12.50')).toBe(1250);
+    expect(parseCurrency('£12.50')).toBe(1250);
+    expect(parseCurrency('AED 12.50')).toBe(1250);
+  });
+
+  it('parses grouped amounts and expressions with symbols', () => {
+    expect(parseCurrency('₹1,200 + 300')).toBe(150000);
+    expect(parseCurrency('₹12,34,567.89')).toBe(123456789);
+    expect(isExpression('₹1,200 + 300')).toBe(true);
+  });
+
+  it('treats a bare symbol as empty and junk as invalid', () => {
+    expect(parseCurrency('₹')).toBe(0);
+    expect(parseCurrency('AED')).toBe(0);
+    expect(parseCurrency('₹abc')).toBeNaN();
   });
 });

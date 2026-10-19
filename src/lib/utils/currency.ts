@@ -1,3 +1,29 @@
+import { CURRENCIES, DEFAULT_CURRENCY, currencyInfo, type CurrencyCode } from '$lib/currency/currencies';
+
+let activeCurrency: CurrencyCode = DEFAULT_CURRENCY;
+
+// Set once at startup (and on change) by currencyStore. Kept as module
+// state so formatCurrency keeps its one-argument signature; the root
+// layout rebuilds the app on change so nothing renders a stale symbol.
+export function setActiveCurrency(code: CurrencyCode): void {
+  activeCurrency = code;
+}
+
+export function getActiveCurrency(): CurrencyCode {
+  return activeCurrency;
+}
+
+export function currencySymbol(): string {
+  return currencyInfo(activeCurrency).symbol;
+}
+
+// A multi-character symbol (AED) overflows the one-character prefix the
+// inputs are padded for. `baseRem` is the input's normal left padding.
+export function symbolPadding(baseRem: number): string | undefined {
+  const extra = currencySymbol().length - 1;
+  return extra > 0 ? `${(baseRem + extra * 0.8).toFixed(2).replace(/\.?0+$/, '')}rem` : undefined;
+}
+
 export function centsToDollars(cents: number): number {
   return cents / 100;
 }
@@ -7,16 +33,29 @@ export function dollarsToCents(dollars: number): number {
 }
 
 export function formatCurrency(cents: number): string {
-  const dollars = centsToDollars(Math.abs(cents));
-  const formatted = dollars.toLocaleString('en-US', {
+  const info = currencyInfo(activeCurrency);
+  const formatted = centsToDollars(Math.abs(cents)).toLocaleString(info.locale, {
     style: 'currency',
-    currency: 'USD',
+    currency: info.code,
   });
   return cents < 0 ? `-${formatted}` : formatted;
 }
 
+// Every supported symbol plus grouping commas, whatever the active
+// currency: someone with a USD habit typing "$" into an INR budget still
+// gets the number they meant.
+const SYMBOLS = [...new Set(CURRENCIES.map((c) => c.symbol))];
+const STRIP_PATTERN = new RegExp(
+  `[,${SYMBOLS.filter((s) => s.length === 1).map((s) => s.replace(/[\\\]^$-]/g, '\\$&')).join('')}]|${SYMBOLS.filter((s) => s.length > 1).join('|')}`,
+  'gi'
+);
+
+function stripSymbols(value: string): string {
+  return value.replace(STRIP_PATTERN, '');
+}
+
 export function parseCurrency(value: string): number {
-  const cleaned = value.replace(/[$,]/g, '').trim();
+  const cleaned = stripSymbols(value).trim();
   if (!cleaned) return 0;
   const result = evaluateExpression(value);
   if (result === null) return NaN;
@@ -30,7 +69,7 @@ function isValidToken(token: string): boolean {
 }
 
 export function evaluateExpression(value: string): number | null {
-  let cleaned = value.replace(/[$,]/g, '').trim();
+  let cleaned = stripSymbols(value).trim();
   if (!cleaned) return null;
 
   let negateFirst = false;
@@ -77,7 +116,7 @@ export function evaluateExpression(value: string): number | null {
 }
 
 export function isExpression(value: string): boolean {
-  const cleaned = value.replace(/[$,]/g, '').trim();
+  const cleaned = stripSymbols(value).trim();
   return /[\d\.]\s*[\+\-\*\/]\s*[\d\.]/.test(cleaned);
 }
 
