@@ -2,7 +2,7 @@
   import { buckets, bucketStatuses, addBucket, updateBucket, deleteBucket, setAllocation, updateBucketAllocation, totalPercentage, computedAllocations } from '$lib/stores/budgetStore';
   import { loadRecurring } from '$lib/stores/recurringStore';
   import { loadGoals } from '$lib/stores/goalsStore';
-  import { formatCurrency, evaluateExpression } from '$lib/utils/currency';
+  import { formatCurrency, evaluateExpression, currencySymbol } from '$lib/utils/currency';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
@@ -162,7 +162,7 @@
         </div>
         {#if status.bucket.allocationType === 'fixed'}
           <div class="flex items-center gap-2">
-            <span class="text-muted">$</span>
+            <span class="text-muted">{currencySymbol()}</span>
             <input
               type="text"
               value={(status.allocated / 100).toFixed(2)}

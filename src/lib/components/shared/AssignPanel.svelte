@@ -4,7 +4,7 @@
   // the Buckets page and editing one field at a time.
   import { bucketStatuses, currentMonthIncome, setAllocations, getCarryForwardAllocations } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
-  import { formatCurrency, evaluateExpression, centsToDollars } from '$lib/utils/currency';
+  import { formatCurrency, evaluateExpression, centsToDollars, currencySymbol, symbolPadding } from '$lib/utils/currency';
 
   export let onDone: (() => void) | undefined = undefined;
 
@@ -142,13 +142,14 @@
           </button>
         {/if}
         <div class="relative w-28 flex-none">
-          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted dark:text-muted-dark">$</span>
+          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted dark:text-muted-dark">{currencySymbol()}</span>
           <input
             id="assign-{s.bucket.id}"
             type="text"
             inputmode="decimal"
             bind:value={draft[s.bucket.id]}
             placeholder="0.00"
+            style:padding-left={symbolPadding(1.25)}
             class="money w-full rounded border bg-white py-1.5 pl-5 pr-2 text-right text-sm
                    focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
                    dark:bg-gray-800/50 dark:text-gray-100

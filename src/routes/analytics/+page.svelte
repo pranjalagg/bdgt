@@ -9,7 +9,7 @@
   import { buckets, bucketStatuses, transactions, incomes, currentMonthIncome, currentMonthFixedIncome, savingsRateTrend } from '$lib/stores/budgetStore';
   import { currentMonthKey } from '$lib/stores/uiStore';
   import { spentExcludingSavings, monthlyBucketSpend } from '$lib/utils/calculations';
-  import { centsToDollars, formatCurrency, dollarsToCents } from '$lib/utils/currency';
+  import { centsToDollars, formatCurrency, dollarsToCents, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { getMonthKey, formatMonthYear, getPreviousMonthKey, getMonthRange, getLast6Months } from '$lib/utils/dates';
 
   let thresholdInput = '500';
@@ -147,11 +147,12 @@
         <label class="flex items-center gap-2 text-sm text-muted">
           Threshold:
           <div class="relative">
-            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400">{currencySymbol()}</span>
             <input
               type="text"
               inputmode="decimal"
               bind:value={thresholdInput}
+              style:padding-left={symbolPadding(1.5)}
               class="w-24 rounded-lg border border-gray-300 bg-white py-1.5 pl-6 pr-2 text-sm transition-shadow focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-border-dark dark:bg-gray-800/50 dark:text-gray-100"
             />
           </div>

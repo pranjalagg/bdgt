@@ -12,7 +12,7 @@
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, today, openModal, closeModal, openLog } from '$lib/stores/uiStore';
-  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
+  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { parseMonthKey, getDaysInMonth, formatMonthYear } from '$lib/utils/dates';
   import { savingsRateDelta } from '$lib/utils/calculations';
 
@@ -338,13 +338,14 @@
     <div>
       <label for="income-amount" class="label">Amount</label>
       <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
         <input
           id="income-amount"
           type="text"
           inputmode="decimal"
           bind:value={incomeAmount}
           on:input={() => incomeTouched = true}
+          style:padding-left={symbolPadding(1.75)}
           class="input-base pl-7 {incomeError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
           placeholder="0.00"
         />
@@ -436,13 +437,14 @@
     <div>
       <label for="goal-target" class="label">Target Amount</label>
       <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
         <input
           id="goal-target"
           type="text"
           inputmode="decimal"
           bind:value={goalTargetAmount}
           on:input={() => goalAmountTouched = true}
+          style:padding-left={symbolPadding(1.75)}
           class="input-base pl-7 {goalTargetError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
           placeholder="1000.00"
         />
@@ -454,12 +456,13 @@
     <div>
       <label for="goal-start" class="label">Starting Balance (optional)</label>
       <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
         <input
           id="goal-start"
           type="text"
           inputmode="decimal"
           bind:value={goalStartingBalance}
+          style:padding-left={symbolPadding(1.75)}
           class="input-base pl-7 {goalBalanceError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
           placeholder="0.00"
         />
@@ -495,13 +498,14 @@
       <div>
         <label for="goal-monthly" class="label">Monthly Contribution</label>
         <div class="relative mt-1.5">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
           <input
             id="goal-monthly"
             type="text"
             inputmode="decimal"
             bind:value={goalMonthlyContribution}
             on:input={() => goalContribTouched = true}
+            style:padding-left={symbolPadding(1.75)}
             class="input-base pl-7 {goalContribError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
             placeholder="100.00"
           />

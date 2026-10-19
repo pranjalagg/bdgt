@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js';
   import { resolvedTheme } from '$lib/stores/themeStore';
+  import { formatCurrency, dollarsToCents } from '$lib/utils/currency';
 
   Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
@@ -69,7 +70,7 @@
                 const dataset = context.dataset.data as number[];
                 const total = dataset.reduce((a, b) => a + b, 0);
                 const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-                return ` $${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${pct}%)`;
+                return ` ${formatCurrency(dollarsToCents(value))} (${pct}%)`;
               },
             },
           },

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { buckets, updateTransaction } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, centsToDollars } from '$lib/utils/currency';
+  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, centsToDollars, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { parseLocalDate } from '$lib/utils/dates';
   import type { Transaction } from '$lib/types';
 
@@ -53,7 +53,7 @@
   <div>
     <label for="edit-amount" class="label">Amount</label>
     <div class="relative mt-1">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{currencySymbol()}</span>
       <input
         id="edit-amount"
         type="text"
@@ -61,6 +61,7 @@
         bind:value={amount}
         on:input={handleAmountInput}
         placeholder="0.00"
+        style:padding-left={symbolPadding(1.75)}
         class="input-base pl-7 {amountError ? '!border-danger focus:!border-danger focus:!ring-danger' : ''}"
         required
       />

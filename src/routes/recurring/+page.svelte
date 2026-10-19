@@ -2,7 +2,7 @@
 <script lang="ts">
   import { recurringTransactions, addRecurring, updateRecurring, deleteRecurring, toggleRecurring } from '$lib/stores/recurringStore';
   import { buckets } from '$lib/stores/budgetStore';
-  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression } from '$lib/utils/currency';
+  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { formatDate, parseLocalDate } from '$lib/utils/dates';
   import Modal from '$lib/components/shared/Modal.svelte';
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
@@ -156,7 +156,7 @@
     <div>
       <label for="rec-amount" class="label">Amount</label>
       <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
         <input
           id="rec-amount"
           type="text"
@@ -164,6 +164,7 @@
           bind:value={amount}
           on:input={handleAmountInput}
           placeholder="0.00"
+          style:padding-left={symbolPadding(1.75)}
           class="input-base pl-7 {amountError ? '!border-danger !focus:border-danger !focus:ring-danger/20' : ''}"
           required
         />

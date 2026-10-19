@@ -6,7 +6,7 @@
   // motion, replacing the old amount -> dropdown -> submit sequence.
   import { bucketStatuses, addTransaction } from '$lib/stores/budgetStore';
   import { currentMonthKey } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, formatCurrency } from '$lib/utils/currency';
+  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, formatCurrency, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { defaultEntryDate } from '$lib/utils/dates';
   import { calculateBucketFit, type BucketFitStatus } from '$lib/utils/calculations';
 
@@ -104,7 +104,7 @@
   <div>
     <label for="log-amount" class="label">Amount</label>
     <div class="relative mt-1.5">
-      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-muted dark:text-muted-dark">$</span>
+      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-muted dark:text-muted-dark">{currencySymbol()}</span>
       <!-- svelte-ignore a11y_autofocus -->
       <input
         id="log-amount"
@@ -116,6 +116,7 @@
         on:input={handleAmountInput}
         on:keydown={handleEnter}
         placeholder="0.00"
+        style:padding-left={symbolPadding(2.25)}
         class="money w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-3xl font-medium tracking-tight
                transition-shadow focus:outline-none focus:ring-2 focus:ring-primary/20
                dark:bg-gray-800/50 dark:text-gray-100
