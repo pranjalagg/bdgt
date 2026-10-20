@@ -1,3 +1,4 @@
+import type { CurrencyCode } from '$lib/currency/currencies';
 import type { CurrencySettings } from '$lib/currency/settings';
 
 // src/lib/types.ts
@@ -30,6 +31,15 @@ export interface Bucket {
   isSystem?: boolean;       // app-managed (Unsorted): not user-editable or assignable
 }
 
+// A transaction entered in a currency other than the budget's base. `amount`
+// on the transaction stays base cents; this keeps what was actually paid.
+export interface ForeignAmount {
+  amount: number; // minor units of `currency`
+  currency: CurrencyCode;
+  rate: number; // units of `currency` per 1 unit of `base`
+  base: CurrencyCode; // the base currency when it was entered
+}
+
 export interface Transaction {
   id: string;
   amount: number; // cents
@@ -38,6 +48,7 @@ export interface Transaction {
   note?: string;
   recurringId?: string;
   createdAt?: number; // epoch ms entry order; absent on older records
+  foreign?: ForeignAmount;
 }
 
 export interface RecurringTransaction {
