@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { formatCurrency } from '$lib/utils/currency';
+  import { formatCurrency, formatMoney } from '$lib/utils/currency';
+  import { baseCurrency } from '$lib/stores/currencyStore';
+  import { shouldShowForeignNote } from '$lib/currency/conversion';
   import { formatDate } from '$lib/utils/dates';
   import { buckets, deleteTransaction } from '$lib/stores/budgetStore';
   import type { Transaction } from '$lib/types';
@@ -26,6 +28,11 @@
     {/if}
     <div>
       <p class="amt font-semibold tabular-nums text-gray-800 dark:text-gray-100">{formatCurrency(transaction.amount)}</p>
+      {#if transaction.foreign && shouldShowForeignNote(transaction.foreign, $baseCurrency)}
+        <p class="amt text-xs tabular-nums text-muted dark:text-gray-400">
+          {formatMoney(transaction.foreign.amount, transaction.foreign.currency)} @ {transaction.foreign.rate}
+        </p>
+      {/if}
       <p class="text-sm text-muted dark:text-gray-400">
         {formatDate(new Date(transaction.date))}
         {#if transaction.note}

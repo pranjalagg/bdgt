@@ -1,14 +1,27 @@
 <script lang="ts">
   import { buckets, updateTransaction } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, formatCurrency, centsToDollars, currencySymbol, symbolPadding } from '$lib/utils/currency';
+  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, formatMoney, centsToDollars, symbolPadding } from '$lib/utils/currency';
   import { parseLocalDate } from '$lib/utils/dates';
   import type { Transaction } from '$lib/types';
+  import ForeignCurrencyField from './ForeignCurrencyField.svelte';
+  import { baseCurrency } from '$lib/stores/currencyStore';
+  import { currencyInfo, type CurrencyCode } from '$lib/currency/currencies';
+  import { parseRate, baseAmountForSave } from '$lib/currency/conversion';
 
   export let transaction: Transaction;
   export let onComplete: (() => void) | undefined = undefined;
 
-  let amount = centsToDollars(transaction.amount).toString();
+  // A record entered under another base currency no longer relates to this
+  // one (the user relabeled), so it opens as an ordinary transaction and
+  // saving clears its stale foreign details.
+  const foreignShown = transaction.foreign && transaction.foreign.base === $baseCurrency ? transaction.foreign : undefined;
+
+  let currency: CurrencyCode = foreignShown?.currency ?? $baseCurrency;
+  let rate = foreignShown ? String(foreignShown.rate) : '';
+  let baseCents = transaction.amount;
+  let rateValid = true;
+  let amount = centsToDollars(foreignShown?.amount ?? transaction.amount).toString();
   let bucketId = transaction.bucketId;
   let note = transaction.note || '';
   const d = new Date(transaction.date);
@@ -20,10 +33,11 @@
     ? 'Please enter a valid amount (e.g. 12.50, -5, 10 + 5.25, or 12.50 * 3)'
     : '';
 
-  $: canSubmit = !!amount && !!bucketId && !!date && !amountError && isValidCurrency(amount);
+  $: canSubmit = !!amount && !!bucketId && !!date && !amountError && isValidCurrency(amount) && rateValid;
 
   $: showPreview = isExpression(amount) && isValidCurrency(amount);
   $: previewValue = showPreview ? evaluateExpression(amount) : null;
+  $: typedMinor = isValidCurrency(amount) ? parseCurrency(amount) : 0;
 
   function handleAmountInput() {
     amountTouched = true;
@@ -35,8 +49,13 @@
 
     isSubmitting = true;
     try {
+      const foreign =
+        currency === $baseCurrency
+          ? undefined
+          : { amount: typedMinor, currency, rate: parseRate(rate)!, base: $baseCurrency };
       await updateTransaction(transaction.id, {
-        amount: parseCurrency(amount),
+        amount: baseAmountForSave({ amount: transaction.amount, foreign: foreignShown }, typedMinor, foreign, baseCents),
+        foreign, // undefined removes it from the stored record
         bucketId,
         date: parseLocalDate(date),
         note: note || undefined,
@@ -53,7 +72,7 @@
   <div>
     <label for="edit-amount" class="label">Amount</label>
     <div class="relative mt-1">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{currencySymbol()}</span>
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{currencyInfo(currency).symbol}</span>
       <input
         id="edit-amount"
         type="text"
@@ -61,7 +80,7 @@
         bind:value={amount}
         on:input={handleAmountInput}
         placeholder="0.00"
-        style:padding-left={symbolPadding(1.75)}
+        style:padding-left={symbolPadding(1.75, currencyInfo(currency).symbol)}
         class="input-base pl-7 {amountError ? '!border-danger focus:!border-danger focus:!ring-danger' : ''}"
         required
       />
@@ -69,8 +88,16 @@
     {#if amountError}
       <p class="mt-1 text-sm text-danger">{amountError}</p>
     {:else if showPreview && previewValue !== null}
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= <span class="amt">{formatCurrency(dollarsToCents(previewValue))}</span></p>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= <span class="amt">{formatMoney(dollarsToCents(previewValue), currency)}</span></p>
     {/if}
+    <ForeignCurrencyField
+      id="edit"
+      bind:currency
+      bind:rate
+      foreignMinor={typedMinor}
+      bind:baseCents
+      bind:rateValid
+    />
   </div>
 
   <div>
