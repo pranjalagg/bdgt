@@ -125,7 +125,7 @@ SQL files in `supabase/migrations/` (Supabase CLI layout), applied in order thro
 ## Local database (Dexie v11)
 
 - New tables `allocations` (key `id` = `YYYY-MM:bucketId`, indexes `month`, `bucketId`) and `monthNotes` (key `id`, index `month`).
-- The v11 upgrade moves every month record's `allocations` and `notes` into the new tables, then drops `monthSnapshots`. A month record's `incomeTotal`, `spent` and `rollovers` are always written as zero or empty and never read, so nothing is lost.
+- The upgrade moves every month record's `allocations` and `notes` into the new tables, then drops `monthSnapshots`. The app never reads a month record's `incomeTotal`, `spent` or `rollovers`: current versions write them as zero or empty, and some older records hold stale figures from earlier versions that no longer match the transactions. They are not carried over; a backup taken before the upgrade keeps them.
 - The in-memory `monthSnapshots` store is built from the two tables at load, so the derived budget stores that read it are unchanged. `setAllocation`, `setAllocations` and the month-note functions write the new tables.
 - Backup format is unchanged (version `1`): export rebuilds month records from the two tables; import splits them. Old backups import as before, and new backups still open in older app versions.
 - Hidden sync tables, never exported: `syncOutbox`, `syncVersions`, `syncState`.
@@ -209,7 +209,7 @@ The app keeps working locally in every case.
   - each lot's `soldShares` is raised to the sum of its sell records when lower (two devices selling from one lot at once). It is never lowered, so lots sold before sell records existed keep their count. Sells cannot be deleted in the app, so the sum only grows.
 - **Dates**: calendar-day fields upload as the local day and return as local midnight. The time of day on a transaction's date is not shown anywhere; ordering within a day keeps using `createdAt`.
 - **Import while signed in** replaces the account's data on every device (confirm text says so): the existing clear-and-add becomes deletes for the old records and saves for the imported ones through normal capture.
-- **Reset while signed in** clears the account on every device, then reseeds the default buckets.
+- **Reset while signed in** clears the account on every device. As today, a database the person cleared on purpose is not re-seeded with default buckets.
 - **Currency settings** sync like any record; a base-currency change on one device applies everywhere. The detected, unconfirmed currency is an automatic write, so an account's confirmed currency wins on a new device.
 
 ## Accounts and UI
