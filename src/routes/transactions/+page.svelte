@@ -6,7 +6,9 @@
   import { currentMonthTransactions, transactions, buckets, deleteTransaction } from '$lib/stores/budgetStore';
   import { UNSORTED_BUCKET_ID } from '$lib/utils/unsorted';
   import { groupTransactionsByDay } from '$lib/utils/calculations';
-  import { formatCurrency } from '$lib/utils/currency';
+  import { formatCurrency, formatMoney } from '$lib/utils/currency';
+  import { baseCurrency } from '$lib/stores/currencyStore';
+  import { shouldShowForeignNote } from '$lib/currency/conversion';
   import { openModal, openLog } from '$lib/stores/uiStore';
   import type { Transaction } from '$lib/types';
 
@@ -126,7 +128,7 @@
                 {t.note || bucket?.name || 'Transaction'}
               </p>
               <p class="truncate text-[11.5px] text-muted dark:text-muted-dark">
-                {bucket?.name ?? 'Unknown bucket'}{#if bucket?.isSystem}<span class="ml-1 text-warning">· needs a bucket, tap edit</span>{/if}{#if isSetAside}<span class="ml-1 text-success dark:text-success-light">· set aside</span>{/if}
+                {bucket?.name ?? 'Unknown bucket'}{#if bucket?.isSystem}<span class="ml-1 text-warning">· needs a bucket, tap edit</span>{/if}{#if isSetAside}<span class="ml-1 text-success dark:text-success-light">· set aside</span>{/if}{#if t.foreign && shouldShowForeignNote(t.foreign, $baseCurrency)}<span class="amt ml-1">· {formatMoney(t.foreign.amount, t.foreign.currency)} @ {t.foreign.rate}</span>{/if}
               </p>
             </div>
 
