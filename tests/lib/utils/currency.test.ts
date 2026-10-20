@@ -391,3 +391,22 @@ describe('symbolPadding with an explicit symbol', () => {
     expect(symbolPadding(1.75, 'AED')).toBe('3.35rem');
   });
 });
+
+describe('decimal commas are not grouping commas', () => {
+  it('rejects a comma that is not a thousands separator instead of reading it as x100', () => {
+    for (const bad of ['12,50', '1,5', '0,89', ',5', '1,234,56', '10,5 + 2', '5 + 3,25', '1234,567']) {
+      expect(isValidCurrency(bad), bad).toBe(false);
+      expect(parseCurrency(bad), bad).toBeNaN();
+    }
+  });
+
+  it('still accepts real grouping, Western and lakh', () => {
+    expect(parseCurrency('1,234.56')).toBe(123456);
+    expect(parseCurrency('1,000')).toBe(100000);
+    expect(parseCurrency('12,500')).toBe(1250000);
+    expect(parseCurrency('1,00,000')).toBe(10000000);
+    expect(parseCurrency('12,34,567.89')).toBe(123456789);
+    expect(parseCurrency('$1,000 + 5')).toBe(100500);
+    expect(parseCurrency('-1,000')).toBe(-100000);
+  });
+});

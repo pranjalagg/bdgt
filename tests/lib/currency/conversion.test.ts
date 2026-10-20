@@ -45,6 +45,10 @@ describe('parseRate', () => {
     }
   });
 
+  it('rejects a decimal comma instead of reading 0,89 as 89', () => {
+    for (const bad of ['0,89', '94,84', '1,5', '12,50']) expect(parseRate(bad), bad).toBeNull();
+  });
+
   it('rejects more than 6 decimal places', () => {
     expect(parseRate('0.1234567')).toBeNull();
   });

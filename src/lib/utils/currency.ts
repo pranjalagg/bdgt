@@ -45,17 +45,27 @@ export function formatCurrency(cents: number): string {
   return formatMoney(cents, activeCurrency);
 }
 
-// Every supported symbol plus grouping commas, whatever the active
+// Every supported symbol, whatever the active
 // currency: someone with a USD habit typing "$" into an INR budget still
 // gets the number they meant.
 const SYMBOLS = [...new Set(CURRENCIES.map((c) => c.symbol))];
 const STRIP_PATTERN = new RegExp(
-  `[,${SYMBOLS.filter((s) => s.length === 1).map((s) => s.replace(/[\\\]^$-]/g, '\\$&')).join('')}]|${SYMBOLS.filter((s) => s.length > 1).join('|')}`,
+  `[${SYMBOLS.filter((s) => s.length === 1).map((s) => s.replace(/[\\\]^$-]/g, '\\$&')).join('')}]|${SYMBOLS.filter((s) => s.length > 1).join('|')}`,
   'gi'
 );
 
 function stripSymbols(value: string): string {
   return value.replace(STRIP_PATTERN, '');
+}
+
+// A comma is accepted only as a thousands separator, Western (1,234,567) or
+// lakh (12,34,567). Anything else, like the decimal comma in "12,50", is
+// rejected: dropping it would silently read 12,50 as 1250.
+const GROUPED_NUMBER = /^(?:\d{1,3}(?:,\d{3})+|\d{1,2}(?:,\d{2})*,\d{3})(?:\.\d*)?$/;
+
+export function stripGrouping(token: string): string | null {
+  if (!token.includes(',')) return token;
+  return GROUPED_NUMBER.test(token) ? token.replace(/,/g, '') : null;
 }
 
 export function parseCurrency(value: string): number {
@@ -84,6 +94,11 @@ export function evaluateExpression(value: string): number | null {
   }
 
   const parts = cleaned.split(/\s*([\+\-\*\/])\s*/);
+  for (let i = 0; i < parts.length; i += 2) {
+    const grouped = stripGrouping(parts[i]);
+    if (grouped === null) return null;
+    parts[i] = grouped;
+  }
   if (!isValidToken(parts[0])) return null;
 
   // Pass 1: * and / bind tighter than + and -, so resolve them first,

@@ -1,5 +1,6 @@
 import { isSupportedCurrency, type CurrencyCode } from './currencies';
 import type { ForeignAmount, Transaction } from '$lib/types';
+import { stripGrouping } from '$lib/utils/currency';
 
 // Half away from zero, so a refund converts to exactly the negative of the
 // purchase (Math.round alone rounds -2.5 to -2 and 2.5 to 3).
@@ -12,8 +13,8 @@ export function convertToBase(foreignMinor: number, rate: number): number {
 const RATE_PATTERN = /^(?:\d+(?:\.\d{1,6})?|\.\d{1,6})$/;
 
 export function parseRate(input: string): number | null {
-  const cleaned = input.replace(/,/g, '').trim();
-  if (!RATE_PATTERN.test(cleaned)) return null;
+  const cleaned = stripGrouping(input.trim());
+  if (cleaned === null || !RATE_PATTERN.test(cleaned)) return null;
   const value = Number(cleaned);
   return Number.isFinite(value) && value > 0 ? value : null;
 }
