@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '$lib/db';
+import { setCaptureEnabled } from '$lib/sync/capture';
 
 // The v10 schema exactly as shipped, to build a database the way an
 // existing user has it before opening it with the current app.
@@ -71,5 +72,19 @@ describe('month record split migration', () => {
     await db.open();
     expect(await db.allocations.count()).toBe(0);
     expect(await db.monthNotes.count()).toBe(0);
+  });
+
+  it('does not queue sync entries for migration writes, even with capture on', async () => {
+    await seedV10(async (old) => {
+      await old.table('monthSnapshots').add({ month: '2026-06', incomeTotal: 0, allocations: { b1: 5 }, spent: {}, rollovers: {} });
+    });
+    setCaptureEnabled(true);
+    try {
+      await db.open();
+      expect(await db.allocations.count()).toBe(1);
+      expect(await db.syncOutbox.count()).toBe(0);
+    } finally {
+      setCaptureEnabled(false);
+    }
   });
 });

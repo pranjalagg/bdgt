@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import { reviveDateFields } from '$lib/utils/dates';
 import { migrationSettingsRows, type SettingRow } from '$lib/currency/settings';
 import { splitSnapshots } from '$lib/utils/monthRecords';
+import { installSyncCapture } from '$lib/sync/capture';
 import type { SyncOutboxEntry, SyncVersion, SyncStateRow } from '$lib/sync/types';
 import type { Bucket, Transaction, RecurringTransaction, Income, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
 
@@ -274,6 +275,8 @@ export class BudgetDatabase extends Dexie {
       syncVersions: 'key',
       syncState: 'key'
     });
+
+    installSyncCapture(this);
   }
 }
 
