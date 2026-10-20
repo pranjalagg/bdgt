@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { formatCurrency, parseCurrency, centsToDollars, dollarsToCents, isValidCurrency, evaluateExpression, isExpression, setActiveCurrency, getActiveCurrency, currencySymbol, symbolPadding } from '$lib/utils/currency';
+import { formatMoney, formatCurrency, parseCurrency, centsToDollars, dollarsToCents, isValidCurrency, evaluateExpression, isExpression, setActiveCurrency, getActiveCurrency, currencySymbol, symbolPadding } from '$lib/utils/currency';
 
 describe('currency utils', () => {
   describe('centsToDollars', () => {
@@ -362,5 +362,32 @@ describe('parsing with currency symbols', () => {
     expect(parseCurrency('₹')).toBe(0);
     expect(parseCurrency('AED')).toBe(0);
     expect(parseCurrency('₹abc')).toBeNaN();
+  });
+});
+
+describe('formatMoney', () => {
+  afterEach(() => setActiveCurrency('USD'));
+
+  it('formats in a given currency whatever the active one is', () => {
+    expect(formatMoney(500000, 'INR')).toBe('₹5,000.00');
+    expect(formatMoney(1250, 'USD')).toBe('$12.50');
+    setActiveCurrency('INR');
+    expect(formatMoney(1250, 'USD')).toBe('$12.50');
+  });
+
+  it('keeps the minus sign first', () => {
+    expect(formatMoney(-500, 'GBP')).toBe('-£5.00');
+  });
+
+  it('formatCurrency still follows the active currency', () => {
+    setActiveCurrency('INR');
+    expect(formatCurrency(500000)).toBe('₹5,000.00');
+  });
+});
+
+describe('symbolPadding with an explicit symbol', () => {
+  it('pads only for multi-character symbols', () => {
+    expect(symbolPadding(1.75, '$')).toBeUndefined();
+    expect(symbolPadding(1.75, 'AED')).toBe('3.35rem');
   });
 });

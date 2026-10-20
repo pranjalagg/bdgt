@@ -19,8 +19,8 @@ export function currencySymbol(): string {
 
 // A multi-character symbol (AED) overflows the one-character prefix the
 // inputs are padded for. `baseRem` is the input's normal left padding.
-export function symbolPadding(baseRem: number): string | undefined {
-  const extra = currencySymbol().length - 1;
+export function symbolPadding(baseRem: number, symbol: string = currencySymbol()): string | undefined {
+  const extra = symbol.length - 1;
   return extra > 0 ? `${(baseRem + extra * 0.8).toFixed(2).replace(/\.?0+$/, '')}rem` : undefined;
 }
 
@@ -32,13 +32,17 @@ export function dollarsToCents(dollars: number): number {
   return Math.round(dollars * 100);
 }
 
-export function formatCurrency(cents: number): string {
-  const info = currencyInfo(activeCurrency);
+export function formatMoney(cents: number, code: CurrencyCode): string {
+  const info = currencyInfo(code);
   const formatted = centsToDollars(Math.abs(cents)).toLocaleString(info.locale, {
     style: 'currency',
     currency: info.code,
   });
   return cents < 0 ? `-${formatted}` : formatted;
+}
+
+export function formatCurrency(cents: number): string {
+  return formatMoney(cents, activeCurrency);
 }
 
 // Every supported symbol plus grouping commas, whatever the active
