@@ -5,6 +5,7 @@ import { currentMonthKey, today } from './uiStore';
 import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMonthKeysBetween, getPreviousMonthKey, getDaysInMonth, isCurrentMonth, reviveDateFields } from '$lib/utils/dates';
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers, calculateSafeToSpendPerDay, bucketExistsInMonth } from '$lib/utils/calculations';
 import { UNSORTED_BUCKET_ID, makeUnsortedBucket, findOrphans } from '$lib/utils/unsorted';
+import { autoTransaction } from '$lib/sync/transactions';
 import { cleanNoteText, normalizeMonthNotes } from '$lib/utils/monthNotes';
 import { allocationRow, composeSnapshots, updateMonth, replaceNote, removeNote } from '$lib/utils/monthRecords';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus, MonthNote, MonthNoteEffect } from '$lib/types';
@@ -36,14 +37,16 @@ export async function loadData(): Promise<void> {
   // raw totals. File it under Unsorted so it can be re-filed by hand.
   const orphans = findOrphans(allTransactions, allBuckets.map((b) => b.id));
   if (orphans.length > 0) {
-    if (!allBuckets.some((b) => b.id === UNSORTED_BUCKET_ID)) {
-      const unsorted = makeUnsortedBucket(Math.max(-1, ...allBuckets.map((b) => b.order)) + 1);
-      await db.buckets.add(unsorted);
-      allBuckets = [...allBuckets, unsorted];
-    }
-    await db.transactions.bulkUpdate(
-      orphans.map((t) => ({ key: t.id, changes: { bucketId: UNSORTED_BUCKET_ID } }))
-    );
+    await autoTransaction(db, [db.buckets, db.transactions], async () => {
+      if (!allBuckets.some((b) => b.id === UNSORTED_BUCKET_ID)) {
+        const unsorted = makeUnsortedBucket(Math.max(-1, ...allBuckets.map((b) => b.order)) + 1);
+        await db.buckets.add(unsorted);
+        allBuckets = [...allBuckets, unsorted];
+      }
+      await db.transactions.bulkUpdate(
+        orphans.map((t) => ({ key: t.id, changes: { bucketId: UNSORTED_BUCKET_ID } }))
+      );
+    });
     const orphanIds = new Set(orphans.map((t) => t.id));
     allTransactions = allTransactions.map((t) =>
       orphanIds.has(t.id) ? { ...t, bucketId: UNSORTED_BUCKET_ID } : t

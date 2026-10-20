@@ -3,6 +3,8 @@ import { reviveDateFields } from '$lib/utils/dates';
 import { migrationSettingsRows, type SettingRow } from '$lib/currency/settings';
 import { splitSnapshots } from '$lib/utils/monthRecords';
 import { installSyncCapture } from '$lib/sync/capture';
+import { autoTransaction } from '$lib/sync/transactions';
+import { isInitialSyncPending } from '$lib/sync/state';
 import type { SyncOutboxEntry, SyncVersion, SyncStateRow } from '$lib/sync/types';
 import type { Bucket, Transaction, RecurringTransaction, Income, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
 
@@ -300,7 +302,7 @@ export const DEFAULT_BUCKETS: Omit<Bucket, 'id' | 'createdAt'>[] = [
   { name: 'Emergency Fund', color: '#f97316', order: 9, isDefault: true, allocationType: 'fixed', fixedAmount: 0, percentageAmount: 0, isSavings: true, isEveryday: false },
 ];
 
-const SEEDED_KEY = 'bdgt-default-buckets-seeded';
+export const SEEDED_KEY = 'bdgt-default-buckets-seeded';
 
 // Seed defaults only the very first time. Otherwise a user who
 // intentionally deletes every bucket gets all 11 back on next load.
@@ -309,6 +311,10 @@ export function shouldSeedDefaults(bucketCount: number, alreadySeeded: boolean):
 }
 
 export async function initializeDefaultBuckets(): Promise<void> {
+  // A device that is signing in must wait for the account's buckets before
+  // creating its own, or the two sets would sit side by side.
+  if (await isInitialSyncPending(db)) return;
+
   const alreadySeeded =
     typeof localStorage !== 'undefined' && localStorage.getItem(SEEDED_KEY) === 'true';
   const count = await db.buckets.count();
@@ -320,7 +326,7 @@ export async function initializeDefaultBuckets(): Promise<void> {
       id: crypto.randomUUID(),
       createdAt: now,
     }));
-    await db.buckets.bulkAdd(bucketsWithIds);
+    await autoTransaction(db, [db.buckets], () => db.buckets.bulkAdd(bucketsWithIds));
   }
 
   try {

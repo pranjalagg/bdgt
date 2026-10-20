@@ -4,6 +4,7 @@ import { db } from '$lib/db';
 import { DEFAULT_CURRENCY, type CurrencyCode } from '$lib/currency/currencies';
 import { detectCurrency } from '$lib/currency/detect';
 import { resolveStartupSettings, rowsToSettings, settingsToRows } from '$lib/currency/settings';
+import { autoTransaction } from '$lib/sync/transactions';
 import { setActiveCurrency } from '$lib/utils/currency';
 
 export const baseCurrency = writable<CurrencyCode>(DEFAULT_CURRENCY);
@@ -44,7 +45,7 @@ function detectOnDevice(): CurrencyCode {
 export async function loadCurrency(): Promise<void> {
   const stored = rowsToSettings(await db.settings.toArray());
   const settings = resolveStartupSettings(stored, detectOnDevice());
-  if (!stored) await db.settings.bulkPut(settingsToRows(settings));
+  if (!stored) await autoTransaction(db, [db.settings], () => db.settings.bulkPut(settingsToRows(settings)));
   resetCurrencyPrompt();
   baseCurrency.set(settings.baseCurrency);
   currencyConfirmed.set(settings.currencyConfirmed);

@@ -3,6 +3,7 @@ import { writable, derived } from 'svelte/store';
 import { db, DATE_FIELDS } from '$lib/db';
 import { transactions } from './budgetStore';
 import { reviveDateFields, getLocalDateKey } from '$lib/utils/dates';
+import { autoTransaction } from '$lib/sync/transactions';
 import type { RecurringTransaction, Transaction } from '$lib/types';
 
 export const recurringTransactions = writable<RecurringTransaction[]>([]);
@@ -153,7 +154,7 @@ export async function processRecurring(): Promise<number> {
   // since) is kept as it is; only missing ones are added. The due dates
   // still advance.
   let added: Transaction[] = [];
-  await db.transaction('rw', [db.transactions, db.recurringTransactions], async () => {
+  await autoTransaction(db, [db.transactions, db.recurringTransactions], async () => {
     const existing = await db.transactions.bulkGet(newTransactions.map((t) => t.id));
     added = newTransactions.filter((_, i) => !existing[i]);
     if (added.length > 0) await db.transactions.bulkAdd(added);
