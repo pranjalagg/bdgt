@@ -82,6 +82,20 @@ export interface MonthSnapshot {
   notes?: MonthNote[];
 }
 
+// One explicit assignment: `amount` cents for one bucket in one month. Month
+// records are stored as these rows (and MonthNoteRow) so each can sync on
+// its own; the app still works with whole MonthSnapshots in memory.
+export interface AllocationRow {
+  id: string; // `${month}:${bucketId}`
+  month: string; // YYYY-MM
+  bucketId: string;
+  amount: number; // cents
+}
+
+export interface MonthNoteRow extends MonthNote {
+  month: string; // YYYY-MM
+}
+
 export interface BucketStatus {
   bucket: Bucket;
   allocated: number;
