@@ -122,6 +122,13 @@ describe('normalizeForeign', () => {
     }
   });
 
+  it('rejects a rate the entry form could not accept (over 6 decimals, exponent form)', () => {
+    for (const rate of [83.1234567, 1e-7]) {
+      expect(normalizeForeign(f({ rate })), String(rate)).toBeUndefined();
+    }
+    expect(normalizeForeign(f({ rate: 0.011234 }))).toEqual(f({ rate: 0.011234 }));
+  });
+
   it('rejects non-objects', () => {
     for (const raw of [undefined, null, 5, 'INR', []]) {
       expect(normalizeForeign(raw)).toBeUndefined();

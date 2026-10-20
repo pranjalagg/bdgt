@@ -45,7 +45,8 @@ export function normalizeForeign(raw: unknown): ForeignAmount | undefined {
   const { amount, currency, rate, base } = raw as Record<string, unknown>;
   if (!isSupportedCurrency(currency) || !isSupportedCurrency(base) || currency === base) return undefined;
   if (typeof amount !== 'number' || !Number.isInteger(amount)) return undefined;
-  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) return undefined;
+  // Same rule as parseRate, so an imported record can always be edited again.
+  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0 || !RATE_PATTERN.test(String(rate))) return undefined;
   return { amount, currency, rate, base };
 }
 

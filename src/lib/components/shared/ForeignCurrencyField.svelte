@@ -36,8 +36,12 @@
   async function fetchLatest() {
     fetching = true;
     fetchError = '';
+    const forCurrency = currency;
+    const forBase = $baseCurrency;
     try {
-      rate = String(await fetchRate($baseCurrency, currency));
+      const fetched = await fetchRate(forBase, forCurrency);
+      // The answer is for the pair asked; drop it if the user moved on.
+      if (forCurrency === currency && forBase === $baseCurrency) rate = String(fetched);
     } catch {
       fetchError = "Couldn't fetch the rate. Enter it manually.";
     } finally {
