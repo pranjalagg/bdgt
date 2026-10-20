@@ -2,7 +2,7 @@
 import { writable, derived } from 'svelte/store';
 import { db, DATE_FIELDS } from '$lib/db';
 import { transactions } from './budgetStore';
-import { reviveDateFields } from '$lib/utils/dates';
+import { reviveDateFields, getLocalDateKey } from '$lib/utils/dates';
 import type { RecurringTransaction, Transaction } from '$lib/types';
 
 export const recurringTransactions = writable<RecurringTransaction[]>([]);
@@ -87,6 +87,13 @@ export function dueOccurrences(
   return { occurrences, nextDueDate: cursor };
 }
 
+// The same occurrence always gets the same id, so a device catching up on
+// an occurrence another device already generated produces the same record
+// instead of a duplicate.
+export function occurrenceId(recurringId: string, date: Date): string {
+  return `${recurringId}:${getLocalDateKey(date)}`;
+}
+
 // Builds every occurrence + due-date advance across all due items without
 // writing anything, so processRecurring can commit them in one transaction.
 function planRecurringBatch(
@@ -111,7 +118,7 @@ function planRecurringBatch(
 
     for (const occurrence of occurrences) {
       newTransactions.push({
-        id: crypto.randomUUID(),
+        id: occurrenceId(recurring.id, occurrence),
         amount: recurring.amount,
         bucketId: recurring.bucketId,
         date: occurrence,
@@ -142,17 +149,23 @@ export async function processRecurring(): Promise<number> {
   const { newTransactions, dueUpdates } = planRecurringBatch(due, now);
   if (newTransactions.length === 0) return 0;
 
+  // An occurrence that already exists (generated earlier, possibly edited
+  // since) is kept as it is; only missing ones are added. The due dates
+  // still advance.
+  let added: Transaction[] = [];
   await db.transaction('rw', [db.transactions, db.recurringTransactions], async () => {
-    await db.transactions.bulkAdd(newTransactions);
+    const existing = await db.transactions.bulkGet(newTransactions.map((t) => t.id));
+    added = newTransactions.filter((_, i) => !existing[i]);
+    if (added.length > 0) await db.transactions.bulkAdd(added);
     for (const { id, nextDueDate } of dueUpdates) {
       await db.recurringTransactions.update(id, { nextDueDate });
     }
   });
 
-  transactions.update((t) => [...t, ...newTransactions]);
+  transactions.update((t) => [...t, ...added]);
   await loadRecurring();
 
-  return newTransactions.length;
+  return added.length;
 }
 
 export async function addRecurring(recurring: Omit<RecurringTransaction, 'id'>): Promise<string> {

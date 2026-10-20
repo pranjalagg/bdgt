@@ -79,6 +79,12 @@ export function parseLocalDate(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
+// Local calendar day as YYYY-MM-DD. Not toISOString, which gives the UTC
+// day and shifts it for anyone away from Greenwich.
+export function getLocalDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 // Sensible default date for a new entry in the month being viewed:
 // today if that month is current, otherwise the 1st of that month.
 export function defaultEntryDate(monthKey: string, today: Date = new Date()): Date {

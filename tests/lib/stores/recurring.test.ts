@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { get } from 'svelte/store';
 
 const { txState } = vi.hoisted(() => ({ txState: { recurring: [] as unknown[] } }));
@@ -7,7 +7,7 @@ vi.mock('$lib/db', () => ({
   DATE_FIELDS: { transactions: ['date'], recurringTransactions: ['nextDueDate'] },
   db: {
     transaction: vi.fn((_mode: string, _tables: unknown, cb: () => unknown) => cb()),
-    transactions: { bulkAdd: vi.fn().mockResolvedValue(undefined) },
+    transactions: { bulkAdd: vi.fn().mockResolvedValue(undefined), bulkGet: vi.fn().mockResolvedValue([]) },
     recurringTransactions: {
       filter: vi.fn((pred: (r: unknown) => boolean) => ({
         toArray: vi.fn().mockResolvedValue(txState.recurring.filter(pred)),
@@ -18,7 +18,8 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { dueOccurrences, processRecurring } from '$lib/stores/recurringStore';
+import { dueOccurrences, processRecurring, occurrenceId } from '$lib/stores/recurringStore';
+import type { Transaction } from '$lib/types';
 import { transactions } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
 
@@ -70,6 +71,7 @@ describe('dueOccurrences', () => {
 describe('processRecurring', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(db.transactions.bulkGet).mockResolvedValue([]);
     txState.recurring = [];
     transactions.set([]);
   });
@@ -135,5 +137,70 @@ describe('processRecurring', () => {
 
     expect(get(transactions)).toHaveLength(0);
     expect(db.recurringTransactions.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('occurrenceId', () => {
+  it('is the recurring id plus the local day', () => {
+    expect(occurrenceId('r1', new Date(2026, 0, 5, 23, 30))).toBe('r1:2026-01-05');
+  });
+});
+
+describe('processRecurring with stable ids', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(db.transactions.bulkGet).mockResolvedValue([]);
+    txState.recurring = [];
+    transactions.set([]);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 2, 20, 12));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('gives each occurrence its stable id, so another device makes the same record', async () => {
+    txState.recurring = [
+      { id: 'r1', amount: 500, bucketId: 'b1', frequency: 'monthly', nextDueDate: new Date(2026, 0, 15), isActive: true },
+    ];
+
+    await processRecurring();
+
+    const added = vi.mocked(db.transactions.bulkAdd).mock.calls[0][0] as Transaction[];
+    expect(added.map((t) => t.id)).toEqual(['r1:2026-01-15', 'r1:2026-02-15', 'r1:2026-03-15']);
+  });
+
+  it('skips an occurrence that already exists, never overwriting it, and still advances the due date', async () => {
+    txState.recurring = [
+      { id: 'r1', amount: 500, bucketId: 'b1', frequency: 'monthly', nextDueDate: new Date(2026, 2, 15), isActive: true },
+    ];
+    vi.mocked(db.transactions.bulkGet).mockResolvedValue([
+      { id: 'r1:2026-03-15', amount: 999, bucketId: 'b1', date: new Date(2026, 2, 15) },
+    ] as never);
+
+    const count = await processRecurring();
+
+    expect(count).toBe(0);
+    expect(db.transactions.bulkAdd).not.toHaveBeenCalled();
+    expect(db.recurringTransactions.update).toHaveBeenCalledWith('r1', { nextDueDate: new Date(2026, 3, 15) });
+    expect(get(transactions)).toHaveLength(0);
+  });
+
+  it('adds only the missing occurrences when some exist', async () => {
+    txState.recurring = [
+      { id: 'r1', amount: 500, bucketId: 'b1', frequency: 'monthly', nextDueDate: new Date(2026, 1, 15), isActive: true },
+    ];
+    vi.mocked(db.transactions.bulkGet).mockResolvedValue([
+      { id: 'r1:2026-02-15', amount: 500, bucketId: 'b1', date: new Date(2026, 1, 15) },
+      undefined,
+    ] as never);
+
+    const count = await processRecurring();
+
+    expect(count).toBe(1);
+    const added = vi.mocked(db.transactions.bulkAdd).mock.calls[0][0] as Transaction[];
+    expect(added.map((t) => t.id)).toEqual(['r1:2026-03-15']);
+    expect(get(transactions).map((t) => t.id)).toEqual(['r1:2026-03-15']);
   });
 });

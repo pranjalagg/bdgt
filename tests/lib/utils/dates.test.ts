@@ -15,8 +15,7 @@ import {
   parseLocalDate,
   defaultEntryDate,
   reviveDateFields,
-  getMonthKeysBetween
-} from '$lib/utils/dates';
+  getMonthKeysBetween, getLocalDateKey } from '$lib/utils/dates';
 
 describe('date utils', () => {
   describe('getMonthKey', () => {
@@ -229,5 +228,15 @@ describe('isCurrentMonth with an explicit clock', () => {
   it('compares against the given date, not the system clock', () => {
     expect(isCurrentMonth('2026-10', new Date(2026, 9, 1))).toBe(true);
     expect(isCurrentMonth('2026-09', new Date(2026, 9, 1))).toBe(false);
+  });
+});
+
+describe('getLocalDateKey', () => {
+  it('is the local calendar day, zero-padded', () => {
+    expect(getLocalDateKey(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+
+  it('never shifts to the UTC day late in the evening', () => {
+    expect(getLocalDateKey(new Date(2026, 11, 31, 23, 59))).toBe('2026-12-31');
   });
 });
