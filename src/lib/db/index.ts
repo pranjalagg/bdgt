@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import { reviveDateFields } from '$lib/utils/dates';
 import { migrationSettingsRows, type SettingRow } from '$lib/currency/settings';
 import { splitSnapshots } from '$lib/utils/monthRecords';
-import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
+import type { Bucket, Transaction, RecurringTransaction, Income, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
 
 export const SAVINGS_BUCKET_NAMES = new Set(['Savings', 'Investments', 'Emergency Fund']);
 
@@ -34,7 +34,6 @@ export class BudgetDatabase extends Dexie {
   transactions!: Table<Transaction, string>;
   recurringTransactions!: Table<RecurringTransaction, string>;
   incomes!: Table<Income, string>;
-  monthSnapshots!: Table<MonthSnapshot, string>;
   savingsGoals!: Table<SavingsGoal, string>;
   investmentLots!: Table<InvestmentLot, string>;
   investmentSells!: Table<InvestmentSell, string>;
@@ -234,6 +233,22 @@ export class BudgetDatabase extends Dexie {
       const { allocations, notes } = splitSnapshots(await tx.table('monthSnapshots').toArray());
       await tx.table('allocations').bulkPut(allocations);
       await tx.table('monthNotes').bulkPut(notes);
+    });
+
+    // v12: the month table's contents now live in allocations and monthNotes.
+    this.version(12).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      monthSnapshots: null,
+      savingsGoals: 'id, bucketId',
+      investmentLots: 'id, symbol, purchaseDate',
+      investmentSells: 'id, lotId, sellDate',
+      investmentPrices: 'symbol',
+      settings: 'key',
+      allocations: 'id, month, bucketId',
+      monthNotes: 'id, month'
     });
   }
 }
