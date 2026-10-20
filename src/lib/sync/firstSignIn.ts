@@ -92,6 +92,14 @@ export async function clearLocalData(db: BudgetDatabase): Promise<void> {
   });
 }
 
+// Forgets the link, queue, versions and cursors, keeping the budget data.
+async function forgetSyncState(db: BudgetDatabase): Promise<void> {
+  const tables = [db.syncOutbox, db.syncVersions, db.syncState];
+  await resetTransaction(db, tables, async () => {
+    await Promise.all(tables.map((t) => t.clear()));
+  });
+}
+
 export function pendingChanges(db: BudgetDatabase): Promise<number> {
   return db.syncOutbox.count();
 }
@@ -144,6 +152,9 @@ export async function runFirstSignIn(
   try {
     const linked = await getState<string>(db, LINKED_ACCOUNT);
     if (linked === userId) {
+      // The database may have moved on since this device last synced.
+      const account = await checkAccount(ctx);
+      if (account.status !== 'ok') return account;
       setCaptureEnabled(true);
       return { status: 'done', plan: 'start', sync: await syncOnce(ctx) };
     }
@@ -160,17 +171,25 @@ export async function runFirstSignIn(
       plan = 'download';
     }
 
+    // Another account's queue, cursors and versions must not carry over
+    // (the data itself is either replaced below or is only untouched defaults).
+    if (linked !== undefined && plan !== 'download') await forgetSyncState(db);
+
     setCaptureEnabled(true);
     await setState(db, INITIAL_SYNC_PENDING, true);
-    if (plan === 'upload') {
-      await replaceAccountWithDevice(ctx, account.state.buckets);
-    } else if (plan === 'download') {
-      await replaceDeviceWithAccount(ctx);
+    try {
+      if (plan === 'upload') {
+        await replaceAccountWithDevice(ctx, account.state.buckets);
+      } else if (plan === 'download') {
+        await replaceDeviceWithAccount(ctx);
+      }
+      // Linked as soon as the data is in place, so an interrupted upload resumes
+      // from its queue instead of being mistaken for a conflict.
+      await setState(db, LINKED_ACCOUNT, userId);
+    } finally {
+      // Never left pending after a failure: that would block default buckets.
+      await setState(db, INITIAL_SYNC_PENDING, false);
     }
-    // Linked as soon as the data is in place, so an interrupted upload resumes
-    // from its queue instead of being mistaken for a conflict.
-    await setState(db, LINKED_ACCOUNT, userId);
-    await setState(db, INITIAL_SYNC_PENDING, false);
     return { status: 'done', plan, sync: await syncOnce(ctx) };
   } catch (e) {
     return toSyncFailure(e);

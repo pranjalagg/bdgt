@@ -16,7 +16,8 @@ export class FakeServer implements SyncTransport {
   private failPull = new Set<string>();
   private tick = 0;
 
-  constructor(private now: () => number = Date.now) {}
+  // tickMs spaces out synced_at, so tests can see which rows a cursor excludes.
+  constructor(private now: () => number = Date.now, private tickMs = 1) {}
 
   failNextPull(remote: string): void {
     this.failPull.add(remote);
@@ -39,7 +40,7 @@ export class FakeServer implements SyncTransport {
   private nextSyncedAt(): string {
     this.tick += 1;
     // Microsecond precision, like Postgres.
-    return new Date(BASE + this.tick).toISOString().replace('Z', '000+00:00');
+    return new Date(BASE + this.tick * this.tickMs).toISOString().replace('Z', '000+00:00');
   }
 
   all(remote: string): Row[] {

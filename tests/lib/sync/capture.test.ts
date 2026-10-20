@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BudgetDatabase } from '$lib/db';
-import { setCaptureEnabled } from '$lib/sync/capture';
+import { setCaptureEnabled, isCaptureEnabled } from '$lib/sync/capture';
+import { setState, LINKED_ACCOUNT } from '$lib/sync/state';
 import { autoTransaction, remoteTransaction, resetTransaction } from '$lib/sync/transactions';
 import { resetClockForTests } from '$lib/sync/clock';
 
@@ -40,13 +41,17 @@ describe('capture: writes become queue entries', () => {
     expect(await queue()).toEqual(['transactions:1|upsert', 'transactions:2|upsert', 'transactions:3|upsert', 'transactions:4|upsert']);
   });
 
-  it('records update, modify and bulkUpdate', async () => {
-    await t().bulkAdd([rec('1'), rec('2'), rec('3')]);
+  it('records update, modify and bulkUpdate, each on exactly the records it touches', async () => {
+    await t().bulkAdd([rec('1', { bucketId: 'b1' }), rec('2', { bucketId: 'b2' }), rec('3', { bucketId: 'b3' })]);
     await device.syncOutbox.clear();
     await t().update('1', { amount: 5 });
-    await t().where('bucketId').equals('b1').modify({ note: 'x' });
-    await t().bulkUpdate([{ key: '2', changes: { amount: 9 } }]);
-    expect(await queue()).toEqual(['transactions:1|upsert', 'transactions:2|upsert', 'transactions:3|upsert']);
+    expect(await queue()).toEqual(['transactions:1|upsert']);
+    await device.syncOutbox.clear();
+    await t().where('bucketId').equals('b2').modify({ note: 'x' });
+    expect(await queue()).toEqual(['transactions:2|upsert']);
+    await device.syncOutbox.clear();
+    await t().bulkUpdate([{ key: '3', changes: { amount: 9 } }]);
+    expect(await queue()).toEqual(['transactions:3|upsert']);
   });
 
   it('records delete, bulkDelete, where().delete() and clear as deletes', async () => {
@@ -114,6 +119,27 @@ describe('capture: off until the device is linked', () => {
     });
     expect(await t().count()).toBe(1);
     expect(await device.syncOutbox.count()).toBe(0);
+  });
+});
+
+describe('capture: a linked device reopens with capture already on', () => {
+  it('switches itself on when the database opens and the device is linked', async () => {
+    await setState(device, LINKED_ACCOUNT, 'u1');
+    device.close();
+    setCaptureEnabled(false);
+    device = new BudgetDatabase('capture-test');
+    await device.open();
+    expect(isCaptureEnabled()).toBe(true);
+    await t().add(rec('after-reload'));
+    expect(await queue()).toEqual(['transactions:after-reload|upsert']);
+  });
+
+  it('stays off for a device that is not linked', async () => {
+    device.close();
+    setCaptureEnabled(false);
+    device = new BudgetDatabase('capture-test');
+    await device.open();
+    expect(isCaptureEnabled()).toBe(false);
   });
 });
 

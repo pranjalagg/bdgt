@@ -128,6 +128,25 @@ describe('pullAll: cursors and pages', () => {
     expect(Date.parse(seen[0]!)).toBe(Date.parse(cursor.replace(/(\.\d{3})\d+/, '$1')) - 60_000);
   });
 
+  it('fetches only the rows near or after the cursor on later pulls', async () => {
+    server = new FakeServer(() => 5_000_000_000_000, 120_000); // rows are two minutes apart
+    for (const id of ['1', '2', '3']) await remote('transactions', tx(id), 1000);
+    await pullAll(ctx());
+    await remote('transactions', tx('4'), 1000);
+
+    let returned = 0;
+    const original = server.pull.bind(server);
+    server.pull = async (table, since, limit) => {
+      const rows = await original(table, since, limit);
+      if (table === 'transactions') returned = rows.length;
+      return rows;
+    };
+    await pullAll(ctx());
+
+    expect(returned).toBe(2); // row 3, just inside the one-minute overlap, and the new row 4
+    expect(await device.transactions.count()).toBe(4);
+  });
+
   it('pages through more rows than one page holds', async () => {
     for (const id of ['1', '2', '3', '4', '5']) await remote('transactions', tx(id), 1000);
     await pullAll(ctx(), 2);

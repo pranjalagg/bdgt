@@ -219,12 +219,35 @@ function canonical(value: unknown): string {
   return JSON.stringify(value ?? null);
 }
 
+// A value in a form that does not depend on how the database wrote it:
+// Postgres returns a timestamp as 2026-01-01T00:00:00+00:00 where this app
+// sent 2026-01-01T00:00:00.000Z, a date may carry a time part, and a number
+// may arrive as a string.
+function comparable(type: FieldType, value: unknown): unknown {
+  if (value === undefined || value === null) return null;
+  switch (type) {
+    case 'timestamp':
+    case 'epochMs': {
+      const ms = Date.parse(String(value));
+      return Number.isNaN(ms) ? value : ms;
+    }
+    case 'date':
+      return typeof value === 'string' ? value.slice(0, 10) : value;
+    case 'int':
+    case 'numeric':
+    case 'cents':
+      return typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value)) ? Number(value) : value;
+    default:
+      return value;
+  }
+}
+
 // Same record data, ignoring sync columns (updated_at, synced_at, deleted_at,
-// user_id) and key order.
+// user_id), key order and how the database formats values.
 export function rowsMatch(def: CollectionDef, a: Row, b: Row): boolean {
   const pick = (row: Row) => {
     const out: Row = { id: row.id, extra: isPlainObject(row.extra) ? row.extra : {} };
-    for (const field of def.fields) out[field.col] = row[field.col] ?? null;
+    for (const field of def.fields) out[field.col] = comparable(field.type, row[field.col]);
     return canonical(out);
   };
   return pick(a) === pick(b);

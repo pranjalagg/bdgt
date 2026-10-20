@@ -3627,3 +3627,9 @@ What plan 3 (Supabase wiring) builds on, and what it must honor:
 - **Sign-out.** Push waiting changes; if `pendingChanges(db) > 0` warn first; then `signOutLocal(db)` and reload the stores.
 - **Status.** Map `SyncOutcome` / `SyncFailure` statuses to the messages in the spec's failure table; `pendingChanges` and the parked entries (`syncOutbox` rows with `parked`) feed the Settings screen.
 - **Import and Reset** need no code change; only their confirmation text changes when signed in.
+- **Also required of the transport (found in review).**
+  - Normalize every timestamp it returns to UTC with a fixed fractional width (for example `2026-10-20T12:34:56.123456+00:00`); the engine compares `synced_at` as strings and trims to milliseconds before `Date.parse`.
+  - Map PostgREST "unknown column / schema cache" errors to `SyncError('schema')`, never `'rejected'`: a rejected batch is split down to single rows and every row ends up parked.
+  - Run `checkAccount` at app start and on each sign-in, not only on first sign-in.
+  - Hold the sync lock around `signOutLocal` so an in-flight `syncOnce` cannot refill a signed-out device.
+  - `pendingChanges` counts parked and waiting entries together; the status screen needs the parked ones separately (`syncOutbox` rows with `parked`).

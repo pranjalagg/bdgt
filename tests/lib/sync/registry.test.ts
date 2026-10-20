@@ -127,6 +127,23 @@ describe('fromRow', () => {
   });
 });
 
+describe('rowsMatch against how Postgres writes values back', () => {
+  it('treats the same instant written differently as equal', () => {
+    const d = collectionByTable('buckets')!;
+    const base = { id: 'b', name: 'X', color: '#000', sort_order: 0, is_default: false, allocation_type: 'fixed', fixed_amount_cents: 0, percentage: 0, is_savings: false, is_everyday: true, is_system: null, extra: {} };
+    expect(rowsMatch(d, { ...base, created_at: '2026-01-01T00:00:00.000Z' }, { ...base, created_at: '2026-01-01T00:00:00+00:00' })).toBe(true);
+    expect(rowsMatch(d, { ...base, created_at: '2026-01-01T00:00:00.100Z' }, { ...base, created_at: '2026-01-01T00:00:00.1+00:00' })).toBe(true);
+    expect(rowsMatch(d, { ...base, created_at: '2026-01-01T00:00:00.000Z' }, { ...base, created_at: '2026-01-01T00:00:01.000Z' })).toBe(false);
+  });
+
+  it('treats a number and its string form as equal, and a date with or without a time part', () => {
+    const d = collectionByTable('transactions')!;
+    const base = { id: 't', bucket_id: 'b', extra: {} };
+    expect(rowsMatch(d, { ...base, amount_cents: 5, date: '2026-10-20' }, { ...base, amount_cents: '5', date: '2026-10-20T00:00:00' })).toBe(true);
+    expect(rowsMatch(d, { ...base, amount_cents: 5, date: '2026-10-20' }, { ...base, amount_cents: 6, date: '2026-10-20' })).toBe(false);
+  });
+});
+
 describe('rowsMatch', () => {
   it('ignores sync columns and key order, and sees real differences', () => {
     const d = def('allocations');

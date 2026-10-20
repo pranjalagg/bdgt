@@ -236,6 +236,37 @@ describe('runFirstSignIn', () => {
     expect(server.live('buckets').map((r) => r.id)).toEqual(['mine']);
   });
 
+  it('checks the database version even when the device is already linked, and uploads nothing if it is too old', async () => {
+    await setState(device, LINKED_ACCOUNT, 'u1');
+    await device.buckets.add(myBucket);
+    server.schemaVersion = 0;
+    expect(await runFirstSignIn(ctx(), 'u1')).toMatchObject({ status: 'schema' });
+    expect(server.upsertCalls).toEqual([]);
+    expect(await pendingChanges(device)).toBe(1);
+  });
+
+  it('forgets another account\'s queue and cursors before linking to a new one', async () => {
+    await setState(device, LINKED_ACCOUNT, 'account-a');
+    await setState(device, 'cursor:transactions', '2026-01-01T00:00:00.000000+00:00');
+    await device.syncOutbox.put({ key: 'transactions:old', table: 'transactions', id: 'old', op: 'delete', at: 5 });
+    await device.syncVersions.put({ key: 'transactions:old', at: 5 });
+
+    const result = await runFirstSignIn(ctx(), 'u1');
+
+    expect(result).toMatchObject({ status: 'done', plan: 'start' });
+    expect(server.all('transactions')).toEqual([]);
+    expect(await getState(device, LINKED_ACCOUNT)).toBe('u1');
+    expect(await getState(device, 'cursor:transactions')).toBeUndefined();
+    expect(await device.syncVersions.get('transactions:old')).toBeUndefined();
+  });
+
+  it('does not leave the first sync pending after a failed attempt, so default buckets can still be created', async () => {
+    await serverHas('buckets', myBucket);
+    server.failNextPull('buckets');
+    expect(await runFirstSignIn(ctx(), 'u1')).toMatchObject({ status: 'offline' });
+    expect(await getState(device, INITIAL_SYNC_PENDING)).toBe(false);
+  });
+
   it('reports an account that is not invited and changes nothing', async () => {
     server.allowed = false;
     await device.buckets.add(myBucket);

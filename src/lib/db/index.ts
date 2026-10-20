@@ -2,9 +2,9 @@ import Dexie, { type Table } from 'dexie';
 import { reviveDateFields } from '$lib/utils/dates';
 import { migrationSettingsRows, type SettingRow } from '$lib/currency/settings';
 import { splitSnapshots } from '$lib/utils/monthRecords';
-import { installSyncCapture } from '$lib/sync/capture';
+import { installSyncCapture, setCaptureEnabled } from '$lib/sync/capture';
 import { autoTransaction } from '$lib/sync/transactions';
-import { isInitialSyncPending } from '$lib/sync/state';
+import { isInitialSyncPending, getState, LINKED_ACCOUNT } from '$lib/sync/state';
 import type { SyncOutboxEntry, SyncVersion, SyncStateRow } from '$lib/sync/types';
 import type { Bucket, Transaction, RecurringTransaction, Income, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
 
@@ -279,6 +279,12 @@ export class BudgetDatabase extends Dexie {
     });
 
     installSyncCapture(this);
+
+    // A device that is linked to an account captures from the first write
+    // after it opens, not only once sign-in code has run.
+    this.on('ready', async () => {
+      if ((await getState<string>(this, LINKED_ACCOUNT)) !== undefined) setCaptureEnabled(true);
+    });
   }
 }
 
