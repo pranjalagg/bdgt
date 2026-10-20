@@ -11,7 +11,7 @@ describe('no hard-coded dollar sign in money UI', () => {
 
   it('has no literal $ prefix span or $ placeholder in any component', () => {
     const offenders = Object.entries(components)
-      .filter(([, source]) => /<span[^>]*>\$<\/span>|placeholder="\$/.test(source))
+      .filter(([, source]) => /<span[^>]*>\$<\/span>|placeholder="\$|>= \$\{/.test(source))
       .map(([path]) => path);
     expect(offenders).toEqual([]);
   });

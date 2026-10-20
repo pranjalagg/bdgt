@@ -1,7 +1,7 @@
 <script lang="ts">
   import { buckets, updateTransaction } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, centsToDollars, currencySymbol, symbolPadding } from '$lib/utils/currency';
+  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, formatCurrency, centsToDollars, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { parseLocalDate } from '$lib/utils/dates';
   import type { Transaction } from '$lib/types';
 
@@ -69,7 +69,7 @@
     {#if amountError}
       <p class="mt-1 text-sm text-danger">{amountError}</p>
     {:else if showPreview && previewValue !== null}
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= ${previewValue.toFixed(2)}</p>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= <span class="amt">{formatCurrency(dollarsToCents(previewValue))}</span></p>
     {/if}
   </div>
 

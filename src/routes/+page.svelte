@@ -12,7 +12,7 @@
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, today, openModal, closeModal, openLog } from '$lib/stores/uiStore';
-  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, currencySymbol, symbolPadding } from '$lib/utils/currency';
+  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { parseMonthKey, getDaysInMonth, formatMonthYear } from '$lib/utils/dates';
   import { savingsRateDelta } from '$lib/utils/calculations';
 
@@ -353,7 +353,7 @@
       {#if incomeError}
         <p class="mt-1 text-sm text-danger">{incomeError}</p>
       {:else if incomePreview !== null}
-        <p class="mt-1 text-sm text-muted">= ${incomePreview.toFixed(2)}</p>
+        <p class="mt-1 text-sm text-muted">= <span class="amt">{formatCurrency(dollarsToCents(incomePreview))}</span></p>
       {/if}
     </div>
     <div>

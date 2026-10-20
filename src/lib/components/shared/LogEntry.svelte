@@ -6,7 +6,7 @@
   // motion, replacing the old amount -> dropdown -> submit sequence.
   import { bucketStatuses, addTransaction } from '$lib/stores/budgetStore';
   import { currentMonthKey } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, formatCurrency, currencySymbol, symbolPadding } from '$lib/utils/currency';
+  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, formatCurrency, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { defaultEntryDate } from '$lib/utils/dates';
   import { calculateBucketFit, type BucketFitStatus } from '$lib/utils/calculations';
 
@@ -126,7 +126,7 @@
     {#if amountError}
       <p class="mt-1.5 text-sm text-danger dark:text-danger-light">{amountError}</p>
     {:else if showPreview && previewValue !== null}
-      <p class="mt-1.5 text-sm text-muted dark:text-muted-dark">= ${previewValue.toFixed(2)}</p>
+      <p class="mt-1.5 text-sm text-muted dark:text-muted-dark">= <span class="amt">{formatCurrency(dollarsToCents(previewValue))}</span></p>
     {:else}
       <p class="mt-1.5 text-[12.5px] text-muted dark:text-muted-dark">
         {preselectedBucketId ? 'Confirm the amount, then log it' : 'Then tap where it goes, or press Enter and pick with arrows — green fits, red breaks it'}

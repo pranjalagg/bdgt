@@ -2,7 +2,7 @@
 <script lang="ts">
   import { recurringTransactions, addRecurring, updateRecurring, deleteRecurring, toggleRecurring } from '$lib/stores/recurringStore';
   import { buckets } from '$lib/stores/budgetStore';
-  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, currencySymbol, symbolPadding } from '$lib/utils/currency';
+  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { formatDate, parseLocalDate } from '$lib/utils/dates';
   import Modal from '$lib/components/shared/Modal.svelte';
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
@@ -172,7 +172,7 @@
       {#if amountError}
         <p class="mt-1 text-sm text-danger">{amountError}</p>
       {:else if showPreview && previewValue !== null}
-        <p class="mt-1 text-sm text-muted">= ${previewValue.toFixed(2)}</p>
+        <p class="mt-1 text-sm text-muted">= <span class="amt">{formatCurrency(dollarsToCents(previewValue))}</span></p>
       {/if}
     </div>
     <div>
