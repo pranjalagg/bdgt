@@ -1,7 +1,8 @@
 import Dexie, { type Table } from 'dexie';
 import { reviveDateFields } from '$lib/utils/dates';
 import { migrationSettingsRows, type SettingRow } from '$lib/currency/settings';
-import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice } from '$lib/types';
+import { splitSnapshots } from '$lib/utils/monthRecords';
+import type { Bucket, Transaction, RecurringTransaction, Income, MonthSnapshot, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
 
 export const SAVINGS_BUCKET_NAMES = new Set(['Savings', 'Investments', 'Emergency Fund']);
 
@@ -39,6 +40,8 @@ export class BudgetDatabase extends Dexie {
   investmentSells!: Table<InvestmentSell, string>;
   investmentPrices!: Table<InvestmentPrice, string>;
   settings!: Table<SettingRow, string>;
+  allocations!: Table<AllocationRow, string>;
+  monthNotes!: Table<MonthNoteRow, string>;
 
   constructor() {
     super('BudgetDB');
@@ -209,6 +212,28 @@ export class BudgetDatabase extends Dexie {
       ]);
       const rows = migrationSettingsRows(transactionCount + incomeCount > 0);
       if (rows.length > 0) await tx.table('settings').bulkPut(rows);
+    });
+
+    // v11: month records split into one row per bucket allocation and one
+    // per note, so each can sync on its own. The old table is copied here
+    // and dropped in v12, once nothing reads it.
+    this.version(11).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      monthSnapshots: 'month',
+      savingsGoals: 'id, bucketId',
+      investmentLots: 'id, symbol, purchaseDate',
+      investmentSells: 'id, lotId, sellDate',
+      investmentPrices: 'symbol',
+      settings: 'key',
+      allocations: 'id, month, bucketId',
+      monthNotes: 'id, month'
+    }).upgrade(async tx => {
+      const { allocations, notes } = splitSnapshots(await tx.table('monthSnapshots').toArray());
+      await tx.table('allocations').bulkPut(allocations);
+      await tx.table('monthNotes').bulkPut(notes);
     });
   }
 }
