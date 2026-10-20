@@ -6,6 +6,7 @@ import { getMonthKey, getMonthRange, getLast6Months, getCurrentMonthKey, getMont
 import { calculateBucketRemaining, computeAllocation, getTotalPercentage, calculateSavingsRate, spentExcludingSavings, accumulateRollovers, calculateSafeToSpendPerDay, bucketExistsInMonth } from '$lib/utils/calculations';
 import { UNSORTED_BUCKET_ID, makeUnsortedBucket, findOrphans } from '$lib/utils/unsorted';
 import { cleanNoteText, normalizeMonthNotes } from '$lib/utils/monthNotes';
+import { allocationRow, composeSnapshots, updateMonth, replaceNote, removeNote } from '$lib/utils/monthRecords';
 import type { Bucket, Transaction, Income, MonthSnapshot, BucketStatus, MonthNote, MonthNoteEffect } from '$lib/types';
 
 export const buckets = writable<Bucket[]>([]);
@@ -18,11 +19,12 @@ export async function loadData(): Promise<void> {
   isLoading.set(true);
   await initializeDefaultBuckets();
 
-  const [loadedBuckets, loadedTransactions, loadedIncomes, loadedSnapshots] = await Promise.all([
+  const [loadedBuckets, loadedTransactions, loadedIncomes, loadedAllocations, loadedNotes] = await Promise.all([
     db.buckets.orderBy('order').toArray(),
     db.transactions.toArray(),
     db.incomes.toArray(),
-    db.monthSnapshots.toArray(),
+    db.allocations.toArray(),
+    db.monthNotes.toArray(),
   ]);
 
   // Also repairs databases already imported before bucket dates were revived.
@@ -51,7 +53,7 @@ export async function loadData(): Promise<void> {
   buckets.set(allBuckets);
   transactions.set(allTransactions);
   incomes.set(loadedIncomes.map((i) => reviveDateFields(i, DATE_FIELDS.incomes)));
-  monthSnapshots.set(loadedSnapshots);
+  monthSnapshots.set(composeSnapshots(loadedAllocations, loadedNotes));
   isLoading.set(false);
 }
 
@@ -399,70 +401,32 @@ export async function deleteIncome(id: string): Promise<void> {
 }
 
 // Records an explicit allocation for one bucket in the current month,
-// overriding the bucket's standing amount. Atomic get-modify-put.
+// overriding the bucket's standing amount.
 export async function setAllocation(bucketId: string, amount: number): Promise<void> {
   assertNonNegativeCents(amount, 'allocation');
-  const month = get(currentMonthKey);
-
-  const saved = await db.transaction('rw', db.monthSnapshots, async () => {
-    const existing = await db.monthSnapshots.get(month);
-    const snapshot: MonthSnapshot = existing ?? {
-      month,
-      incomeTotal: 0,
-      allocations: {},
-      spent: {},
-      rollovers: {},
-    };
-    snapshot.allocations = { ...snapshot.allocations, [bucketId]: amount };
-    await db.monthSnapshots.put(snapshot);
-    return snapshot;
-  });
-
-  monthSnapshots.update((all) => {
-    const idx = all.findIndex((s) => s.month === month);
-    if (idx >= 0) {
-      const next = [...all];
-      next[idx] = saved;
-      return next;
-    }
-    return [...all, saved];
-  });
+  await writeAllocations(get(currentMonthKey), { [bucketId]: amount });
 }
 
 // Assigns several buckets at once — the "close the gap" gesture, where a
-// user pushes the unassigned remainder across buckets in one go. One
-// snapshot write for the whole batch, so a half-applied assignment can't
-// happen; validation runs on everything before anything is written.
+// user pushes the unassigned remainder across buckets in one go. One write
+// for the whole batch, so a half-applied assignment can't happen;
+// validation runs on everything before anything is written.
 export async function setAllocations(allocations: Record<string, number>): Promise<void> {
   for (const [bucketId, amount] of Object.entries(allocations)) {
     assertNonNegativeCents(amount, `allocation for ${bucketId}`);
   }
+  await writeAllocations(get(currentMonthKey), allocations);
+}
 
-  const month = get(currentMonthKey);
-
-  const saved = await db.transaction('rw', db.monthSnapshots, async () => {
-    const existing = await db.monthSnapshots.get(month);
-    const snapshot: MonthSnapshot = existing ?? {
-      month,
-      incomeTotal: 0,
-      allocations: {},
-      spent: {},
-      rollovers: {},
-    };
-    snapshot.allocations = { ...snapshot.allocations, ...allocations };
-    await db.monthSnapshots.put(snapshot);
-    return snapshot;
-  });
-
-  monthSnapshots.update((all) => {
-    const idx = all.findIndex((s) => s.month === month);
-    if (idx >= 0) {
-      const next = [...all];
-      next[idx] = saved;
-      return next;
-    }
-    return [...all, saved];
-  });
+// One row per bucket per month (see monthRecords.ts), so assignments to
+// different buckets never overwrite each other.
+async function writeAllocations(month: string, allocations: Record<string, number>): Promise<void> {
+  await db.allocations.bulkPut(
+    Object.entries(allocations).map(([bucketId, amount]) => allocationRow(month, bucketId, amount))
+  );
+  monthSnapshots.update((all) =>
+    updateMonth(all, month, (s) => ({ ...s, allocations: { ...s.allocations, ...allocations } }))
+  );
 }
 
 // A zero-based budget is nearly identical month to month; retyping it is
@@ -521,49 +485,27 @@ export async function updateBucketAllocation(
 }
 
 
-// Month notes live on the month's snapshot, so they ride along with
-// export/import and need no schema change.
-async function mutateNotes(update: (notes: MonthNote[]) => MonthNote[]): Promise<void> {
-  const month = get(currentMonthKey);
-
-  const saved = await db.transaction('rw', db.monthSnapshots, async () => {
-    const existing = await db.monthSnapshots.get(month);
-    const snapshot: MonthSnapshot = existing ?? {
-      month,
-      incomeTotal: 0,
-      allocations: {},
-      spent: {},
-      rollovers: {},
-    };
-    snapshot.notes = update(normalizeMonthNotes(snapshot.notes));
-    await db.monthSnapshots.put(snapshot);
-    return snapshot;
-  });
-
-  monthSnapshots.update((all) => {
-    const idx = all.findIndex((s) => s.month === month);
-    if (idx >= 0) {
-      const next = [...all];
-      next[idx] = saved;
-      return next;
-    }
-    return [...all, saved];
-  });
-}
-
+// Month notes are one row each (monthNotes table), so editing one never
+// rewrites the others.
 export async function addMonthNote(text: string, effect: MonthNoteEffect): Promise<void> {
   const cleaned = cleanNoteText(text);
   if (cleaned === null) throw new Error('Note cannot be empty');
+  const month = get(currentMonthKey);
   const note: MonthNote = { id: crypto.randomUUID(), text: cleaned, effect, createdAt: Date.now() };
-  await mutateNotes((notes) => [...notes, note]);
+  await db.monthNotes.add({ ...note, month });
+  monthSnapshots.update((all) =>
+    updateMonth(all, month, (s) => ({ ...s, notes: [...normalizeMonthNotes(s.notes), note] }))
+  );
 }
 
 export async function updateMonthNote(id: string, text: string, effect: MonthNoteEffect): Promise<void> {
   const cleaned = cleanNoteText(text);
   if (cleaned === null) throw new Error('Note cannot be empty');
-  await mutateNotes((notes) => notes.map((n) => (n.id === id ? { ...n, text: cleaned, effect } : n)));
+  await db.monthNotes.update(id, { text: cleaned, effect });
+  monthSnapshots.update((all) => replaceNote(all, id, { text: cleaned, effect }));
 }
 
 export async function deleteMonthNote(id: string): Promise<void> {
-  await mutateNotes((notes) => notes.filter((n) => n.id !== id));
+  await db.monthNotes.delete(id);
+  monthSnapshots.update((all) => removeNote(all, id));
 }

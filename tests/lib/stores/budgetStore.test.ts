@@ -33,15 +33,20 @@ vi.mock('$lib/db', () => ({
     recurringTransactions: { where: recChain.where },
     incomes: { add: vi.fn().mockResolvedValue(undefined), toArray: vi.fn().mockResolvedValue([]) },
     savingsGoals: { where: goalChain.where },
-    monthSnapshots: {
-      get: vi.fn().mockResolvedValue(undefined),
-      put: vi.fn().mockResolvedValue(undefined),
+    allocations: {
+      bulkPut: vi.fn().mockResolvedValue(undefined),
+      toArray: vi.fn().mockResolvedValue([]),
+    },
+    monthNotes: {
+      add: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(1),
+      delete: vi.fn().mockResolvedValue(undefined),
       toArray: vi.fn().mockResolvedValue([]),
     },
   },
 }));
 
-import { updateTransaction, deleteTransaction, buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, getCarryForwardAllocations, updateBucketAllocation, safeToSpendPerDay } from '$lib/stores/budgetStore';
+import { updateTransaction, deleteTransaction, buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, getCarryForwardAllocations, updateBucketAllocation, safeToSpendPerDay, addMonthNote, updateMonthNote, deleteMonthNote } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
 import { currentMonthKey, today } from '$lib/stores/uiStore';
 
@@ -338,7 +343,7 @@ describe('allocation domain validation', () => {
 
   it('rejects a negative fixed allocation via setAllocation', async () => {
     await expect(setAllocation('b1', -500)).rejects.toThrow(/negative/i);
-    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+    expect(db.allocations.bulkPut).not.toHaveBeenCalled();
   });
 
   it('rejects a negative fixedAmount when adding a bucket', async () => {
@@ -387,34 +392,38 @@ describe('setAllocations (bulk assign)', () => {
     currentMonthKey.set('2026-03');
   });
 
-  it('writes every bucket in one snapshot put', async () => {
+  it('writes one row per bucket in a single bulkPut', async () => {
     await setAllocations({ b1: 50000, b2: 25000 });
 
-    expect(db.monthSnapshots.put).toHaveBeenCalledTimes(1);
-    const written = vi.mocked(db.monthSnapshots.put).mock.calls[0][0] as { allocations: Record<string, number> };
-    expect(written.allocations).toEqual({ b1: 50000, b2: 25000 });
+    expect(db.allocations.bulkPut).toHaveBeenCalledTimes(1);
+    expect(db.allocations.bulkPut).toHaveBeenCalledWith([
+      { id: '2026-03:b1', month: '2026-03', bucketId: 'b1', amount: 50000 },
+      { id: '2026-03:b2', month: '2026-03', bucketId: 'b2', amount: 25000 },
+    ]);
     expect(get(monthSnapshots)[0].allocations).toEqual({ b1: 50000, b2: 25000 });
   });
 
-  it('merges into allocations already set for the month', async () => {
-    vi.mocked(db.monthSnapshots.get).mockResolvedValue({
-      month: '2026-03', incomeTotal: 0, allocations: { b1: 10000, keep: 700 }, spent: {}, rollovers: {},
-    });
+  it('merges into allocations already set for the month, writing only the changed bucket', async () => {
+    monthSnapshots.set([
+      { month: '2026-03', incomeTotal: 0, allocations: { b1: 10000, keep: 700 }, spent: {}, rollovers: {} },
+    ]);
 
     await setAllocations({ b1: 50000 });
 
-    const written = vi.mocked(db.monthSnapshots.put).mock.calls[0][0] as { allocations: Record<string, number> };
-    expect(written.allocations).toEqual({ b1: 50000, keep: 700 });
+    expect(db.allocations.bulkPut).toHaveBeenCalledWith([
+      { id: '2026-03:b1', month: '2026-03', bucketId: 'b1', amount: 50000 },
+    ]);
+    expect(get(monthSnapshots)[0].allocations).toEqual({ b1: 50000, keep: 700 });
   });
 
   it('rejects the whole batch if any amount is negative', async () => {
     await expect(setAllocations({ b1: 50000, b2: -1 })).rejects.toThrow(/negative/i);
-    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+    expect(db.allocations.bulkPut).not.toHaveBeenCalled();
   });
 
   it('rejects a non-finite amount', async () => {
     await expect(setAllocations({ b1: NaN })).rejects.toThrow(/amount|finite/i);
-    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+    expect(db.allocations.bulkPut).not.toHaveBeenCalled();
   });
 });
 
@@ -430,16 +439,13 @@ describe('getCarryForwardAllocations', () => {
 
   it('returns last month\'s live allocations without writing anything', () => {
     expect(getCarryForwardAllocations()).toEqual({ b1: 50000 });
-    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+    expect(db.allocations.bulkPut).not.toHaveBeenCalled();
   });
 });
 
 describe('carryForwardAllocations', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // clearAllMocks keeps mockResolvedValue from earlier tests — reset the
-    // snapshot read back to "no snapshot for this month yet".
-    vi.mocked(db.monthSnapshots.get).mockResolvedValue(undefined as never);
     currentMonthKey.set('2026-03');
     buckets.set([bucket('b1'), bucket('b2')]);
   });
@@ -452,16 +458,17 @@ describe('carryForwardAllocations', () => {
     const count = await carryForwardAllocations();
 
     expect(count).toBe(2);
-    const written = vi.mocked(db.monthSnapshots.put).mock.calls[0][0] as { month: string; allocations: Record<string, number> };
-    expect(written.month).toBe('2026-03');
-    expect(written.allocations).toEqual({ b1: 50000, b2: 25000 });
+    expect(db.allocations.bulkPut).toHaveBeenCalledWith([
+      { id: '2026-03:b1', month: '2026-03', bucketId: 'b1', amount: 50000 },
+      { id: '2026-03:b2', month: '2026-03', bucketId: 'b2', amount: 25000 },
+    ]);
   });
 
   it('copies nothing when the previous month has no snapshot', async () => {
     monthSnapshots.set([]);
     const count = await carryForwardAllocations();
     expect(count).toBe(0);
-    expect(db.monthSnapshots.put).not.toHaveBeenCalled();
+    expect(db.allocations.bulkPut).not.toHaveBeenCalled();
   });
 
   it('skips allocations for buckets that no longer exist', async () => {
@@ -472,7 +479,56 @@ describe('carryForwardAllocations', () => {
     const count = await carryForwardAllocations();
 
     expect(count).toBe(1);
-    const written = vi.mocked(db.monthSnapshots.put).mock.calls[0][0] as { allocations: Record<string, number> };
-    expect(written.allocations).toEqual({ b1: 50000 });
+    expect(db.allocations.bulkPut).toHaveBeenCalledWith([
+      { id: '2026-03:b1', month: '2026-03', bucketId: 'b1', amount: 50000 },
+    ]);
+  });
+});
+
+describe('month notes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    currentMonthKey.set('2026-03');
+    monthSnapshots.set([]);
+  });
+
+  it('adds a note as its own row and shows it on the month', async () => {
+    await addMonthNote('  Family visit ', 'down');
+
+    const row = vi.mocked(db.monthNotes.add).mock.calls[0][0] as { month: string; text: string; effect: string };
+    expect(row).toMatchObject({ month: '2026-03', text: 'Family visit', effect: 'down' });
+    expect(get(monthSnapshots)[0].notes?.map((n) => n.text)).toEqual(['Family visit']);
+  });
+
+  it('edits only the note it names', async () => {
+    monthSnapshots.set([{
+      month: '2026-03', incomeTotal: 0, allocations: {}, spent: {}, rollovers: {},
+      notes: [{ id: 'n1', text: 'A', effect: 'none', createdAt: 1 }, { id: 'n2', text: 'B', effect: 'none', createdAt: 2 }],
+    }]);
+
+    await updateMonthNote('n2', 'Bonus', 'up');
+
+    expect(db.monthNotes.update).toHaveBeenCalledWith('n2', { text: 'Bonus', effect: 'up' });
+    expect(get(monthSnapshots)[0].notes).toEqual([
+      { id: 'n1', text: 'A', effect: 'none', createdAt: 1 },
+      { id: 'n2', text: 'Bonus', effect: 'up', createdAt: 2 },
+    ]);
+  });
+
+  it('drops a month left with no notes and no allocations', async () => {
+    monthSnapshots.set([{
+      month: '2026-03', incomeTotal: 0, allocations: {}, spent: {}, rollovers: {},
+      notes: [{ id: 'n1', text: 'A', effect: 'none', createdAt: 1 }],
+    }]);
+
+    await deleteMonthNote('n1');
+
+    expect(db.monthNotes.delete).toHaveBeenCalledWith('n1');
+    expect(get(monthSnapshots)).toEqual([]);
+  });
+
+  it('rejects an empty note without writing', async () => {
+    await expect(addMonthNote('   ', 'none')).rejects.toThrow(/empty/i);
+    expect(db.monthNotes.add).not.toHaveBeenCalled();
   });
 });
