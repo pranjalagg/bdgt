@@ -208,3 +208,32 @@ describe('parseImport currency settings', () => {
     expect(result.data.settings).toEqual({ baseCurrency: 'USD', currencyConfirmed: false });
   });
 });
+
+describe('parseImport foreign amounts', () => {
+  const withForeign = (foreign: unknown) => {
+    const payload = validPayload();
+    (payload.data.transactions[0] as Record<string, unknown>).foreign = foreign;
+    return JSON.stringify(payload);
+  };
+  const good = { amount: 500000, currency: 'INR', rate: 84.25, base: 'USD' };
+
+  it('keeps a valid foreign amount', () => {
+    const tx = parseImport(withForeign(good)).data.transactions[0];
+    expect(tx.foreign).toEqual(good);
+    expect(tx.amount).toBe(500);
+  });
+
+  it('drops an invalid foreign amount but keeps the transaction and its base amount', () => {
+    for (const bad of [{ ...good, currency: 'JPY' }, { ...good, amount: 12.5 }, { ...good, rate: 0 }, { ...good, currency: 'USD' }, 'INR', 5, null]) {
+      const tx = parseImport(withForeign(bad)).data.transactions[0];
+      expect(tx.foreign, JSON.stringify(bad)).toBeUndefined();
+      expect('foreign' in tx).toBe(false);
+      expect(tx.amount).toBe(500);
+    }
+  });
+
+  it('leaves a transaction without the field untouched', () => {
+    const tx = parseImport(JSON.stringify(validPayload())).data.transactions[0];
+    expect('foreign' in tx).toBe(false);
+  });
+});

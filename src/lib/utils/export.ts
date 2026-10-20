@@ -1,3 +1,4 @@
+import { normalizeForeign } from '$lib/currency/conversion';
 import { normalizeCurrencySettings, rowsToSettings, settingsToRows } from '$lib/currency/settings';
 import { db, DATE_FIELDS, SAVINGS_BUCKET_NAMES, FIXED_OBLIGATION_NAMES } from '$lib/db';
 import { centsToDollars } from './currency';
@@ -163,6 +164,16 @@ export function parseImport(json: string): ExportData {
       throw new Error(`Recurring transaction has an unknown frequency: "${r.frequency}"`);
     }
   }
+
+  // A foreign amount that is not a clean {amount, currency, rate, base} would
+  // break the row note and edit form, so it is dropped; the transaction keeps
+  // its base-currency amount.
+  data.transactions = (data.transactions as Record<string, unknown>[]).map((t) => {
+    if (!('foreign' in t)) return t;
+    const { foreign, ...rest } = t;
+    const clean = normalizeForeign(foreign);
+    return clean ? { ...rest, foreign: clean } : rest;
+  });
 
   // Optional section: backups from before currencies have none, and an
   // unsupported code is never trusted. Both land on unconfirmed USD.
