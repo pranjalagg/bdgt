@@ -55,7 +55,8 @@
       alert('Import failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
     } finally {
       isImporting = false;
-      fileInput.value = '';
+      // loadData remounts the page after a successful import, so the input is gone.
+      if (fileInput) fileInput.value = '';
     }
   }
 

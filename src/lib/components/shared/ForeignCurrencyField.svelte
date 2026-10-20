@@ -21,6 +21,9 @@
   let fetching = false;
   let fetchError = '';
 
+  // A typed rate answers the failed fetch, so the old error should not linger.
+  $: if (rate) fetchError = '';
+
   $: isForeign = currency !== $baseCurrency;
   $: parsedRate = isForeign ? parseRate(rate) : null;
   $: baseCents = !isForeign ? foreignMinor : parsedRate !== null ? convertToBase(foreignMinor, parsedRate) : 0;

@@ -120,6 +120,11 @@ describe('normalizeForeign', () => {
     expect(normalizeForeign(f({ amount: Number.NaN }))).toBeUndefined();
   });
 
+  it('rejects an amount beyond the safe integer range', () => {
+    expect(normalizeForeign(f({ amount: 1e300 }))).toBeUndefined();
+    expect(normalizeForeign(f({ amount: Number.MAX_SAFE_INTEGER + 2 }))).toBeUndefined();
+  });
+
   it('rejects a non-positive, non-finite or non-number rate', () => {
     for (const rate of [0, -1, Infinity, Number.NaN, '84']) {
       expect(normalizeForeign(f({ rate })), String(rate)).toBeUndefined();

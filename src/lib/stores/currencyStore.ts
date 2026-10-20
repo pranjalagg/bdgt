@@ -38,10 +38,13 @@ function detectOnDevice(): CurrencyCode {
 }
 
 // Reads the saved currency, or guesses one from the device when nothing
-// is saved yet. A guess is not saved until the user confirms it.
+// is saved yet. A guess is saved as unconfirmed, so it stays put (a later
+// load from another time zone must not relabel amounts already entered)
+// while the confirm modal still asks until the user answers.
 export async function loadCurrency(): Promise<void> {
   const stored = rowsToSettings(await db.settings.toArray());
   const settings = resolveStartupSettings(stored, detectOnDevice());
+  if (!stored) await db.settings.bulkPut(settingsToRows(settings));
   resetCurrencyPrompt();
   baseCurrency.set(settings.baseCurrency);
   currencyConfirmed.set(settings.currencyConfirmed);
