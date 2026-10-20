@@ -7,6 +7,10 @@ import type { AllocationRow, MonthNote, MonthNoteRow, MonthSnapshot } from '$lib
 // row per allocation and one per note. The app keeps whole month records in
 // memory; these helpers convert between the two shapes.
 
+// A real month key. Anything else (from a hand-edited backup) would stretch
+// the rollover range without end or make two allocation ids collide.
+const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 export function allocationId(month: string, bucketId: string): string {
   return `${month}:${bucketId}`;
 }
@@ -25,7 +29,7 @@ export function splitSnapshots(snapshots: unknown[]): { allocations: AllocationR
   for (const raw of snapshots) {
     if (!raw || typeof raw !== 'object') continue;
     const { month, allocations: rawAllocations, notes: rawNotes } = raw as Record<string, unknown>;
-    if (typeof month !== 'string') continue;
+    if (typeof month !== 'string' || !MONTH_KEY.test(month)) continue;
     if (rawAllocations && typeof rawAllocations === 'object') {
       for (const [bucketId, amount] of Object.entries(rawAllocations as Record<string, unknown>)) {
         if (typeof amount === 'number' && Number.isFinite(amount)) {

@@ -53,6 +53,16 @@ describe('splitSnapshots', () => {
     expect(notes.map((n) => n.id)).toEqual(['n1']);
   });
 
+  it('skips months that are not a real YYYY-MM, which would hang the rollover range or alias ids', () => {
+    const bad = ['__proto__', 'Jan 2024', '10000-01', '2024-13', '2024-00', '2024-1', '2024-01:a', ''];
+    const { allocations, notes } = splitSnapshots(
+      bad.map((m) => month(m, { allocations: { b1: 1 }, notes: [note(`n-${m}`, 1)] }))
+    );
+    expect(allocations).toEqual([]);
+    expect(notes).toEqual([]);
+    expect(splitSnapshots([month('2024-12', { allocations: { b1: 1 } })]).allocations).toHaveLength(1);
+  });
+
   it('skips records without a month and non-objects', () => {
     expect(splitSnapshots([null, 5, { allocations: { b1: 1 } }])).toEqual({ allocations: [], notes: [] });
   });
