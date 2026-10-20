@@ -63,7 +63,7 @@ describe('month record split migration', () => {
     expect(await db.transactions.count()).toBe(1);
     expect((await db.transactions.get('t1'))?.date).toBeInstanceOf(Date);
     expect(await db.settings.count()).toBe(2);
-    expect(db.verno).toBe(12);
+    expect(db.verno).toBe(13);
     expect(db.tables.map((t) => t.name)).not.toContain('monthSnapshots');
   });
 

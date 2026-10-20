@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import { reviveDateFields } from '$lib/utils/dates';
 import { migrationSettingsRows, type SettingRow } from '$lib/currency/settings';
 import { splitSnapshots } from '$lib/utils/monthRecords';
+import type { SyncOutboxEntry, SyncVersion, SyncStateRow } from '$lib/sync/types';
 import type { Bucket, Transaction, RecurringTransaction, Income, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
 
 export const SAVINGS_BUCKET_NAMES = new Set(['Savings', 'Investments', 'Emergency Fund']);
@@ -41,9 +42,12 @@ export class BudgetDatabase extends Dexie {
   settings!: Table<SettingRow, string>;
   allocations!: Table<AllocationRow, string>;
   monthNotes!: Table<MonthNoteRow, string>;
+  syncOutbox!: Table<SyncOutboxEntry, string>;
+  syncVersions!: Table<SyncVersion, string>;
+  syncState!: Table<SyncStateRow, string>;
 
-  constructor() {
-    super('BudgetDB');
+  constructor(name = 'BudgetDB') {
+    super(name);
 
     this.version(1).stores({
       buckets: 'id, name, order',
@@ -249,6 +253,26 @@ export class BudgetDatabase extends Dexie {
       settings: 'key',
       allocations: 'id, month, bucketId',
       monthNotes: 'id, month'
+    });
+
+    // v13: hidden bookkeeping for cloud sync (never exported). The outbox
+    // holds changes waiting to upload, versions the edit time of each synced
+    // record, state small key/value facts such as the linked account.
+    this.version(13).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      savingsGoals: 'id, bucketId',
+      investmentLots: 'id, symbol, purchaseDate',
+      investmentSells: 'id, lotId, sellDate',
+      investmentPrices: 'symbol',
+      settings: 'key',
+      allocations: 'id, month, bucketId',
+      monthNotes: 'id, month',
+      syncOutbox: 'key',
+      syncVersions: 'key',
+      syncState: 'key'
     });
   }
 }
