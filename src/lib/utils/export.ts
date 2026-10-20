@@ -4,20 +4,24 @@ import { db, DATE_FIELDS, SAVINGS_BUCKET_NAMES, FIXED_OBLIGATION_NAMES } from '$
 import { centsToDollars } from './currency';
 import { formatDate, reviveDateFields } from './dates';
 import { normalizeMonthNotes } from './monthNotes';
+import { composeSnapshots, splitSnapshots } from './monthRecords';
 import type { ExportData } from '$lib/types';
 
 export async function exportToJson(): Promise<string> {
-  const [buckets, transactions, recurringTransactions, incomes, monthSnapshots, savingsGoals, investmentLots, investmentSells, investmentPrices] = await Promise.all([
+  const [buckets, transactions, recurringTransactions, incomes, allocations, monthNotes, savingsGoals, investmentLots, investmentSells, investmentPrices] = await Promise.all([
     db.buckets.toArray(),
     db.transactions.toArray(),
     db.recurringTransactions.toArray(),
     db.incomes.toArray(),
-    db.monthSnapshots.toArray(),
+    db.allocations.toArray(),
+    db.monthNotes.toArray(),
     db.savingsGoals.toArray(),
     db.investmentLots.toArray(),
     db.investmentSells.toArray(),
     db.investmentPrices.toArray(),
   ]);
+  // Backups keep the whole-month shape so older versions can read them.
+  const monthSnapshots = composeSnapshots(allocations, monthNotes);
 
   const storedSettings = rowsToSettings(await db.settings.toArray());
 
@@ -67,17 +71,25 @@ export async function exportToCsv(): Promise<string> {
   return rows.join('\n');
 }
 
-const COLLECTIONS = [
+// Backup sections copied one-to-one into the table of the same name.
+const PLAIN_TABLES = [
   'buckets',
   'transactions',
   'recurringTransactions',
   'incomes',
-  'monthSnapshots',
   'savingsGoals',
   'investmentLots',
   'investmentSells',
   'investmentPrices',
 ] as const;
+
+// Every section a backup carries. Month records are split into the
+// allocations and monthNotes tables on import and rebuilt on export.
+const COLLECTIONS = [...PLAIN_TABLES, 'monthSnapshots'] as const;
+
+function localTables() {
+  return [...[...PLAIN_TABLES, 'allocations', 'monthNotes'].map((name) => db.table(name)), db.settings];
+}
 
 function reviveDates<T extends Record<string, unknown>>(rows: T[], fields: string[]): T[] {
   return rows.map((row) => reviveDateFields(row, fields));
@@ -184,19 +196,23 @@ export function parseImport(json: string): ExportData {
 
 export async function importFromJson(json: string): Promise<void> {
   const { data } = parseImport(json);
-  const tables = [...COLLECTIONS.map((name) => db.table(name)), db.settings];
+  const { allocations, notes } = splitSnapshots(data.monthSnapshots);
+  const tables = localTables();
 
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()));
-    for (const name of COLLECTIONS) {
+    for (const name of PLAIN_TABLES) {
       await db.table(name).bulkAdd((data as unknown as Record<string, unknown[]>)[name]);
     }
+    // bulkPut: a hand-edited backup can repeat a month or a note id.
+    await db.allocations.bulkPut(allocations);
+    await db.monthNotes.bulkPut(notes);
     await db.settings.bulkAdd(settingsToRows(data.settings));
   });
 }
 
 export async function resetAllData(): Promise<void> {
-  const tables = [...COLLECTIONS.map((name) => db.table(name)), db.settings];
+  const tables = localTables();
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()));
   });
