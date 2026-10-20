@@ -6,9 +6,13 @@
   // motion, replacing the old amount -> dropdown -> submit sequence.
   import { bucketStatuses, addTransaction } from '$lib/stores/budgetStore';
   import { currentMonthKey } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, formatCurrency, currencySymbol, symbolPadding } from '$lib/utils/currency';
+  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, formatCurrency, formatMoney, symbolPadding } from '$lib/utils/currency';
   import { defaultEntryDate } from '$lib/utils/dates';
   import { calculateBucketFit, type BucketFitStatus } from '$lib/utils/calculations';
+  import ForeignCurrencyField from './ForeignCurrencyField.svelte';
+  import { baseCurrency } from '$lib/stores/currencyStore';
+  import { currencyInfo, type CurrencyCode } from '$lib/currency/currencies';
+  import { parseRate } from '$lib/currency/conversion';
 
   export let preselectedBucketId: string | undefined = undefined;
   export let onComplete: (() => void) | undefined = undefined;
@@ -18,6 +22,10 @@
   let isSubmitting = false;
   let amountTouched = false;
   let amountInput: HTMLInputElement | undefined;
+  let foreignCurrency: CurrencyCode = $baseCurrency;
+  let rate = '';
+  let baseCents = 0;
+  let rateValid = true;
 
   $: amountError = amountTouched && amount && !isValidCurrency(amount)
     ? 'Please enter a valid amount (e.g. 12.50, -5, 10 + 5.25, or 12.50 * 3)'
@@ -26,7 +34,10 @@
   $: showPreview = isExpression(amount) && isValidCurrency(amount);
   $: previewValue = showPreview ? evaluateExpression(amount) : null;
 
-  $: amountCents = isValidCurrency(amount) ? parseCurrency(amount) : 0;
+  // What was typed, in minor units of the chosen currency, and what it is
+  // worth in the base currency (the bucket fit figures use the latter).
+  $: typedMinor = isValidCurrency(amount) ? parseCurrency(amount) : 0;
+  $: amountCents = baseCents;
 
   $: rows = $bucketStatuses
     .filter((s) => !s.bucket.isSystem)
@@ -82,10 +93,16 @@
       amountInput?.focus();
       return;
     }
+    if (!rateValid) return;
     isSubmitting = true;
     try {
+      const foreign =
+        foreignCurrency === $baseCurrency
+          ? undefined
+          : { amount: typedMinor, currency: foreignCurrency, rate: parseRate(rate)!, base: $baseCurrency };
       await addTransaction({
-        amount: parseCurrency(amount),
+        amount: baseCents,
+        ...(foreign ? { foreign } : {}),
         bucketId,
         date: defaultEntryDate($currentMonthKey),
         note: note || undefined,
@@ -104,7 +121,7 @@
   <div>
     <label for="log-amount" class="label">Amount</label>
     <div class="relative mt-1.5">
-      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-muted dark:text-muted-dark">{currencySymbol()}</span>
+      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-muted dark:text-muted-dark">{currencyInfo(foreignCurrency).symbol}</span>
       <!-- svelte-ignore a11y_autofocus -->
       <input
         id="log-amount"
@@ -116,7 +133,7 @@
         on:input={handleAmountInput}
         on:keydown={handleEnter}
         placeholder="0.00"
-        style:padding-left={symbolPadding(2.25)}
+        style:padding-left={symbolPadding(2.25, currencyInfo(foreignCurrency).symbol)}
         class="money w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-3xl font-medium tracking-tight
                transition-shadow focus:outline-none focus:ring-2 focus:ring-primary/20
                dark:bg-gray-800/50 dark:text-gray-100
@@ -126,12 +143,20 @@
     {#if amountError}
       <p class="mt-1.5 text-sm text-danger dark:text-danger-light">{amountError}</p>
     {:else if showPreview && previewValue !== null}
-      <p class="mt-1.5 text-sm text-muted dark:text-muted-dark">= <span class="amt">{formatCurrency(dollarsToCents(previewValue))}</span></p>
+      <p class="mt-1.5 text-sm text-muted dark:text-muted-dark">= <span class="amt">{formatMoney(dollarsToCents(previewValue), foreignCurrency)}</span></p>
     {:else}
       <p class="mt-1.5 text-[12.5px] text-muted dark:text-muted-dark">
         {preselectedBucketId ? 'Confirm the amount, then log it' : 'Then tap where it goes, or press Enter and pick with arrows — green fits, red breaks it'}
       </p>
     {/if}
+    <ForeignCurrencyField
+      id="log"
+      bind:currency={foreignCurrency}
+      bind:rate
+      foreignMinor={typedMinor}
+      bind:baseCents
+      bind:rateValid
+    />
   </div>
 
   <div>
@@ -151,7 +176,7 @@
       <button
         type="button"
         on:click={() => commit(row.status.bucket.id)}
-        disabled={isSubmitting}
+        disabled={isSubmitting || !rateValid}
         class="flex w-full items-center gap-3 rounded-lg border px-3.5 py-2.5 text-left transition-colors
                focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60
                {row.fit === 'fits'
