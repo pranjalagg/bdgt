@@ -71,6 +71,8 @@ export function getSyncApp(): SyncApp<SupabaseClient & AuthClient> {
           ? (hashedNonce) => loadPlugin<GoogleAuthPlugin>('GoogleAuth').then(({ plugin }) => phoneIdToken(plugin, googleId, hashedNonce))
           : undefined,
       reloadPage: () => location.reload(),
+      // Dynamic: the capture runner itself imports this file.
+      beforeSignOutClear: () => import('$lib/capture/runner').then((m) => m.stopCapture()),
       clearStoredSession: () => {
         try {
           localStorage.removeItem(AUTH_STORAGE_KEY);

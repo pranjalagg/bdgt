@@ -13,6 +13,7 @@
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
 	import { loadGoals } from '$lib/stores/goalsStore';
 	import { loadCaptures } from '$lib/stores/captureStore';
+	import { startCapture } from '$lib/capture/runner';
 	import { startClock } from '$lib/stores/uiStore';
 	import { loadCurrency, baseCurrency } from '$lib/stores/currencyStore';
 	import { initSync } from '$lib/sync/browser';
@@ -36,6 +37,8 @@
 		await processRecurring();
 		// Sync is an extra: the app is already usable, so it starts in the background.
 		void initSync();
+		// Android app only: payments the phone noticed go to Review.
+		startCapture();
 	}
 </script>
 

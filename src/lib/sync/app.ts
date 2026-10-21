@@ -54,6 +54,9 @@ export interface SyncAppDeps<C extends AuthClient> {
   // nonce. Null when the person closed the picker.
   googleIdToken?(hashedNonce: string): Promise<string | null>;
   reloadPage(): void;
+  // Before a signed-out device's data is cleared: stop anything else that
+  // writes it (payment capture on Android).
+  beforeSignOutClear?(): Promise<void>;
   // Forget the stored session when signing out could not (the session is the only thing that signs the person back in).
   clearStoredSession(): void;
   // Tell other open tabs the device was linked or unlinked (they reload, so they capture or stop capturing).
@@ -334,6 +337,7 @@ export class SyncApp<C extends AuthClient> {
       await this.service?.whenIdle();
       await this.startingRun?.catch(() => {});
       await this.endSession();
+      await this.deps.beforeSignOutClear?.().catch((e) => console.error('Could not stop payment capture', e));
       await signOutLocal(this.deps.db);
       this.deps.broadcast('unlinked');
       this.deps.reloadPage();

@@ -74,7 +74,7 @@ async function serverHasBucket(id: string, name: string) {
   await server.upsert('buckets', [{ ...toRow(def, bucket(id, name)), updated_at: new Date(1000).toISOString(), deleted_at: null }]);
 }
 
-function makeApp(over: { enabled?: boolean; hint?: boolean; googleIdToken?: (hashedNonce: string) => Promise<string | null> } = {}) {
+function makeApp(over: { enabled?: boolean; hint?: boolean; googleIdToken?: (hashedNonce: string) => Promise<string | null>; beforeSignOutClear?: () => Promise<void> } = {}) {
   getClient = vi.fn(async () => client);
   return new SyncApp<typeof client>({
     db: device,
@@ -91,6 +91,7 @@ function makeApp(over: { enabled?: boolean; hint?: boolean; googleIdToken?: (has
     saveFile: saveFile as never,
     redirectTo: () => 'https://example.com/bdgt/settings',
     googleIdToken: over.googleIdToken,
+    beforeSignOutClear: over.beforeSignOutClear,
     reloadPage: reloadPage as never,
     clearStoredSession: clearStoredSession as never,
     broadcast: broadcast as never,
@@ -473,6 +474,21 @@ describe('signing out of a linked device', () => {
     await app.init();
     await app.resolvePrompt('cancel');
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('stops payment capture before clearing the device, and signs out even if that fails', async () => {
+    await device.buckets.add(bucket('b1'));
+    const seen: number[] = [];
+    const app = makeApp({ beforeSignOutClear: async () => void seen.push(await device.buckets.count()) });
+    await started(app);
+    await app.confirmSignOut({ downloadBackup: false });
+    expect(seen).toEqual([1]); // the data was still there when capture stopped
+    expect(await device.buckets.count()).toBe(0);
+
+    const failing = makeApp({ beforeSignOutClear: async () => { throw new Error('plugin gone'); } });
+    await started(failing);
+    await failing.confirmSignOut({ downloadBackup: false });
+    expect(reloadPage).toHaveBeenCalledTimes(2);
   });
 
   it('removes the stored session itself when ending it fails, so the person is not signed back in', async () => {
