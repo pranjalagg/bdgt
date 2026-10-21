@@ -2554,11 +2554,12 @@ git commit --no-gpg-sign -m "feat(sync): sign-in, status and sign-out screens, s
 
 ---
 
-### Task 9: Deploy configuration and the setup guide, part 2
+### Task 9: Deploy configuration and the deferred list
 
 **Files:**
 - Create: `.env.example`, `tests/docs/syncSetupPart2.test.ts`
-- Modify: `.github/workflows/deploy.yml`, `docs/sync-setup.md`, `docs/deferred.md`
+- Modify: `.github/workflows/deploy.yml`, `docs/deferred.md`
+- Already done elsewhere: part 2 of `docs/sync-setup.md` (pull request #13, merged before this task). Do not rewrite it; this task only checks it.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2593,8 +2594,9 @@ describe('docs/sync-setup.md part 2', () => {
     expect(guide).toContain('https://pranjalagg.github.io');
   });
 
-  it('keeps the Google client secret out of the app and the repository', () => {
-    expect(guide).toMatch(/secret goes only here/);
+  it('keeps the Google client secret out of the app, the repository and GitHub', () => {
+    expect(guide).toMatch(/Supabase only/);
+    expect(guide).toMatch(/Never in the app, this repository, GitHub or a chat/);
   });
 });
 ```
@@ -2602,7 +2604,7 @@ describe('docs/sync-setup.md part 2', () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run tests/docs/syncSetupPart2.test.ts`
-Expected: FAIL (the workflow does not pass the variables; the guide has no part 2).
+Expected: FAIL (the workflow does not pass the variables).
 
 - [ ] **Step 3: Configuration**
 
@@ -2639,86 +2641,9 @@ index ee1fe5d..327834f 100644
          with:
 ```
 
-- [ ] **Step 4: The guide, part 2**
+- [ ] **Step 4: The guide, part 2 is already in `main`**
 
-Apply this change to `docs/sync-setup.md` (save the block as a patch file and run `git apply <patch>`, or make the same edits by hand):
-
-```diff
-diff --git a/docs/sync-setup.md b/docs/sync-setup.md
-index 9d52c17..af0eef1 100644
---- a/docs/sync-setup.md
-+++ b/docs/sync-setup.md
-@@ -3,7 +3,7 @@
- Cloud sync is optional. The app works exactly as before until a Supabase project is connected and someone signs in. This guide has two parts:
- 
- 1. **The database** (this part): create the Supabase project, apply the migrations, invite yourself, check it.
--2. **Sign-in and the deployed site** (added with the sign-in release): the Google login key, redirect addresses and the GitHub variables.
-+2. **Sign-in and the deployed site** (part 2, further down): the Google login key, redirect addresses, the GitHub variables and trying it out.
- 
- You do part 1 once. It takes about 15 minutes. Nothing in it can change or delete data in the app itself.
- 
-@@ -87,3 +87,60 @@ They hide deleted rows and the sync bookkeeping columns, show amounts in currenc
- ## When the schema changes
- 
- Every change to the synced tables is a new numbered file in `supabase/migrations/` that you apply in the SQL editor, in order. The app checks the database's migration level (`select public.sync_schema_version()`) and pauses sync with a clear message if the database is behind, instead of failing row by row.
-+
-+## Part 2: Google sign-in and the deployed site
-+
-+Do part 1 first. Replace `<project-ref>` below with the part of your project's address before `.supabase.co`.
-+
-+### 1. Create a Google login key
-+
-+1. In Google Cloud Console choose or create a project, then open **Google Auth Platform → Clients → Create client**.
-+2. Application type **Web application**.
-+3. **Authorized JavaScript origins**: add `https://pranjalagg.github.io` and `http://localhost:5173`. (Origins have no path and no trailing slash.)
-+4. **Authorized redirect URIs**: add `https://<project-ref>.supabase.co/auth/v1/callback`.
-+5. Create it and copy the **Client ID** and **Client secret**.
-+6. On the consent screen keep the default scopes (`openid`, email, profile) and publish the app (**In production**). Basic scopes need no Google verification. If you leave it in *Testing*, only the Google accounts you add as test users can sign in.
-+
-+### 2. Turn on Google in Supabase
-+
-+Open **Authentication → Sign In / Providers → Google**, switch it on, and paste the Client ID and Client secret. The secret goes only here, never into the app, this repository or GitHub.
-+
-+### 3. Allow the app's addresses
-+
-+Open **Authentication → URL Configuration**:
-+
-+- **Site URL**: `https://pranjalagg.github.io/bdgt/`
-+- **Redirect URLs**: add `https://pranjalagg.github.io/bdgt/**` and `http://localhost:5173/**`
-+
-+### 4. Tell the app about the project
-+
-+- **Local development**: copy `.env.example` to `.env` and fill in the project address and the publishable key. `.env` is git-ignored.
-+- **The deployed site**: in the GitHub repository open **Settings → Secrets and variables → Actions → Variables** and add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as *variables* (not secrets: they are public by design). Then open the **Actions** tab, choose **Deploy to GitHub Pages** and press **Run workflow**.
-+
-+Without those two values the app builds and runs exactly as before, with no Sync section.
-+
-+### 5. Try it
-+
-+1. Open **Setup → Settings** and find the **Sync** section. Press **Sign in with Google** and choose the account whose email you put on the invite list.
-+2. You return to Settings. The first time, one of three things happens:
-+   - this device has data and the account is empty: the data uploads;
-+   - this device is new and the account has data: the account's data downloads;
-+   - both have data: a dialog asks whether to replace this device's data with the account's. A backup file of this device's data downloads first. **Cancel** keeps the device's data and does not sync.
-+3. The sync status shows under the Sync heading and in the side bar ("Synced · 2 min ago"). Edits upload a couple of seconds after you make them and download when you return to the tab.
-+4. **Sign out** clears the budget data on this device (your data stays in your account) and offers a backup first if anything has not synced.
-+
-+### If something goes wrong
-+
-+| What you see | What to check |
-+|---|---|
-+| Sign-in says the provider is not enabled | Step 2: Google is switched on and the Client ID and secret are saved. |
-+| Google says `redirect_uri_mismatch` | The redirect URI in step 1 must be exactly `https://<project-ref>.supabase.co/auth/v1/callback`. |
-+| You return to the app but are not signed in | Step 3: the address you came from is covered by a Redirect URL (`/bdgt/**` for the site, `http://localhost:5173/**` for local). |
-+| "Sync isn't enabled for this account" | The Google account's email (lower case) is on the invite list from part 1, step 3. |
-+| "Database needs update" | A newer migration in `supabase/migrations/` has not been applied yet (part 1, step 2). |
-+| "Sign in again" | The session ended; press Sign in with Google. Nothing is lost: waiting changes are kept. |
-+| "N changes couldn't sync" | Press **Try again**, or **Stop trying** if the reason shown cannot be fixed. The changes stay on this device either way. |
-+
-+### Privacy
-+
-+Everything you sync is stored in the Supabase project, which the project owner (you) controls and can read in the dashboard. Invited people's data is likewise readable by the owner. Browser-side encryption is not part of this release.
-```
+Confirm `docs/sync-setup.md` contains `## Part 2: Google sign-in and the deployed site` (it was added by pull request #13). If it is missing, merge or rebase onto `main` first; do not recreate it here.
 
 - [ ] **Step 5: Update the deferred list**
 
@@ -2742,8 +2667,8 @@ Expected: 8 tests in `tests/docs` PASS, the suite PASS, 0 type errors.
 
 ```bash
 git branch --show-current   # must print feat/cloud-sync-app
-git add .env.example .github/workflows/deploy.yml docs/sync-setup.md docs/deferred.md tests/docs/syncSetupPart2.test.ts
-git commit --no-gpg-sign -m "docs(sync): deploy configuration and part 2 of the setup guide"
+git add .env.example .github/workflows/deploy.yml docs/deferred.md tests/docs/syncSetupPart2.test.ts
+git commit --no-gpg-sign -m "docs(sync): deploy configuration and the deferred list for the sign-in release"
 ```
 
 ---
