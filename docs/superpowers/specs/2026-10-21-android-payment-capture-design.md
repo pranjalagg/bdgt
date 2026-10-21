@@ -85,14 +85,15 @@ The person chooses sources in Settings; only installed apps are offered. The tes
 - `svelte.config.js` takes the base path from an explicit `BASE_PATH` variable: the GitHub Pages workflow sets `/bdgt`, the Android build leaves it empty. Today the base path follows `GITHUB_ACTIONS`, which would break an Android build made in CI.
 - IBM Plex is bundled with the app instead of loaded from Google Fonts, so the app looks right offline (the web build benefits too).
 - The Supabase URL and publishable key are built in, as for GitHub Pages.
-- Application id `io.github.pranjalagg.bdgt` (proposed; it cannot change after the first Play upload).
+- Application id `io.github.pranjalagg.bdgt` (it cannot change after the first Play upload).
+- Downloads (backups, the CSV, the capture log) go through the Android share sheet: a WebView cannot save a file from a link.
 
 ### Capture plugin (Kotlin)
 
 - **Listener** (`NotificationListenerService`). For each posted notification, return at once unless capture is on and the app is an enabled source. For messaging apps, take each message from the notification's message list (one conversation notification carries several messages and is re-posted as new ones arrive) and keep those from business senders that contain an amount. For other sources, keep notifications whose text contains an amount. Nothing else is stored or logged.
 - **Item ids.** For a message: a hash of the package, sender, message time and text, which stays the same when the conversation notification is re-posted. For any other notification: a hash of the package, notification key and post time; a re-post of the same notification with the same text within two minutes counts as the same item.
 - **Catch-up.** When the listener connects, it checks `getActiveNotifications()` for anything posted while it was not running.
-- **Buffer.** A small SQLite table (Room) of kept items: `id`, `package`, `sender`, `postedAt`, `title`, `text`. Items stay until the app acknowledges them.
+- **Buffer.** A small SQLite table of kept items: `id`, `package`, `sender`, `postedAt`, `title`, `text`. Items stay until the app acknowledges them.
 - **Reminder.** A daily WorkManager job at the chosen time posts "N payments to review" when the count last reported by the app plus unread buffer items is above zero. The count can be stale (a laptop may have cleared the queue); tapping opens Review, which syncs.
 - **Permissions.** Notification access (granted by the person in system settings), `POST_NOTIFICATIONS` for the reminder, and `<queries>` entries for the supported apps. No SMS permission. Battery help opens the system battery settings rather than requesting an exemption.
 
@@ -293,9 +294,9 @@ Dismissing writes the capture and deletes transaction `capture:<captureId>`, whi
 
 ## Rollout
 
-Four pull requests, in order:
+Four stages, all on one branch (`claude/intelligent-davinci-7qblqz`) so the live app is never affected. No pull requests until every stage has been tested; then one pull request for the whole feature.
 
-1. **Test build.** The Capacitor shell (base path variable, bundled fonts), the listener with keep or drop and the buffer, and a **Capture log** screen in Settings: kept items with **Export** (masks reference, account and phone numbers, meaning runs of 6 or more digits that are not part of an amount; amounts and dates are kept) and **Clear**. No queue and no sign-in. Shipped through Play internal testing to the owner and two or three friends with different banks and UPI apps; a week of their exported samples becomes the parser fixtures.
+1. **Test build.** The Capacitor shell (base path variable, bundled fonts), the listener with keep or drop and the buffer, and a **Capture log** screen in Settings: kept items with **Export** (masks reference, account and phone numbers, meaning runs of 6 or more digits that are not part of an amount; amounts and dates are kept) and **Clear**. No queue and no sign-in. GitHub Actions builds a debug APK on every push to the branch; the owner and two or three friends with different banks and UPI apps install it (Play internal testing once a release key exists), and a week of their exported samples becomes the parser fixtures.
 2. **Queue.** Dexie v14, types, registry entries, the Supabase migration, suggestions, rules, Review, the dashboard card, the badge and the safe-to-spend change. Built and tested on desktop with a development-only helper that adds sample captures from the fixtures.
 3. **Sign-in on Android.** Credential Manager sign-in, capture tied to sign-in, and the setup guide section.
 4. **Capture.** Parsers, bringing captures in, dedupe, the Settings section and the reminder.
@@ -316,6 +317,5 @@ Setup guide additions (`docs/android-setup.md`): a Play developer account, the i
 ## Open questions
 
 - Capture requires sign-in on builds with sync, an exception to "no feature may require an account". The alternative keeps pending captures through first sign-in (left out of the device's data check, kept when the device takes the account's data, then uploaded), at the cost of more first-sign-in cases to build and test.
-- Application id (`io.github.pranjalagg.bdgt` proposed).
 - Reminder default (8 pm) and raw-text retention (30 days).
 - Which banks and UPI apps the first parsers cover (from the test group).
