@@ -84,7 +84,7 @@ You will handle two kinds of value. Know which is which:
 |---|---|---|---|
 | **Project URL** (`https://<project-ref>.supabase.co`) | Supabase → Project Settings → API | the app, GitHub variable | No |
 | **Publishable key** (`sb_publishable_…`) | Supabase → Project Settings → API Keys | the app, GitHub variable | No, public by design |
-| **Google Client ID** | Google Cloud, step 1 | Supabase only | No, but only Supabase needs it |
+| **Google Client ID** | Google Cloud, step 1 | Supabase, and the Android app's build (`docs/android-setup.md`) | No, public (it is in every Google sign-in address) |
 | **Google Client secret** | Google Cloud, step 1 | **Supabase only** | **Yes. Never in the app, this repository, GitHub or a chat.** |
 
 `<project-ref>` is the part of your project URL before `.supabase.co`. Wherever it appears below, substitute yours.

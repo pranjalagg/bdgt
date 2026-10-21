@@ -23,7 +23,6 @@ Last updated: 2026-10-21.
 - **Review minors from the sign-in release (not fixed):**
   - If the quiet reload after first sign-in throws, the service is left unstarted until the next page load.
   - A failed sign-out leaves the "signing out" flag set and shows no error.
-  - A `SIGNED_IN` event for the same user does not resume a suspended device (only a refreshed token or a fresh sign-in does).
   - Focus and `visibilitychange` can fire together and start two cycles back to back (the second is queued, not parallel).
   - `refreshParked` in `SyncSection.svelte` re-queries whenever the parked count differs from the list; a count that never matches the list could loop.
   - The first-sign-in choice dialog uses the single modal slot, so it can replace another open dialog.
@@ -78,6 +77,30 @@ Checked by the project owner against `http://localhost:5173/settings` with the r
 
 ---
 
+## Android app and payment capture (design: `docs/superpowers/specs/2026-10-21-android-payment-capture-design.md`)
+
+### Test build (stage 1)
+- **The app is "bdgt" on the home screen and "Budget" in its own header.** Pick one. `android/app/src/main/res/values/strings.xml`, `Nav.svelte`. Size S.
+- **`npm audit` reports two moderate advisories through `@capacitor/cli`** (its iOS helper `xcode` uses an old `uuid`). Development only, never in the app. Re-check when upgrading Capacitor. Size S.
+- **The notification listener has not run on a real phone yet.** Its rules are unit-tested; the test group's week is the check (phone makers stopping background apps, what each app really posts).
+- **Testers install a debug build from a file,** so Android 13 and later asks them to *Allow restricted settings* before notification access can be turned on. Google Play internal testing removes that step but needs a release key, Play App Signing, a privacy page, and the Play signing key's SHA-1 as another Android OAuth client. Size M.
+
+### Review queue (stage 2)
+- **A payment in a currency never used before is left out of safe to spend and of the pending total** (its row says *rate needed*). Fix: fetch a rate when the capture is brought in (stage 4), or estimate from the newest rate. `captureStore.ts`, `pendingEverydaySpend`. Size S–M.
+- **Deleting an approved payment's transaction in Activity leaves its capture approved,** so it does not return to the queue and the Approved tab says *Approved into a bucket*. Probably right (deleting says it was not spending), but unclear. Fix: deleting a `capture:` transaction marks its capture dismissed. `budgetStore.ts`, `deleteTransaction`. Size S.
+- **Changing an approved payment's bucket in Activity does not update the payee's rule;** rules learn only at approval. Size S.
+- **Approve all suggested approves one payment at a time;** a failure stops it midway, with the earlier ones approved and no summary. Size S.
+- **Undo covers only the last action, for 8 seconds;** older ones go back with *Back to review*. Size S.
+- **Two payees with the same display name look identical in Capture rules** (rules are keyed by a payee hash). Show the source or card digits next to the name. Size S.
+- **The Dismissed tab lists every dismissed payment ever.** Limit it like Approved (7 days) once it gets long. Size S.
+
+### Sign-in in the app (stage 3)
+- **Native sign-in is checked only by hand.** Credential Manager needs a phone with Google Play services; the TypeScript side is tested with a fake plugin. Re-check after changing `GoogleAuthPlugin.kt`, `src/lib/sync/googleAuth.ts` or the sign-in part of `src/lib/sync/app.ts`.
+- **Signing out does not call Credential Manager's `clearCredentialState`.** The *Sign in with Google* sheet asks every time, so nothing is remembered to clear. Needed only if one-tap automatic sign-in is ever used. Size S.
+- **Until the signing-key secret exists, builds use a key in the Actions cache,** which GitHub deletes after 7 days without a build: the next build gets a new key, phones must reinstall, and Google stops recognising the app until the new SHA-1 is registered. Fix: the one-time step 1 in `docs/android-setup.md`. Size S.
+
+---
+
 ## Currency
 
 ### Step 3: convert on change
@@ -115,6 +138,7 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 ---
 
 ## Resolved
+- A `SIGNED_IN` event for the same user did not resume a device whose session had ended (fixed with Android sign-in, where signing in again does not reload the page).
 - Settings page `fileInput.value = ''` threw a TypeError after any import (fixed, guarded).
 - Exporting a never-confirmed fresh profile wrote USD instead of the detected currency (fixed: the detected currency is now saved as unconfirmed when first loaded).
 - Decimal commas (`12,50`) were read as 1250 (fixed: only thousands separators are accepted).

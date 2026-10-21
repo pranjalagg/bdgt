@@ -114,9 +114,9 @@ Plugin interface (`src/lib/capture/native.ts`; on the web every call is a no-op)
 
 ### Sign-in on Android
 
-Google refuses OAuth inside a WebView, so `signInWithOAuth` with a redirect cannot work in the app. On Android, **Sign in with Google** gets an ID token from Credential Manager (with a nonce: its hash goes to Google, the raw value to Supabase) and calls `supabase.auth.signInWithIdToken({ provider: 'google', token, nonce })`. The first-sign-in flow that follows is unchanged.
+Google refuses OAuth inside a WebView, so `signInWithOAuth` with a redirect cannot work in the app. On Android, **Sign in with Google** asks the app's own `GoogleAuth` plugin for an ID token: Credential Manager's *Sign in with Google* sheet (`GetSignInWithGoogleOption`) for the web client (`VITE_GOOGLE_WEB_CLIENT_ID`), carrying the SHA-256 (hex) of a one-time nonce. The page then calls `supabase.auth.signInWithIdToken({ provider: 'google', token, nonce })` with the raw nonce. The library announces `SIGNED_IN`, and the first-sign-in flow that follows is unchanged.
 
-Setup needs an Android OAuth client in Google Cloud (package name, and the SHA-1 of both the debug key and the Play app signing key); the existing web client id is passed as the server client id. Whether to use an existing Capacitor sign-in plugin or a small one of our own is left to the plan.
+Setup needs an Android OAuth client in Google Cloud (package name and the SHA-1 of the signing key, which CI prints); a Play release adds the Play app signing key's SHA-1 as another client. The signing key lives in a repository secret, so it survives GitHub emptying the Actions cache. The plugin is our own (about 60 lines on Google's libraries) rather than a third-party Capacitor sign-in plugin: no other providers' code, and full control of the nonce.
 
 ## Data model (Dexie v14)
 
@@ -298,8 +298,8 @@ Four stages, all on one branch (`claude/intelligent-davinci-7qblqz`) so the live
 
 1. **Test build.** The Capacitor shell (base path variable, bundled fonts), the listener with keep or drop and the buffer, and a **Capture log** screen in Settings: kept items with **Export** (masks reference, account and phone numbers, meaning runs of 6 or more digits that are not part of an amount; amounts and dates are kept) and **Clear**. No queue and no sign-in. GitHub Actions builds a debug APK on every push to the branch; the owner and two or three friends with different banks and UPI apps install it (Play internal testing once a release key exists), and a week of their exported samples becomes the parser fixtures.
 2. **Queue.** Dexie v14, types, registry entries, the Supabase migration, suggestions, rules, Review, the dashboard card, the badge and the safe-to-spend change. Built and tested on desktop with a development-only helper that adds sample captures from the fixtures.
-3. **Sign-in on Android.** Credential Manager sign-in, capture tied to sign-in, and the setup guide section.
-4. **Capture.** Parsers, bringing captures in, dedupe, the Settings section and the reminder.
+3. **Sign-in on Android.** Credential Manager sign-in, the build's sign-in settings and signing key, and the setup guide section.
+4. **Capture.** Parsers, bringing captures in, dedupe, the Settings section with capture tied to sign-in (it turns on only while signed in; sign-out stops it and empties the inbox), and the reminder. Tying capture to sign-in moved here from stage 3: the switch and the inbox it guards are built in this stage.
 
 Setup guide additions (`docs/android-setup.md`): a Play developer account, the internal testing track and tester list, app signing, the Android OAuth client, and a privacy page (needed for Google sign-in in production, and expected by Play for an app that reads notifications).
 
