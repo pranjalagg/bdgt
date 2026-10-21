@@ -16,8 +16,10 @@ export const incomes = writable<Income[]>([]);
 export const monthSnapshots = writable<MonthSnapshot[]>([]);
 export const isLoading = writable(true);
 
-export async function loadData(): Promise<void> {
-  isLoading.set(true);
+// `background` is for a reload triggered by sync: the person is looking at the
+// page, so it must not be replaced by the loading screen.
+export async function loadData(options: { background?: boolean } = {}): Promise<void> {
+  if (!options.background) isLoading.set(true);
   await initializeDefaultBuckets();
 
   const [loadedBuckets, loadedTransactions, loadedIncomes, loadedAllocations, loadedNotes] = await Promise.all([

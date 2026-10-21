@@ -42,11 +42,13 @@ function detectOnDevice(): CurrencyCode {
 // is saved yet. A guess is saved as unconfirmed, so it stays put (a later
 // load from another time zone must not relabel amounts already entered)
 // while the confirm modal still asks until the user answers.
-export async function loadCurrency(): Promise<void> {
+// `keepPrompt` is for a reload triggered by sync: it must not reopen the
+// confirm dialog the person already dismissed.
+export async function loadCurrency(options: { keepPrompt?: boolean } = {}): Promise<void> {
   const stored = rowsToSettings(await db.settings.toArray());
   const settings = resolveStartupSettings(stored, detectOnDevice());
   if (!stored) await autoTransaction(db, [db.settings], () => db.settings.bulkPut(settingsToRows(settings)));
-  resetCurrencyPrompt();
+  if (!options.keepPrompt) resetCurrencyPrompt();
   baseCurrency.set(settings.baseCurrency);
   currencyConfirmed.set(settings.currencyConfirmed);
 }
