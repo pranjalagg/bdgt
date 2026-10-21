@@ -13,8 +13,12 @@ Last updated: 2026-10-21.
 
 ## Cloud sync (design: `docs/superpowers/specs/2026-10-20-cloud-sync-design.md`)
 
-### Planned next: plan 4, sign-in, sync service and screens
-Not deferred in the sense of dropped; it is the next plan. It covers the Supabase client and Google sign-in, the sync service (start-up, triggers, locking, backoff, status), the Settings → Sync section and status chip, the first-sign-in and sign-out dialogs, deploy variables, part 2 of `docs/sync-setup.md` (Google login key, redirect addresses, GitHub variables) and a manual check on the real project. The handoff section at the end of `docs/superpowers/plans/2026-10-21-cloud-sync-engine.md` lists what it must honor.
+### Sign-in release leftovers
+- **Other open tabs are not told when this tab signs in or out.** They keep their old state until they regain focus or reload (the cross-tab lock only stops two tabs syncing at once). Size S–M; could share a `BroadcastChannel`.
+- **There is no live view of another device's changes.** A change from another device arrives on the next cycle: when you return to the tab, regain the network, or within five minutes. Realtime is in the phase 2 list below.
+- **Real Google sign-in is only checked by hand** (Google blocks automated sign-in); everything around it is tested with a fake client. Re-check after any change to `src/lib/sync/app.ts` or the Supabase client options.
+- **A browser may block the backup download** that sign-out and the first-sign-in choice start (pop-up or multiple-download settings). The dialogs say what is happening, but do not detect a blocked download.
+- **Import and Reset while signed in do not wait for the sync;** they reach the account in the background a couple of seconds later. Closing the tab in that window leaves them queued for the next time the device syncs.
 
 ### Acceptance of the database on the real project (waiting on the project owner)
 The SQL is tested on a real Postgres in the test suite, but not yet on a real Supabase project. Follow part 1 of `docs/sync-setup.md` and confirm every row of `supabase/tests/verify_setup.sql` is `true`. Then record the project URL and publishable key for plan 4.
