@@ -13,8 +13,11 @@ Last updated: 2026-10-21.
 
 ## Cloud sync (design: `docs/superpowers/specs/2026-10-20-cloud-sync-design.md`)
 
-### Planned next: plan 3, Supabase wiring
-Not deferred in the sense of dropped; it is the next plan. It covers the SQL migrations and tests, the real transport over supabase-js, Google sign-in, the sync service (start-up, triggers, locking, status), the Settings → Sync screen and status chip, deploy variables, `docs/sync-setup.md`, and a manual check on the real project. The handoff section at the end of `docs/superpowers/plans/2026-10-21-cloud-sync-engine.md` lists what the transport must honor.
+### Planned next: plan 4, sign-in, sync service and screens
+Not deferred in the sense of dropped; it is the next plan. It covers the Supabase client and Google sign-in, the sync service (start-up, triggers, locking, backoff, status), the Settings → Sync section and status chip, the first-sign-in and sign-out dialogs, deploy variables, part 2 of `docs/sync-setup.md` (Google login key, redirect addresses, GitHub variables) and a manual check on the real project. The handoff section at the end of `docs/superpowers/plans/2026-10-21-cloud-sync-engine.md` lists what it must honor.
+
+### Acceptance of the database on the real project (waiting on the project owner)
+The SQL is tested on a real Postgres in the test suite, but not yet on a real Supabase project. Follow part 1 of `docs/sync-setup.md` and confirm every row of `supabase/tests/verify_setup.sql` is `true`. Then record the project URL and publishable key for plan 4.
 
 ### Phase 2 of sync (from the design's non-goals)
 - **Live updates between open devices (Supabase Realtime), and other tabs refreshing instantly.** Today a change shows up on the next sync cycle (a couple of seconds after an edit on the same device, up to five minutes for changes from another device). Size L.
