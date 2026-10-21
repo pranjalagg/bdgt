@@ -16,11 +16,24 @@ baseCurrency.subscribe(setActiveCurrency);
 // leaves currencyConfirmed false but must not reopen it in a loop; a fresh
 // load (an import or reset that keeps the same code) must ask again.
 let prompted = false;
+let promptShown = false;
 
 export function takeCurrencyPrompt(confirmed: boolean): boolean {
   if (confirmed || prompted) return false;
   prompted = true;
+  promptShown = true;
   return true;
+}
+
+// Signing in can answer the question: the account's data arrives with a
+// currency the person already confirmed on another device. True once, when
+// that happens while the confirm dialog is still open, so the caller closes
+// it. A dialog the person opened themselves to change the currency is never
+// closed this way.
+export function currencyAnsweredElsewhere(confirmed: boolean, dialogOpen: boolean): boolean {
+  if (!promptShown || !confirmed) return false;
+  promptShown = false;
+  return dialogOpen;
 }
 
 export function resetCurrencyPrompt(): void {

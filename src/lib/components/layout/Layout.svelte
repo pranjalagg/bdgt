@@ -5,13 +5,16 @@
   import CurrencyModal from '$lib/components/shared/CurrencyModal.svelte';
   import SyncChoiceModal from '$lib/components/sync/SyncChoiceModal.svelte';
   import { syncEnabled } from '$lib/sync/browser';
-  import { currencyConfirmed, takeCurrencyPrompt } from '$lib/stores/currencyStore';
+  import { currencyConfirmed, takeCurrencyPrompt, currencyAnsweredElsewhere } from '$lib/stores/currencyStore';
   import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId } from '$lib/stores/uiStore';
 
   // Ask until the user confirms, once per load of the saved settings.
   // Reactive so an import or reset that keeps the same currency code (and so
   // does not rebuild this layout) still shows the modal.
   $: if (takeCurrencyPrompt($currencyConfirmed)) openModal('currency');
+  // Signing in may bring a currency already confirmed on another device
+  // while this dialog is open: the question is answered, so close it.
+  $: if (currencyAnsweredElsewhere($currencyConfirmed, $activeModal === 'currency')) closeModal();
 
   function handleLogComplete() {
     closeModal();
