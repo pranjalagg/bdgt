@@ -24,7 +24,10 @@ export interface CaptureStatus {
   listenerConnected: boolean;
   enabled: boolean; // recording is on
   lastKeptAt: number; // epoch ms, 0 before anything was kept
-  count: number;
+  count: number; // in the log
+  waiting: number; // not yet brought into the review queue
+  sms: boolean; // bank SMS are read
+  packages?: string[]; // payment apps read; absent means every supported one
   appVersion: string;
 }
 
@@ -42,7 +45,10 @@ export interface CapturePlugin {
   openBatterySettings(): Promise<void>;
   requestRebind(): Promise<void>;
   list(options?: { limit?: number }): Promise<{ items: KeptItem[] }>;
-  clear(): Promise<void>;
+  clear(): Promise<void>; // empties the log
+  takePending(options?: { limit?: number }): Promise<{ items: KeptItem[] }>; // oldest first, kept until ack
+  ack(options: { ids: string[] }): Promise<void>;
+  reset(): Promise<void>; // sign-out: recording off, log emptied
   share(options: { filename: string; text: string; mimeType: string }): Promise<void>;
   addListener(event: 'itemKept', listener: (item: KeptItem) => void): Promise<PluginListenerHandle>;
 }

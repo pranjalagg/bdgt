@@ -7,10 +7,11 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import org.json.JSONObject
 
-// Kept notifications, held on the phone until the app reads them. The
-// listener writes and the plugin reads, in the same process.
+// Kept notifications. The app brings each one into the review queue once
+// (acked_at marks it done) and they stay as the capture log until cleared.
+// The listener writes and the plugin reads, in the same process.
 class CaptureStore private constructor(context: Context) :
-    SQLiteOpenHelper(context, "capture.db", null, 1) {
+    SQLiteOpenHelper(context, "capture.db", null, 2) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -24,14 +25,22 @@ class CaptureStore private constructor(context: Context) :
               sender TEXT,
               title TEXT,
               text TEXT NOT NULL,
-              extras TEXT NOT NULL
+              extras TEXT NOT NULL,
+              acked_at INTEGER
             )
             """.trimIndent(),
         )
         db.execSQL("CREATE INDEX items_by_key ON items (package, notification_key, posted_at)")
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            // Items recorded before the review queue existed were samples, not
+            // payments to review: they count as already brought in.
+            db.execSQL("ALTER TABLE items ADD COLUMN acked_at INTEGER")
+            db.execSQL("UPDATE items SET acked_at = posted_at")
+        }
+    }
 
     // False when an item with this id is already stored.
     fun insertIfAbsent(item: KeptItem): Boolean {
@@ -55,15 +64,33 @@ class CaptureStore private constructor(context: Context) :
     // Newest first.
     fun list(limit: Int): List<KeptItem> = query(null, null, limit)
 
+    // Not yet brought into the review queue, oldest first.
+    fun pending(limit: Int): List<KeptItem> = query("acked_at IS NULL", null, limit, "posted_at ASC")
+
+    fun ack(ids: List<String>) {
+        if (ids.isEmpty()) return
+        val db = writableDatabase
+        val done = ContentValues().apply { put("acked_at", System.currentTimeMillis()) }
+        db.beginTransaction()
+        try {
+            ids.forEach { db.update("items", done, "id = ? AND acked_at IS NULL", arrayOf(it)) }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
     fun count(): Long = DatabaseUtils.queryNumEntries(readableDatabase, "items")
+
+    fun waiting(): Long = DatabaseUtils.queryNumEntries(readableDatabase, "items", "acked_at IS NULL")
 
     fun clear() {
         writableDatabase.delete("items", null, null)
     }
 
-    private fun query(where: String?, args: Array<String>?, limit: Int): List<KeptItem> {
+    private fun query(where: String?, args: Array<String>?, limit: Int, order: String = "posted_at DESC"): List<KeptItem> {
         val out = mutableListOf<KeptItem>()
-        readableDatabase.query("items", null, where, args, null, null, "posted_at DESC", limit.toString()).use { c ->
+        readableDatabase.query("items", null, where, args, null, null, order, limit.toString()).use { c ->
             val id = c.getColumnIndexOrThrow("id")
             val pkg = c.getColumnIndexOrThrow("package")
             val kind = c.getColumnIndexOrThrow("kind")

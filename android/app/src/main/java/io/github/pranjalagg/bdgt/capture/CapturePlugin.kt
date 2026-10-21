@@ -43,6 +43,9 @@ class CapturePlugin : Plugin() {
                 put("enabled", settings.enabled)
                 put("lastKeptAt", settings.lastKeptAt)
                 put("count", CaptureStore.get(context).count())
+                put("waiting", CaptureStore.get(context).waiting())
+                put("sms", settings.sms)
+                settings.packages?.let { put("packages", JSArray(it.toList())) }
                 put("appVersion", version)
             },
         )
@@ -120,6 +123,28 @@ class CapturePlugin : Plugin() {
 
     @PluginMethod
     fun clear(call: PluginCall) {
+        CaptureStore.get(context).clear()
+        call.resolve()
+    }
+
+    // Items not yet in the review queue, oldest first. They stay until ack.
+    @PluginMethod
+    fun takePending(call: PluginCall) {
+        val items = JSArray()
+        CaptureStore.get(context).pending(call.getInt("limit") ?: 500).forEach { items.put(toJs(it)) }
+        call.resolve(JSObject().apply { put("items", items) })
+    }
+
+    @PluginMethod
+    fun ack(call: PluginCall) {
+        CaptureStore.get(context).ack(call.getArray("ids")?.toList<String>().orEmpty())
+        call.resolve()
+    }
+
+    // Signing out: recording stops and everything recorded on this phone goes.
+    @PluginMethod
+    fun reset(call: PluginCall) {
+        CaptureSettings(context).enabled = false
         CaptureStore.get(context).clear()
         call.resolve()
     }

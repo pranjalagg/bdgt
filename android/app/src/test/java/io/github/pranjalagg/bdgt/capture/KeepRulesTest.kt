@@ -43,6 +43,11 @@ class KeepRulesTest {
             "USD 12.00",
             "Paid 250 INR",
             "1,200.50 rupees",
+            "€4.50 at Café Nero",
+            "£12 with Visa",
+            "AED 35.00 spent",
+            // SBI writes the amount without a currency sign.
+            "Dear UPI user A/C X1234 debited by 250.0 on date 21Oct26 trf to SWIGGY Refno 123456789012",
         ).forEach { assertTrue(it, KeepRules.hasAmount(it)) }
     }
 
@@ -64,6 +69,24 @@ class KeepRulesTest {
         assertTrue(KeepRules.looksLikeBankMessage("Sent Rs.120.00 From HDFC Bank A/C *1234 To RAHUL"))
         assertFalse(KeepRules.looksLikeBankMessage("Get Rs.100 off on your next order!"))
         assertFalse(KeepRules.looksLikeBankMessage("Running late, be there at 5"))
+    }
+
+    @Test
+    fun businessSenders() {
+        listOf("VM-HDFCBK", "AX-KOTAKB-S", "HDFCBK", "SBIUPI", "24273", "HDFC Bank", "Axis Bank Ltd", "Chase").forEach {
+            assertTrue(it, KeepRules.isBusinessSender(it))
+        }
+        listOf("Mom", "Rahul Sharma", "+91 98765 43210", "9876543210", "(415) 555-0100", "", "  ", null).forEach {
+            assertFalse(it.toString(), KeepRules.isBusinessSender(it))
+        }
+    }
+
+    @Test
+    fun peopleAreNeverKeptWhateverTheySayAboutMoney() {
+        val friend = Message("Rahul", 1_000L, "I paid Rs.500 for the cab, UPI me back")
+        val number = Message("+91 98765 43210", 2_000L, "Rs.250 debited, ref 123456789012")
+        val mine = Message(null, 3_000L, "Sent you Rs.300 on UPI")
+        assertTrue(keep(conversation(friend, number, mine)).isEmpty())
     }
 
     @Test

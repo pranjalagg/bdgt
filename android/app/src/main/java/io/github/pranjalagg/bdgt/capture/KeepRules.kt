@@ -63,11 +63,14 @@ object KeepRules {
     // is not a new payment.
     const val REPOST_WINDOW_MS = 120_000L
 
-    // A currency marker next to a number (Rs.250, INR 1,234.50, ₹99, $4.50),
-    // or a number followed by a currency word (250 INR). The word boundary
-    // keeps "hours 2" from reading as "rs 2".
+    // A currency marker next to a number (Rs.250, INR 1,234.50, ₹99, $4.50,
+    // €4), a number followed by a currency word (250 INR), or SBI's
+    // unmarked "debited by 250.0". The word boundary keeps "hours 2" from
+    // reading as "rs 2".
     private val AMOUNT = Regex(
-        "(?:₹|[$]|\\b(?:rs\\.?|inr|usd))\\s*\\d|\\d(?:[\\d,]*\\d)?(?:\\.\\d{1,2})?\\s*(?:inr|usd|rupees)\\b",
+        "(?:₹|[$]|€|£|\\b(?:rs\\.?|inr|usd|eur|gbp|aed))\\s*\\d" +
+            "|\\d(?:[\\d,]*\\d)?(?:\\.\\d{1,2})?\\s*(?:inr|usd|eur|gbp|aed|rupees)\\b" +
+            "|\\b(?:debited|credited)\\s+(?:by|for|with)\\s+\\d",
         RegexOption.IGNORE_CASE,
     )
 
@@ -76,11 +79,27 @@ object KeepRules {
         RegexOption.IGNORE_CASE,
     )
 
+    private val PHONE_NUMBER = Regex("^\\+?[\\d\\s()-]{7,}$")
+    private val BANK_NAME = Regex(
+        "\\b(?:bank|card|cards|credit|upi|sbi|hdfc|icici|axis|kotak|amex|chase|citi|discover|capital one|wells fargo)\\b",
+        RegexOption.IGNORE_CASE,
+    )
+
     private val OTP = Regex("\\b(?:otp|one[- ]time password|verification code)\\b", RegexOption.IGNORE_CASE)
 
     fun hasAmount(text: String): Boolean = AMOUNT.containsMatchIn(text)
 
     fun isOtp(text: String): Boolean = OTP.containsMatchIn(text)
+
+    // Banks write from sender IDs (VM-HDFCBK), short codes (24273) or verified
+    // business names (HDFC Bank). Contacts and phone numbers are people: their
+    // messages are never kept, whatever they say about money.
+    fun isBusinessSender(sender: String?): Boolean {
+        val s = sender?.trim().orEmpty()
+        if (s.isEmpty() || PHONE_NUMBER.matches(s)) return false
+        if (BANK_NAME.containsMatchIn(s)) return true
+        return s.none { it.isLowerCase() } && s.any { it.isLetterOrDigit() }
+    }
 
     // A bank SMS states an amount and what happened to it; promotions and
     // personal messages rarely use banking words next to an amount.
@@ -108,6 +127,7 @@ object KeepRules {
 
     // Messages keep their own time and id, so a conversation notification
     // that is re-posted as new messages arrive yields the same items again.
+    // A message without a sender is the phone owner's own.
     private fun keepMessages(c: Candidate): List<KeptItem> {
         val messages = c.messages.ifEmpty {
             // Not a messaging-style notification: it is one message itself.
@@ -115,7 +135,7 @@ object KeepRules {
             if (body.isNullOrBlank()) emptyList() else listOf(Message(c.title, c.postTime, body))
         }
         return messages
-            .filter { looksLikeBankMessage(it.text) }
+            .filter { isBusinessSender(it.sender) && looksLikeBankMessage(it.text) }
             .map { m ->
                 KeptItem(
                     id = itemId("sms", c.packageName, m.sender.orEmpty(), m.time.toString(), m.text),

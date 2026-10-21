@@ -13,9 +13,9 @@ class CaptureSettings(context: Context) {
         get() = prefs.getBoolean("enabled", false)
         set(value) = prefs.edit().putBoolean("enabled", value).apply()
 
-    // Payment apps to read; empty means every known one.
-    var packages: Set<String>
-        get() = prefs.getStringSet("packages", null)?.toSet() ?: emptySet()
+    // Payment apps to read; null (never chosen) means every known one.
+    var packages: Set<String>?
+        get() = prefs.getStringSet("packages", null)?.toSet()
         set(value) = prefs.edit().putStringSet("packages", value).apply()
 
     var sms: Boolean
@@ -31,7 +31,7 @@ class CaptureSettings(context: Context) {
         set(value) = prefs.edit().putBoolean("listenerConnected", value).apply()
 
     fun sourceConfig(): SourceConfig = SourceConfig(
-        packages = packages.ifEmpty { KeepRules.APP_SOURCES.toSet() },
+        packages = packages ?: KeepRules.APP_SOURCES.toSet(),
         messagingPackages = if (sms) messagingPackages(appContext) else emptySet(),
     )
 
