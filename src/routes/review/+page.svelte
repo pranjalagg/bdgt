@@ -194,6 +194,10 @@
     {/each}
   </div>
 
+  {#if filter === 'approved'}
+    <p class="text-sm text-muted dark:text-muted-dark">The last 7 days. Older ones are in Activity like any other transaction.</p>
+  {/if}
+
   {#if error}<p class="text-sm text-danger dark:text-danger-light" role="alert">{error}</p>{/if}
 
   {#if shown.length === 0}
