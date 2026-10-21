@@ -105,10 +105,15 @@ Supabase signs people in with Google, so it needs a "client" registered with Goo
    - **App name**: `bdgt`. This is what people see on Google's "choose an account" screen.
    - **User support email**: your email.
    - **Developer contact information** (at the bottom): your email.
-3. Leave everything else on the page **empty**: *App logo*, *Application home page*, *Application privacy policy link*, *Application terms of service link* and *Authorized domains*.
-4. **Do not upload a logo.** It is optional, and adding one makes Google require a verification review (days to weeks) before you can publish. Without a logo, Google shows a plain letter icon, which is fine for a personal app.
-5. Press **Save**. If **Publish app** later says *To publish your app, you must complete your configuration on the Branding page*, a required field on this page is empty or the page was not saved: open it again, fill in the three fields above, and press **Save**. If it names a field I have not listed, tell me which.
-6. Open **Audience**: choose **External** (this allows any Google account; the invite list then restricts who can sync). Add your email under **Contact information** if it asks, accept the policy checkbox and save.
+3. Under **Authorised domains** (further down, in the *App domain* section) press **Add domain** and add the two domains your sign-in uses. Google will not let you publish until the domains used by your OAuth client are listed here:
+   - `pranjalagg.github.io` (the app's site)
+   - `<project-ref>.supabase.co` (your Supabase project; this is where Google sends people back to). If Google says a domain is invalid, use `supabase.co` instead.
+
+   `localhost` is not added: it needs no registration.
+4. Leave everything else on the page **empty**: *App logo*, *Application home page*, *Application privacy policy link* and *Application terms of service link*.
+5. **Do not upload a logo.** It is optional, and adding one makes Google require a verification review (days to weeks) before you can publish. Without a logo, Google shows a plain letter icon, which is fine for a personal app.
+6. Press **Save** (the button turns grey once saved). If **Publish app** later says *To publish your app, you must complete your configuration on the Branding page*, a required field on this page is empty or the page was not saved: open it again, fill in the three fields above, and press **Save**. If it names a field I have not listed, tell me which.
+7. Open **Audience**: choose **External** (this allows any Google account; the invite list then restricts who can sync). Add your email under **Contact information** if it asks, accept the policy checkbox and save.
 
 **c. Scopes**
 
