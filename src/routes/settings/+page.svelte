@@ -8,6 +8,11 @@
   import { loadCurrency } from '$lib/stores/currencyStore';
   import CurrencyChip from '$lib/components/shared/CurrencyChip.svelte';
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
+  import SyncSection from '$lib/components/sync/SyncSection.svelte';
+  import { syncEnabled, getSyncApp } from '$lib/sync/browser';
+
+  // Signed in, import and reset reach the account on every device.
+  const linked = getSyncApp().linked;
 
   let fileInput: HTMLInputElement;
   let isExporting = false;
@@ -39,7 +44,7 @@
     const file = fileInput?.files?.[0];
     if (!file) return;
 
-    if (!confirm('This will replace all existing data. Continue?')) return;
+    if (!confirm($linked ? 'This replaces all data on this device and in your account, on every device that syncs. Continue?' : 'This will replace all existing data. Continue?')) return;
 
     isImporting = true;
     try {
@@ -61,7 +66,7 @@
   }
 
   async function handleReset() {
-    if (!confirm('Delete ALL data? This cannot be undone!')) return;
+    if (!confirm($linked ? 'Delete ALL data, including your synced data in your account on every device? This cannot be undone!' : 'Delete ALL data? This cannot be undone!')) return;
     if (!confirm('Are you really sure?')) return;
 
     await resetAllData();
@@ -112,6 +117,10 @@
       <p class="text-sm text-muted">Changing it only relabels amounts; it does not convert them.</p>
     </div>
   </div>
+
+  {#if syncEnabled}
+    <SyncSection />
+  {/if}
 
   <div class="card">
     <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">

@@ -8,6 +8,7 @@
 	import { loadGoals } from '$lib/stores/goalsStore';
 	import { startClock } from '$lib/stores/uiStore';
 	import { loadCurrency, baseCurrency } from '$lib/stores/currencyStore';
+	import { initSync } from '$lib/sync/browser';
 	import '$lib/stores/themeStore';
 
 	let { children } = $props();
@@ -24,6 +25,8 @@
 		await loadRecurring();
 		await loadGoals();
 		await processRecurring();
+		// Sync is an extra: the app is already usable, so it starts in the background.
+		void initSync();
 	}
 </script>
 

@@ -2,6 +2,11 @@
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import CurrencyChip from '$lib/components/shared/CurrencyChip.svelte';
+  import SyncChip from '$lib/components/sync/SyncChip.svelte';
+  import { syncAttention } from '$lib/sync/browser';
+
+  // A dot on the Setup tab when sync needs the person (mobile has no chip).
+  const attention = syncAttention();
 
   const iconPaths: Record<string, string> = {
     home: '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
@@ -67,6 +72,7 @@
 
   <div class="border-t border-border px-3 py-3 dark:border-border-dark">
     <CurrencyChip />
+    <SyncChip />
   </div>
 </nav>
 
@@ -81,9 +87,14 @@
           class="flex min-h-[44px] flex-col items-center justify-center gap-1 py-2 transition-colors
                  {active ? 'text-primary' : 'text-muted dark:text-muted-dark'}"
         >
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            {@html iconPaths[item.icon]}
-          </svg>
+          <span class="relative">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              {@html iconPaths[item.icon]}
+            </svg>
+            {#if item.icon === 'cog' && $attention}
+              <span class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-danger" role="img" aria-label="Sync needs attention"></span>
+            {/if}
+          </span>
           <span class="text-[11px] font-medium">{item.label}</span>
         </a>
       </li>

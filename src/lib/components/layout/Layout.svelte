@@ -3,6 +3,8 @@
   import Modal from '$lib/components/shared/Modal.svelte';
   import LogEntry from '$lib/components/shared/LogEntry.svelte';
   import CurrencyModal from '$lib/components/shared/CurrencyModal.svelte';
+  import SyncChoiceModal from '$lib/components/sync/SyncChoiceModal.svelte';
+  import { syncEnabled } from '$lib/sync/browser';
   import { currencyConfirmed, takeCurrencyPrompt } from '$lib/stores/currencyStore';
   import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId } from '$lib/stores/uiStore';
 
@@ -64,3 +66,6 @@
 </Modal>
 
 <CurrencyModal />
+{#if syncEnabled}
+  <SyncChoiceModal />
+{/if}
