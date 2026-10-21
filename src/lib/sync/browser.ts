@@ -6,7 +6,7 @@ import { reloadAllStores } from '$lib/stores/reload';
 import { derived } from 'svelte/store';
 import { SyncApp, type AuthClient } from './app';
 import { onCaptureCommitted } from './capture';
-import { hasAuthCallback, hasStoredSession, signInRedirectUrl, supabaseAuthOptions, syncConfig } from './config';
+import { AUTH_STORAGE_KEY, hasAuthCallback, hasStoredSession, signInRedirectUrl, supabaseAuthOptions, syncConfig } from './config';
 import { BUSY, SyncService, needsAttention } from './service';
 import { SupabaseTransport } from './supabaseTransport';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -61,6 +61,14 @@ export function getSyncApp(): SyncApp<SupabaseClient & AuthClient> {
       saveFile: (text, filename) => downloadFile(text, filename, 'application/json'),
       redirectTo: () => signInRedirectUrl(location.origin, base),
       reloadPage: () => location.reload(),
+      clearStoredSession: () => {
+        try {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+        } catch {
+          // storage unavailable: nothing was stored
+        }
+      },
+      broadcast: (kind) => channel()?.postMessage(kind),
       setTimer: (fn, ms) => setTimeout(fn, ms),
       clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
       today: () => new Date().toISOString().split('T')[0],
@@ -73,6 +81,15 @@ export function getSyncApp(): SyncApp<SupabaseClient & AuthClient> {
 // mobile dot and the chip).
 export function syncAttention() {
   return derived(getSyncApp().status, (s) => (s ? needsAttention(s) : false));
+}
+
+// Tabs of this app share one database but each has its own idea of whether
+// the device is linked. A tab told that it was linked or unlinked reloads, so
+// it starts from the database's truth (capturing or not).
+let syncChannel: BroadcastChannel | null | undefined;
+function channel(): BroadcastChannel | null {
+  if (syncChannel === undefined) syncChannel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('bdgt-sync-link');
+  return syncChannel;
 }
 
 let triggersInstalled = false;
@@ -89,6 +106,8 @@ function installTriggers(syncApp: SyncApp<SupabaseClient & AuthClient>): void {
   });
   window.addEventListener('focus', now);
   window.addEventListener('online', now);
+  const c = channel();
+  if (c) c.onmessage = () => location.reload();
 }
 
 // Called once at start-up, after the local data is loaded. Never throws: sync

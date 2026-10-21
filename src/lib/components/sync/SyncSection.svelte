@@ -9,7 +9,7 @@
   import type { SyncOutboxEntry } from '$lib/sync/types';
 
   const app = getSyncApp();
-  const { account, status, prompt, error, busy } = app;
+  const { account, status, prompt, error, busy, linked } = app;
 
   let now = Date.now();
   onMount(() => {
@@ -47,11 +47,14 @@
   // Signing out: first upload what is waiting, then say what is left.
   let signOutStep: 'checking' | 'ready' = 'checking';
   let pending = 0;
+  let wasLinked = true;
 
   async function startSignOut() {
     signOutStep = 'checking';
     openModal('sync-signout');
-    pending = (await app.requestSignOut()).pending;
+    const result = await app.requestSignOut();
+    pending = result.pending;
+    wasLinked = result.linked;
     signOutStep = 'ready';
   }
 
@@ -130,12 +133,12 @@
       {/if}
 
       <div class="flex flex-wrap gap-3">
-        <button type="button" class="btn-secondary" disabled={!$status || $status.state === 'syncing'} on:click={syncNow}>Sync now</button>
+        <button type="button" class="btn-secondary" disabled={!$linked || !$status || $status.state === 'syncing'} on:click={syncNow}>Sync now</button>
         <button type="button" class="btn-secondary" disabled={$busy} on:click={startSignOut}>Sign out</button>
       </div>
 
       <p class="text-sm text-muted">
-        Your data is stored in a database controlled by whoever runs this app. Signing out clears this device; your data stays in your account.
+        Your data is stored in a database controlled by whoever runs this app. Signing out of a synced device clears it; your data stays in your account.
       </p>
     </div>
   {/if}
@@ -145,6 +148,14 @@
   <div class="space-y-4 pt-4">
     {#if signOutStep === 'checking'}
       <p class="text-sm text-gray-600 dark:text-gray-300">Uploading anything that is still waiting…</p>
+    {:else if !wasLinked}
+      <p class="text-sm text-gray-700 dark:text-gray-200">
+        This device was never synced, so nothing is cleared: your budget data stays here and signing out only ends the session.
+      </p>
+      <div class="flex flex-col gap-2">
+        <button type="button" class="btn-primary" disabled={$busy} on:click={() => confirmSignOut(false)}>Sign out</button>
+        <button type="button" class="btn-secondary" on:click={closeModal}>Cancel</button>
+      </div>
     {:else if pending > 0}
       <p class="text-sm text-gray-700 dark:text-gray-200">
         {pending} {pending === 1 ? 'change has' : 'changes have'} not synced and will be lost on this device if you sign out now.

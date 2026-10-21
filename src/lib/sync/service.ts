@@ -41,6 +41,9 @@ export class SyncService {
   private store = writable<SyncStatus>({ ...OFF_STATUS });
   readonly status: Readable<SyncStatus> = { subscribe: this.store.subscribe };
 
+  // `started`: this device is linked and the service is responsible for it.
+  // `active`: cycles may run right now (false while suspended).
+  private started = false;
   private active = false;
   private running: Promise<void> | null = null;
   private again = false;
@@ -91,6 +94,7 @@ export class SyncService {
 
   start(): void {
     if (this.active) return;
+    this.started = true;
     this.active = true;
     this.failures = 0;
     this.patch({ state: 'idle', message: '' });
@@ -98,6 +102,7 @@ export class SyncService {
   }
 
   stop(): void {
+    this.started = false;
     this.active = false;
     this.again = false;
     this.clearTimers();
@@ -141,16 +146,26 @@ export class SyncService {
   }
 
   // Shows a problem that happened outside a cycle (for example while
-  // signing in), without scheduling anything: until the device is linked the
-  // caller decides when to try again, and the service must not sync on its own.
+  // signing in a device that is not linked yet). It only displays: nothing
+  // runs, nothing is scheduled, and no later trigger can make this service
+  // sync. Until the device is linked the caller decides what happens next.
   report(failure: SyncFailure): void {
-    this.active = true;
+    this.apply({ ...failure }, false);
+  }
+
+  // A linked device cannot sync for now (its session ended, or the account
+  // check failed). Shown like report(), but the device stays this service's
+  // responsibility: resume() can bring it back.
+  suspend(failure: SyncFailure): void {
+    this.started = true;
+    this.active = false;
     this.apply({ ...failure }, false);
   }
 
   // The session came back (token refreshed, signed in again): sync again.
+  // Only for a suspended linked device that lost its session.
   resume(): void {
-    if (this.current.state === 'auth') {
+    if (this.started && this.current.state === 'auth') {
       this.active = true;
       this.failures = 0;
       void this.syncNow();

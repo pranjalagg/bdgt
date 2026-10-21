@@ -14,11 +14,24 @@ Last updated: 2026-10-21.
 ## Cloud sync (design: `docs/superpowers/specs/2026-10-20-cloud-sync-design.md`)
 
 ### Sign-in release leftovers
-- **Other open tabs are not told when this tab signs in or out.** They keep their old state until they regain focus or reload (the cross-tab lock only stops two tabs syncing at once). Size S–M; could share a `BroadcastChannel`.
+- **Other open tabs are told only when this tab links or unlinks the device** (a `BroadcastChannel` makes them reload). Ordinary sync results (new data pulled from another device) do not refresh other tabs until they reload or regain focus; the cross-tab lock only stops two tabs syncing at once. Size S–M.
 - **There is no live view of another device's changes.** A change from another device arrives on the next cycle: when you return to the tab, regain the network, or within five minutes. Realtime is in the phase 2 list below.
 - **Real Google sign-in is only checked by hand** (Google blocks automated sign-in); everything around it is tested with a fake client. Re-check after any change to `src/lib/sync/app.ts` or the Supabase client options.
 - **A browser may block the backup download** that sign-out and the first-sign-in choice start (pop-up or multiple-download settings). The dialogs say what is happening, but do not detect a blocked download.
 - **Import and Reset while signed in do not wait for the sync;** they reach the account in the background a couple of seconds later. Closing the tab in that window leaves them queued for the next time the device syncs.
+- **Review minors from the sign-in release (not fixed):**
+  - If the quiet reload after first sign-in throws, the service is left unstarted until the next page load.
+  - A failed sign-out leaves the "signing out" flag set and shows no error.
+  - A `SIGNED_IN` event for the same user does not resume a suspended device (only a refreshed token or a fresh sign-in does).
+  - Focus and `visibilitychange` can fire together and start two cycles back to back (the second is queued, not parallel).
+  - `refreshParked` in `SyncSection.svelte` re-queries whenever the parked count differs from the list; a count that never matches the list could loop.
+  - The first-sign-in choice dialog uses the single modal slot, so it can replace another open dialog.
+  - A failed backup download before sign-out or the first-sign-in choice is silent.
+  - An OAuth `?error=` in the redirect URL is not shown to the person.
+  - `hasStoredSession(localStorage)` touches storage outside a try block in one caller.
+  - `as SupabaseClient & AuthClient` in `browser.ts` hides drift between the real client and the narrow interface the app uses.
+  - `aria-live` sits on an element that is inserted with its text, so some screen readers will not announce the first status.
+  - Tests use `FakeServer` for not-invited accounts; the real database answers with empty selects under RLS. The first real run is the check.
 
 ### Acceptance of the database on the real project (waiting on the project owner)
 The SQL is tested on a real Postgres in the test suite, but not yet on a real Supabase project. Follow part 1 of `docs/sync-setup.md` and confirm every row of `supabase/tests/verify_setup.sql` is `true`. Then record the project URL and publishable key for plan 4.

@@ -7,6 +7,7 @@ import { SyncService, type Timers } from '$lib/sync/service';
 import { collectionByTable, toRow } from '$lib/sync/registry';
 import { getState, setState, LINKED_ACCOUNT } from '$lib/sync/state';
 import { resetClockForTests } from '$lib/sync/clock';
+import { setCaptureEnabled } from '$lib/sync/capture';
 import type { BudgetDatabase } from '$lib/db';
 
 class ManualTimers implements Timers {
@@ -55,6 +56,8 @@ let reload: Mock<() => Promise<void>>;
 let reloadPage: Mock<() => void>;
 let makeServiceCalls: number;
 let getClient: Mock<() => Promise<typeof client>>;
+let clearStoredSession: Mock<() => void>;
+let broadcast: Mock<(kind: 'linked' | 'unlinked') => void>;
 
 const day = new Date(2026, 9, 20);
 const bucket = (id: string, name = id) => ({ id, name, color: '#000', order: 0, isDefault: false, allocationType: 'fixed' as const, fixedAmount: 0, percentageAmount: 0, isSavings: false, isEveryday: true, createdAt: new Date(2026, 0, 1) });
@@ -81,6 +84,8 @@ function makeApp(over: { enabled?: boolean; hint?: boolean } = {}) {
     saveFile: saveFile as never,
     redirectTo: () => 'https://example.com/bdgt/settings',
     reloadPage: reloadPage as never,
+    clearStoredSession: clearStoredSession as never,
+    broadcast: broadcast as never,
     setTimer: (fn, ms) => timers.set(fn, ms),
     clearTimer: (h) => timers.clear(h),
     today: () => '2026-10-21',
@@ -111,7 +116,10 @@ beforeEach(async () => {
   saveFile = vi.fn();
   reload = vi.fn(async () => {});
   reloadPage = vi.fn();
+  clearStoredSession = vi.fn();
+  broadcast = vi.fn();
   makeServiceCalls = 0;
+  setCaptureEnabled(false); // a device that is not linked does not capture
 });
 
 afterEach(() => dropDevice(device));
@@ -290,10 +298,10 @@ describe('signing out', () => {
   it('uploads what is waiting and reports what could not go', async () => {
     const app = makeApp();
     await started(app);
-    expect(await app.requestSignOut()).toEqual({ pending: 0 });
+    expect(await app.requestSignOut()).toEqual({ pending: 0, linked: true });
     server.offline = true;
     await device.buckets.add(bucket('late'));
-    expect(await app.requestSignOut()).toEqual({ pending: 1 });
+    expect(await app.requestSignOut()).toEqual({ pending: 1, linked: true });
   });
 
   it('clears this device, ends the session, stops syncing and reloads the page', async () => {
@@ -323,5 +331,174 @@ describe('signing out', () => {
     client.emit('SIGNED_OUT', null);
     await pending;
     expect(get(app.status)?.state).not.toBe('auth');
+  });
+});
+
+describe('signing out of a device that is not linked', () => {
+  it('keeps the data, however the person got there: not invited', async () => {
+    server.allowed = false;
+    await device.buckets.add(bucket('mine'));
+    const app = makeApp();
+    await app.init();
+    expect(await app.requestSignOut()).toEqual({ pending: 0, linked: false });
+    await app.confirmSignOut({ downloadBackup: false });
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect((await device.buckets.toArray()).map((b) => b.id)).toEqual(['mine']);
+    expect(reloadPage).not.toHaveBeenCalled();
+    expect(get(app.account)).toBeNull();
+    expect(get(app.status)).toBeNull();
+  });
+
+  it('keeps the data when the first-sign-in question is still open', async () => {
+    await device.buckets.add(bucket('mine'));
+    await serverHasBucket('theirs', 'Theirs');
+    const app = makeApp();
+    await app.init();
+    expect(get(app.prompt)).toEqual({ kind: 'conflict' });
+    await app.confirmSignOut({ downloadBackup: false });
+    expect((await device.buckets.toArray()).map((b) => b.id)).toEqual(['mine']);
+    expect(get(app.prompt)).toBeNull();
+    expect(server.live('buckets').map((r) => r.id)).toEqual(['theirs']);
+  });
+});
+
+describe('a device that is not linked never syncs on its own', () => {
+  it('does not pull the account into the device when the network returns after a failed first sign-in', async () => {
+    server.offline = true;
+    await device.buckets.add(bucket('mine'));
+    await serverHasBucket('theirs', 'Theirs').catch(() => {});
+    server.offline = false;
+    await serverHasBucket('theirs', 'Theirs');
+    server.offline = true;
+    const app = makeApp();
+    await app.init();
+    expect(get(app.status)).toMatchObject({ state: 'offline' });
+    server.offline = false;
+    await app.syncService?.syncNow(); // the 'online' / focus / Sync now triggers
+    await app.syncService?.whenIdle();
+    expect((await device.buckets.toArray()).map((b) => b.id)).toEqual(['mine']);
+    expect(await getState(device, LINKED_ACCOUNT)).toBeUndefined();
+    expect(get(app.status)).toMatchObject({ state: 'offline' });
+  });
+
+  it('does not sync a not-invited account either', async () => {
+    server.allowed = false;
+    const app = makeApp();
+    await app.init();
+    server.allowed = true; // invited later, or the focus trigger meets real row-level security
+    await app.syncService?.syncNow();
+    await app.syncService?.whenIdle();
+    expect(get(app.status)).toMatchObject({ state: 'notAllowed' });
+    expect(server.upsertCalls).toEqual([]);
+  });
+});
+
+describe('signing out of a linked device', () => {
+  it('ends only this device\'s session, so the person\'s other devices stay signed in', async () => {
+    const app = makeApp();
+    await started(app);
+    await app.confirmSignOut({ downloadBackup: false });
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('also uses the local scope when the person cancels the first-sign-in question', async () => {
+    await device.buckets.add(bucket('mine'));
+    await serverHasBucket('theirs', 'Theirs');
+    const app = makeApp();
+    await app.init();
+    await app.resolvePrompt('cancel');
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('removes the stored session itself when ending it fails, so the person is not signed back in', async () => {
+    client.auth.signOut.mockResolvedValueOnce({ error: { message: 'JWT expired' } } as never);
+    const app = makeApp();
+    await started(app);
+    await app.confirmSignOut({ downloadBackup: false });
+    expect(clearStoredSession).toHaveBeenCalled();
+    expect(await device.buckets.count()).toBe(0);
+    expect(reloadPage).toHaveBeenCalled();
+  });
+
+  it('removes it too when ending the session throws', async () => {
+    client.auth.signOut.mockRejectedValueOnce(new Error('offline'));
+    const app = makeApp();
+    await started(app);
+    await app.confirmSignOut({ downloadBackup: false });
+    expect(clearStoredSession).toHaveBeenCalled();
+    expect(reloadPage).toHaveBeenCalled();
+  });
+
+  it('waits for a sync that is already running before it clears the device', async () => {
+    const app = makeApp();
+    await started(app);
+    const original = server.pull.bind(server);
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    server.pull = async (...args) => {
+      await gate;
+      return original(...args);
+    };
+    void app.syncService?.syncNow();
+    await new Promise((r) => setTimeout(r, 5));
+    await serverHasBucket('late', 'Late'); // arrives while the cycle is in flight
+    const signingOut = app.confirmSignOut({ downloadBackup: false });
+    await new Promise((r) => setTimeout(r, 5));
+    expect(reloadPage).not.toHaveBeenCalled(); // still waiting for the cycle
+    release();
+    await signingOut;
+    expect(await device.buckets.count()).toBe(0); // cleared after the cycle, not under it
+    expect(reloadPage).toHaveBeenCalled();
+  });
+
+  it('tells the other tabs the device was unlinked', async () => {
+    const app = makeApp();
+    await started(app);
+    await app.confirmSignOut({ downloadBackup: false });
+    expect(broadcast).toHaveBeenCalledWith('unlinked');
+  });
+});
+
+describe('other tabs', () => {
+  it('are told when this tab links the device for the first time, and only then', async () => {
+    await device.buckets.add(bucket('b1'));
+    const app = makeApp();
+    await started(app);
+    expect(broadcast).toHaveBeenCalledWith('linked');
+    broadcast.mockClear();
+    const again = makeApp();
+    await started(again); // already linked: opening the app must not make every other tab reload
+    expect(broadcast).not.toHaveBeenCalled();
+  });
+});
+
+describe('the linked flag', () => {
+  it('is true for a linked device even when it starts offline, so Import and Reset warn about the account', async () => {
+    await setState(device, LINKED_ACCOUNT, 'u1');
+    server.offline = true;
+    const app = makeApp({ hint: false });
+    await app.init();
+    expect(get(app.linked)).toBe(true);
+    expect(get(app.status)).toMatchObject({ state: 'offline' });
+  });
+
+  it('is true for a linked device whose session is gone', async () => {
+    await setState(device, LINKED_ACCOUNT, 'u1');
+    client = fakeClient(null);
+    const app = makeApp({ hint: false });
+    await app.init();
+    expect(get(app.linked)).toBe(true);
+  });
+});
+
+describe('cancelling the first-sign-in question', () => {
+  it('stops any retry that was waiting', async () => {
+    server.offline = true;
+    await device.buckets.add(bucket('mine'));
+    const app = makeApp();
+    await app.init();
+    expect(timers.tasks.size).toBeGreaterThan(0);
+    await app.confirmSignOut({ downloadBackup: false });
+    expect(timers.tasks.size).toBe(0);
   });
 });

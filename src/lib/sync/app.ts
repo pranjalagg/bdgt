@@ -25,7 +25,7 @@ export interface AuthClient {
   auth: {
     getSession(): Promise<{ data: { session: { user: { id: string; email?: string } } | null } }>;
     signInWithOAuth(args: { provider: 'google'; options: { redirectTo: string } }): Promise<{ error: { message: string } | null }>;
-    signOut(): Promise<unknown>;
+    signOut(options?: { scope: 'local' | 'global' | 'others' }): Promise<{ error: unknown } | void>;
     onAuthStateChange(
       callback: (event: string, session: { user: { id: string; email?: string } } | null) => void
     ): { data: { subscription: { unsubscribe(): void } } };
@@ -48,6 +48,10 @@ export interface SyncAppDeps<C extends AuthClient> {
   saveFile(text: string, filename: string): void;
   redirectTo(): string; // where Google returns to; read when sign-in starts
   reloadPage(): void;
+  // Forget the stored session when signing out could not (the session is the only thing that signs the person back in).
+  clearStoredSession(): void;
+  // Tell other open tabs the device was linked or unlinked (they reload, so they capture or stop capturing).
+  broadcast(kind: 'linked' | 'unlinked'): void;
   setTimer(fn: () => void, ms: number): unknown;
   clearTimer(handle: unknown): void;
   today(): string; // YYYY-MM-DD, for backup file names
@@ -69,6 +73,7 @@ export class SyncApp<C extends AuthClient> {
   private unsubscribeStatus: (() => void) | null = null;
   private user: SyncUser | null = null;
   private starting = false;
+  private startingRun: Promise<void> | null = null;
   private signingOut = false;
   private retryTimer: unknown = null;
 
@@ -88,6 +93,7 @@ export class SyncApp<C extends AuthClient> {
   async init(): Promise<void> {
     if (!this.deps.enabled) return;
     const linked = await getState<string>(this.deps.db, LINKED_ACCOUNT);
+    if (linked !== undefined) this.linked.set(true); // true whatever happens next (offline, signed out, not allowed)
     if (linked === undefined && !this.deps.hasSessionHint()) return;
     await this.connect(linked !== undefined);
   }
@@ -101,9 +107,8 @@ export class SyncApp<C extends AuthClient> {
       await this.handleSignedIn(toUser(data.session.user));
     } else if (linked) {
       // Linked, but the session is gone: capture continues, upload waits.
-      this.linked.set(true);
       setCaptureEnabled(true);
-      this.adopt(this.makeContext(client)).report({ status: 'auth', message: 'Your session ended' });
+      this.adopt(this.makeContext(client)).suspend({ status: 'auth', message: 'Your session ended' });
     }
   }
 
@@ -125,7 +130,7 @@ export class SyncApp<C extends AuthClient> {
       await this.handleSignedIn(toUser(session.user));
     } else if (event === 'SIGNED_OUT' && !this.signingOut) {
       // The session ended without the person asking (it could not be refreshed).
-      this.service?.report({ status: 'auth', message: 'Your session ended' });
+      this.service?.suspend({ status: 'auth', message: 'Your session ended' });
     } else if (event === 'TOKEN_REFRESHED') {
       this.service?.resume();
     }
@@ -139,15 +144,23 @@ export class SyncApp<C extends AuthClient> {
     this.user = user;
     this.account.set(user);
     this.error.set('');
-    try {
-      const ctx = this.makeContext(this.client);
-      const result = await runFirstSignIn(ctx, user.id, choice);
-      await this.finish(result, ctx, user);
-    } catch (e) {
-      this.error.set(e instanceof Error ? e.message : 'Could not finish signing in');
-    } finally {
-      this.starting = false;
-    }
+    const run = (async () => {
+      try {
+        const ctx = this.makeContext(this.client!);
+        const wasLinked = (await getState<string>(this.deps.db, LINKED_ACCOUNT)) !== undefined;
+        const result = await runFirstSignIn(ctx, user.id, choice);
+        await this.finish(result, ctx, user);
+        // Other tabs opened before this one linked the device do not capture
+        // changes: tell them, once, when it first happens.
+        if (result.status === 'done' && !wasLinked) this.deps.broadcast('linked');
+      } catch (e) {
+        this.error.set(e instanceof Error ? e.message : 'Could not finish signing in');
+      } finally {
+        this.starting = false;
+      }
+    })();
+    this.startingRun = run;
+    await run;
   }
 
   private async finish(result: FirstSignInResult, ctx: SyncContext, user: SyncUser): Promise<void> {
@@ -170,8 +183,12 @@ export class SyncApp<C extends AuthClient> {
         await this.dropSession();
         return;
       default: {
-        // offline, auth, notAllowed, schema: show it, and try again if it was only the network
-        this.adopt(ctx).report(result);
+        // offline, auth, notAllowed, schema: show it, and try again if it was only the network.
+        // A device that was already linked stays the service's responsibility; one
+        // that is not linked yet must never sync until the person has chosen.
+        const service = this.adopt(ctx);
+        if ((await getState<string>(this.deps.db, LINKED_ACCOUNT)) !== undefined) service.suspend(result);
+        else service.report(result);
         if (result.status === 'offline' || result.status === 'schema') {
           // Not a verdict on this account: look again later.
           this.user = null;
@@ -189,14 +206,26 @@ export class SyncApp<C extends AuthClient> {
     }, ms);
   }
 
-  // Forgets the session without touching this device's data.
-  private async dropSession(): Promise<void> {
+  // Ends this device's session (not the person's other devices') without
+  // touching its data. If the library cannot, the stored session is removed
+  // directly: left behind, it would sign the person straight back in.
+  private async endSession(): Promise<void> {
     this.signingOut = true;
     try {
-      await this.client?.auth.signOut();
+      const result = await this.client?.auth.signOut({ scope: 'local' });
+      if (result && result.error) this.deps.clearStoredSession();
+    } catch {
+      this.deps.clearStoredSession();
     } finally {
       this.signingOut = false;
     }
+  }
+
+  // Forgets the session without touching this device's data.
+  private async dropSession(): Promise<void> {
+    if (this.retryTimer !== null) this.deps.clearTimer(this.retryTimer);
+    this.retryTimer = null;
+    await this.endSession();
     this.user = null;
     this.account.set(null);
     this.linked.set(false);
@@ -243,23 +272,38 @@ export class SyncApp<C extends AuthClient> {
   }
 
   // Before signing out: upload what is waiting and say how much is left.
-  async requestSignOut(): Promise<{ pending: number }> {
+  // `linked` false means nothing of this device was ever synced, so signing
+  // out only ends the session and the data stays.
+  async requestSignOut(): Promise<{ pending: number; linked: boolean }> {
+    const linked = (await getState<string>(this.deps.db, LINKED_ACCOUNT)) !== undefined;
+    if (!linked) return { pending: 0, linked: false };
     await this.service?.syncNow();
     await this.service?.whenIdle();
-    return { pending: await pendingChanges(this.deps.db) };
+    return { pending: await pendingChanges(this.deps.db), linked: true };
   }
 
-  // Signing out clears this device; the data stays in the account.
+  // A linked device is cleared (its data stays in the account); a device that
+  // was never linked keeps everything and only ends the session.
   async confirmSignOut(options: { downloadBackup: boolean }): Promise<void> {
     this.busy.set(true);
     try {
+      const linked = (await getState<string>(this.deps.db, LINKED_ACCOUNT)) !== undefined;
+      if (!linked) {
+        this.prompt.set(null);
+        await this.dropSession();
+        return;
+      }
       if (options.downloadBackup) {
         this.deps.saveFile(await this.deps.exportBackup(), `budget-backup-${this.deps.today()}.json`);
       }
+      // Let anything already running finish first: a pull that lands after the
+      // clear would leave a half-filled device.
       this.service?.stop();
-      this.signingOut = true;
-      await this.client?.auth.signOut();
+      await this.service?.whenIdle();
+      await this.startingRun?.catch(() => {});
+      await this.endSession();
       await signOutLocal(this.deps.db);
+      this.deps.broadcast('unlinked');
       this.deps.reloadPage();
     } finally {
       this.busy.set(false);

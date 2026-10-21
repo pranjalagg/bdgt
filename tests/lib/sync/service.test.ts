@@ -185,6 +185,40 @@ describe('SyncService', () => {
     expect(timers.delays).toEqual([300_000]);
   });
 
+  it('does not sync at all after a problem is only reported, whatever triggers it', async () => {
+    await device.buckets.add(bucket);
+    const s = make();
+    s.report({ status: 'offline', message: 'no network' });
+    await s.syncNow();
+    s.requestSync();
+    s.resume();
+    timers.fireAll();
+    await settle(s);
+    expect(server.upsertCalls).toEqual([]);
+    expect(status(s)).toMatchObject({ state: 'offline' });
+  });
+
+  it('can be suspended by a problem on a linked device, and resumes only from a lost session', async () => {
+    await device.buckets.add(bucket);
+    const s = make();
+    s.suspend({ status: 'auth', message: 'Your session ended' });
+    expect(status(s)).toMatchObject({ state: 'auth' });
+    await s.syncNow();
+    expect(server.upsertCalls).toEqual([]); // suspended: nothing runs until the session is back
+    s.resume();
+    await settle(s);
+    expect(status(s)).toMatchObject({ state: 'idle' });
+    expect(server.live('buckets')).toHaveLength(1);
+  });
+
+  it('does not resume something that was never suspended', async () => {
+    const s = make();
+    s.report({ status: 'auth', message: 'x' });
+    s.resume();
+    await settle(s);
+    expect(server.upsertCalls).toEqual([]);
+  });
+
   it('waits for the person after a lost session, then resumes', async () => {
     const s = make();
     s.start();
