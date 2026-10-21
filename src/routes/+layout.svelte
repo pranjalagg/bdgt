@@ -1,4 +1,10 @@
 <script lang="ts">
+	// Fonts ship with the app (no Google Fonts request), so it looks the same
+	// offline and inside the Android app.
+	import '@fontsource-variable/ibm-plex-sans/wght.css';
+	import '@fontsource/ibm-plex-mono/400.css';
+	import '@fontsource/ibm-plex-mono/500.css';
+	import '@fontsource/ibm-plex-mono/600.css';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import Layout from '$lib/components/layout/Layout.svelte';

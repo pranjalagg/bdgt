@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">bdgt</string>
+    <string name="title_activity_main">bdgt</string>
+    <string name="package_name">io.github.pranjalagg.bdgt</string>
+    <string name="custom_url_scheme">io.github.pranjalagg.bdgt</string>
+    <!-- Shown in the system's Notification access list. -->
+    <string name="capture_listener_label">bdgt payment capture</string>
+</resources>

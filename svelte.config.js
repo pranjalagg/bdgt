@@ -6,7 +6,9 @@ const config = {
   preprocess: vitePreprocess(),
   kit: {
     paths: {
-      base: process.env.GITHUB_ACTIONS ? '/bdgt' : ''
+      // BASE_PATH wins when set (the Android build sets it empty); otherwise
+      // GitHub Pages builds serve under /bdgt and local builds at the root.
+      base: process.env.BASE_PATH ?? (process.env.GITHUB_ACTIONS ? '/bdgt' : '')
     },
     adapter: adapter({
       pages: 'build',
