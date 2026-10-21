@@ -58,6 +58,7 @@ export async function resetData(pg: PGlite): Promise<void> {
     truncate public.settings, public.buckets, public.allocations, public.month_notes,
       public.recurring_transactions, public.transactions, public.incomes, public.savings_goals,
       public.investment_lots, public.investment_sells, public.investment_prices,
+      public.captures, public.capture_rules,
       public.allowed_users, auth.users cascade;
   `);
 }

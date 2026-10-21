@@ -74,6 +74,8 @@ describe('the schema matches the app', () => {
       ['investmentLots', { id: 'l1', symbol: 'VTI', shares: 2.5, pricePerShare: 25000, purchaseDate: day, note: 'first', soldShares: 0.5 }],
       ['investmentSells', { id: 's1', lotId: 'l1', shares: 0.5, pricePerShare: 26000, sellDate: day }],
       ['investmentPrices', { symbol: 'VTI', pricePerShare: 26500, updatedAt: new Date('2026-10-05T00:00:00.000Z') }],
+      ['captures', { id: 'sms:abc', status: 'approved', source: 'sms', sourceLabel: 'HDFC Bank SMS', postedAt: 1790000000456, date: day, amount: 25000, currency: 'INR', merchant: 'Swiggy', payeeKey: 'k1', kind: 'dining', accountHint: '1234', hint: 'transfer', duplicateOf: 'wallet:x', transactionId: 'capture:sms:abc', resolvedAt: 1790000000999 }],
+      ['captureRules', { id: 'payee:k1', payeeKey: 'k1', merchant: 'Swiggy', action: 'suggest', bucketId: 'b1' }],
     ];
     await asUser(pg, USER_A);
     for (const [table, record] of samples) {
@@ -187,6 +189,17 @@ describe('constraints', () => {
     expect(await code(upsert('recurring_transactions', [{ id: 'r', bucket_id: 'b', amount_cents: 1, frequency: 'yearly', next_due_date: '2026-01-01', is_active: true, updated_at: at('2026-01-01T00:00:00Z'), deleted_at: null }]))).toBe('23514');
   });
 
+  it('checks captures and capture rules', async () => {
+    const capture = { id: 'c', status: 'pending', source: 'wallet', posted_at: '2026-10-20T10:00:00Z', date: '2026-10-20', amount_minor: 650, currency: 'USD', merchant: 'Cafe', updated_at: at('2026-01-01T00:00:00Z'), deleted_at: null };
+    expect(await code(upsert('captures', [capture]))).toBe('ok');
+    expect(await code(upsert('captures', [{ ...capture, id: 'c2', status: 'maybe' }]))).toBe('23514');
+    expect(await code(upsert('captures', [{ ...capture, id: 'c3', merchant: null }]))).toBe('23514');
+    const rule = { id: 'r', payee_key: 'k', merchant: 'Cafe', updated_at: at('2026-01-01T00:00:00Z'), deleted_at: null };
+    expect(await code(upsert('capture_rules', [{ ...rule, action: 'ignore' }]))).toBe('ok');
+    expect(await code(upsert('capture_rules', [{ ...rule, id: 'r2', action: 'suggest' }]))).toBe('23514');
+    expect(await code(upsert('capture_rules', [{ ...rule, id: 'r3', action: 'suggest', bucket_id: 'b' }]))).toBe('ok');
+  });
+
   it('requires the four foreign-currency columns together', async () => {
     const base = { id: 't', bucket_id: 'b', date: '2026-10-20', amount_cents: 1, updated_at: at('2026-01-01T00:00:00Z'), deleted_at: null };
     expect(await code(upsert('transactions', [{ ...base, foreign_currency: 'INR' }]))).toBe('23514');
@@ -275,12 +288,12 @@ describe('sync_account_state', () => {
 
   it('says an account that is not invited may not sync, and shows nothing', async () => {
     await asUser(pg, USER_C);
-    expect(await state()).toEqual({ allowed: false, schemaVersion: 1, buckets: [], hasOtherRows: false });
+    expect(await state()).toEqual({ allowed: false, schemaVersion: 2, buckets: [], hasOtherRows: false });
   });
 
   it('reports an empty invited account', async () => {
     await asUser(pg, USER_A);
-    expect(await state()).toEqual({ allowed: true, schemaVersion: 1, buckets: [], hasOtherRows: false });
+    expect(await state()).toEqual({ allowed: true, schemaVersion: 2, buckets: [], hasOtherRows: false });
   });
 
   it('lists only the caller\'s live buckets, in the shape the app reads', async () => {
@@ -317,6 +330,6 @@ describe('sync_account_state', () => {
 
   it('reports the migration level', async () => {
     await asUser(pg, USER_A);
-    expect((await pg.query<{ v: number }>(`select public.sync_schema_version() as v`)).rows[0].v).toBe(1);
+    expect((await pg.query<{ v: number }>(`select public.sync_schema_version() as v`)).rows[0].v).toBe(2);
   });
 });

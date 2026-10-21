@@ -8,6 +8,7 @@ import { collectionByTable, toRow } from '$lib/sync/registry';
 import { getState, setState, LINKED_ACCOUNT } from '$lib/sync/state';
 import { resetClockForTests } from '$lib/sync/clock';
 import { setCaptureEnabled } from '$lib/sync/capture';
+import { REQUIRED_SCHEMA_VERSION } from '$lib/sync/engine';
 import type { BudgetDatabase } from '$lib/db';
 
 class ManualTimers implements Timers {
@@ -245,13 +246,13 @@ describe('first sign-in', () => {
   });
 
   it('waits and tries again while the database is out of date', async () => {
-    server.schemaVersion = 0;
+    server.schemaVersion = REQUIRED_SCHEMA_VERSION - 1;
     const app = makeApp();
     await app.init();
     expect(get(app.status)).toMatchObject({ state: 'schema' });
     expect([...timers.tasks.values()].map((t) => t.ms)).toEqual([300_000]);
     expect(await getState(device, LINKED_ACCOUNT)).toBeUndefined();
-    server.schemaVersion = 1;
+    server.schemaVersion = REQUIRED_SCHEMA_VERSION;
     timers.fireAll();
     await eventually(() => get(app.status)?.state === 'idle');
     await app.syncService?.whenIdle();

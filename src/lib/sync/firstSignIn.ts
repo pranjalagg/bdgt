@@ -86,7 +86,8 @@ export async function requeueAll(db: BudgetDatabase): Promise<number> {
 // Wipes the device's budget data and all sync bookkeeping. Not a deletion
 // to sync: nothing is queued.
 export async function clearLocalData(db: BudgetDatabase): Promise<void> {
-  const tables = [...COLLECTIONS.map((c) => db.table(c.table)), db.syncOutbox, db.syncVersions, db.syncState];
+  // captureRaw is not synced but belongs to this device's data all the same.
+  const tables = [...COLLECTIONS.map((c) => db.table(c.table)), db.captureRaw, db.syncOutbox, db.syncVersions, db.syncState];
   await resetTransaction(db, tables, async () => {
     await Promise.all(tables.map((t) => t.clear()));
   });

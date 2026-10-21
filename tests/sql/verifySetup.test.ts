@@ -83,16 +83,16 @@ describe('verify_setup.sql', () => {
 
   it('still passes at a later migration level', async () => {
     await asOwner(pg);
-    await pg.exec(`create or replace function public.sync_schema_version() returns integer language sql immutable set search_path = '' as $$ select 2 $$`);
+    await pg.exec(`create or replace function public.sync_schema_version() returns integer language sql immutable set search_path = '' as $$ select 3 $$`);
     expect((await run()).filter((r) => !r.ok)).toEqual([]);
-    await pg.exec(`create or replace function public.sync_schema_version() returns integer language sql immutable set search_path = '' as $$ select 1 $$`);
+    await pg.exec(`create or replace function public.sync_schema_version() returns integer language sql immutable set search_path = '' as $$ select 2 $$`);
   });
 
   it('catches row level security switched off', async () => {
     await asOwner(pg);
     await pg.exec('alter table public.incomes disable row level security');
     const failing = (await run()).filter((r) => !r.ok).map((r) => r.name);
-    expect(failing).toContain('row level security is on for all 11 synced tables and the invite list');
+    expect(failing).toContain('row level security is on for all 13 synced tables and the invite list');
     await pg.exec('alter table public.incomes enable row level security');
   });
 });

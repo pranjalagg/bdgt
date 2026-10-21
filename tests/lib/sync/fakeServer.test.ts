@@ -123,7 +123,7 @@ describe('FakeServer failures and account state', () => {
     const server = new FakeServer(() => 2_000_000);
     await server.upsert('buckets', [row('b1', 1000, { name: 'Rent' })]);
     let state = await server.accountState();
-    expect(state).toMatchObject({ allowed: true, schemaVersion: 1, hasOtherRows: false });
+    expect(state).toMatchObject({ allowed: true, schemaVersion: 2, hasOtherRows: false });
     expect(state.buckets.map((b) => b.id)).toEqual(['b1']);
     await server.upsert('settings', [row('baseCurrency', 1000)]);
     expect((await server.accountState()).hasOtherRows).toBe(false);

@@ -9,7 +9,7 @@ const BASE = Date.UTC(2026, 0, 1);
 export class FakeServer implements SyncTransport {
   offline = false;
   allowed = true;
-  schemaVersion = 1;
+  schemaVersion = 2;
   rejectIds = new Set<string>();
   upsertCalls: { remote: string; rows: Row[] }[] = [];
   private tables = new Map<string, Map<string, Row>>();

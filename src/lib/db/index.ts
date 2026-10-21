@@ -6,7 +6,7 @@ import { installSyncCapture, setCaptureEnabled } from '$lib/sync/capture';
 import { autoTransaction } from '$lib/sync/transactions';
 import { isInitialSyncPending, getState, LINKED_ACCOUNT } from '$lib/sync/state';
 import type { SyncOutboxEntry, SyncVersion, SyncStateRow } from '$lib/sync/types';
-import type { Bucket, Transaction, RecurringTransaction, Income, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
+import type { Capture, CaptureRule, CaptureRaw, Bucket, Transaction, RecurringTransaction, Income, SavingsGoal, InvestmentLot, InvestmentSell, InvestmentPrice, AllocationRow, MonthNoteRow } from '$lib/types';
 
 export const SAVINGS_BUCKET_NAMES = new Set(['Savings', 'Investments', 'Emergency Fund']);
 
@@ -45,6 +45,9 @@ export class BudgetDatabase extends Dexie {
   settings!: Table<SettingRow, string>;
   allocations!: Table<AllocationRow, string>;
   monthNotes!: Table<MonthNoteRow, string>;
+  captures!: Table<Capture, string>;
+  captureRules!: Table<CaptureRule, string>;
+  captureRaw!: Table<CaptureRaw, string>;
   syncOutbox!: Table<SyncOutboxEntry, string>;
   syncVersions!: Table<SyncVersion, string>;
   syncState!: Table<SyncStateRow, string>;
@@ -276,6 +279,28 @@ export class BudgetDatabase extends Dexie {
       syncOutbox: 'key',
       syncVersions: 'key',
       syncState: 'key'
+    });
+
+    // v14: payment capture. Captures and their rules sync; the raw text
+    // behind a capture (captureRaw) stays on this device.
+    this.version(14).stores({
+      buckets: 'id, name, order',
+      transactions: 'id, bucketId, date, recurringId',
+      recurringTransactions: 'id, bucketId, nextDueDate, isActive',
+      incomes: 'id, date',
+      savingsGoals: 'id, bucketId',
+      investmentLots: 'id, symbol, purchaseDate',
+      investmentSells: 'id, lotId, sellDate',
+      investmentPrices: 'symbol',
+      settings: 'key',
+      allocations: 'id, month, bucketId',
+      monthNotes: 'id, month',
+      syncOutbox: 'key',
+      syncVersions: 'key',
+      syncState: 'key',
+      captures: 'id, status, date',
+      captureRules: 'id',
+      captureRaw: 'id, postedAt'
     });
 
     installSyncCapture(this);

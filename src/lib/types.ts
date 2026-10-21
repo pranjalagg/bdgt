@@ -51,6 +51,51 @@ export interface Transaction {
   foreign?: ForeignAmount;
 }
 
+// A payment noticed on the phone (Google Wallet, a UPI app, a bank SMS),
+// waiting for review. It is not spending until approved, when it becomes the
+// transaction `capture:<id>`.
+export type CaptureSource = 'wallet' | 'sms' | 'upi-app';
+export type CaptureStatus = 'pending' | 'approved' | 'dismissed' | 'duplicate';
+export type CaptureHint = 'card-bill' | 'transfer' | 'atm' | 'upi-lite-topup';
+export type MerchantKind = 'grocery' | 'dining' | 'transport' | 'subscriptions' | 'entertainment' | 'utilities';
+
+export interface Capture {
+  id: string;
+  status: CaptureStatus;
+  source: CaptureSource;
+  sourceLabel: string; // "Google Wallet", "HDFC Bank SMS"
+  postedAt: number; // epoch ms the notification or message arrived
+  date: Date; // local calendar day of the payment
+  amount: number; // minor units of `currency`
+  currency: CurrencyCode; // what was charged; may differ from the base
+  merchant: string; // display name, long digit runs masked
+  payeeKey?: string; // SHA-256 of the normalized payee identifier
+  kind?: MerchantKind;
+  accountHint?: string; // last 4 digits of the card or account
+  hint?: CaptureHint; // looks like it is not spending
+  duplicateOf?: string;
+  transactionId?: string; // set on approval
+  resolvedAt?: number; // epoch ms of approval or dismissal
+}
+
+export interface CaptureRule {
+  id: string; // `payee:${payeeKey}`
+  payeeKey: string;
+  merchant: string;
+  action: 'suggest' | 'ignore';
+  bucketId?: string; // for 'suggest'
+}
+
+// The full text behind a capture. Stays on the phone: never synced or exported.
+export interface CaptureRaw {
+  id: string; // the capture's id
+  packageName: string;
+  sender?: string;
+  text: string;
+  postedAt: number;
+  reference?: string; // UPI reference number, for dedupe
+}
+
 export interface RecurringTransaction {
   id: string;
   amount: number; // cents

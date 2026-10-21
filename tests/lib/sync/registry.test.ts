@@ -4,17 +4,17 @@ import { COLLECTIONS, SYNC_TABLES, collectionByTable, isSyncedTable, toRow, from
 const def = (table: string) => collectionByTable(table)!;
 
 describe('registry', () => {
-  it('lists the eleven synced collections in dependency order', () => {
+  it('lists the thirteen synced collections in dependency order', () => {
     expect(COLLECTIONS.map((c) => c.table)).toEqual([
       'settings', 'buckets', 'allocations', 'monthNotes', 'recurringTransactions', 'transactions',
-      'incomes', 'savingsGoals', 'investmentLots', 'investmentSells', 'investmentPrices',
+      'captures', 'captureRules', 'incomes', 'savingsGoals', 'investmentLots', 'investmentSells', 'investmentPrices',
     ]);
   });
 
   it('names the Postgres tables in snake_case', () => {
     expect(COLLECTIONS.map((c) => c.remote)).toEqual([
       'settings', 'buckets', 'allocations', 'month_notes', 'recurring_transactions', 'transactions',
-      'incomes', 'savings_goals', 'investment_lots', 'investment_sells', 'investment_prices',
+      'captures', 'capture_rules', 'incomes', 'savings_goals', 'investment_lots', 'investment_sells', 'investment_prices',
     ]);
   });
 

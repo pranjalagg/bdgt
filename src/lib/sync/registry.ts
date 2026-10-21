@@ -62,6 +62,21 @@ export const COLLECTIONS: CollectionDef[] = [
     ],
   },
   {
+    table: 'captures', remote: 'captures', keyProp: 'id',
+    fields: [
+      f('status', 'status', 'text'), f('source', 'source', 'text'), f('sourceLabel', 'source_label', 'text'),
+      f('postedAt', 'posted_at', 'epochMs'), f('date', 'date', 'date'), f('amount', 'amount_minor', 'cents'),
+      f('currency', 'currency', 'text'), f('merchant', 'merchant', 'text'), f('payeeKey', 'payee_key', 'text'),
+      f('kind', 'kind', 'text'), f('accountHint', 'account_hint', 'text'), f('hint', 'hint', 'text'),
+      f('duplicateOf', 'duplicate_of', 'text'), f('transactionId', 'transaction_id', 'text'),
+      f('resolvedAt', 'resolved_at', 'epochMs'),
+    ],
+  },
+  {
+    table: 'captureRules', remote: 'capture_rules', keyProp: 'id',
+    fields: [f('payeeKey', 'payee_key', 'text'), f('merchant', 'merchant', 'text'), f('action', 'action', 'text'), f('bucketId', 'bucket_id', 'text')],
+  },
+  {
     table: 'incomes', remote: 'incomes', keyProp: 'id',
     fields: [
       f('date', 'date', 'date'), f('amount', 'amount_cents', 'cents'), f('note', 'note', 'text'),

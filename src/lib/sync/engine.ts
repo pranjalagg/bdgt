@@ -5,7 +5,7 @@ import { SyncError, type AccountState } from './transport';
 import type { SyncContext } from './types';
 
 // The migration level of the Supabase database this app version needs.
-export const REQUIRED_SCHEMA_VERSION = 1;
+export const REQUIRED_SCHEMA_VERSION = 2;
 
 export type SyncFailure = {
   status: 'offline' | 'auth' | 'notAllowed' | 'schema';

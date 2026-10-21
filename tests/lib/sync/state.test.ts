@@ -17,8 +17,8 @@ afterEach(async () => {
 });
 
 describe('hidden sync tables', () => {
-  it('opens at version 13 with the three sync tables', () => {
-    expect(device.verno).toBe(13);
+  it('opens at version 14 with the three sync tables', () => {
+    expect(device.verno).toBe(14);
     expect(device.tables.map((t) => t.name)).toEqual(expect.arrayContaining(['syncOutbox', 'syncVersions', 'syncState']));
   });
 

@@ -8,6 +8,7 @@ vi.mock('$lib/stores/recurringStore', () => ({
   processRecurring: vi.fn(async () => void calls.push('process')),
 }));
 vi.mock('$lib/stores/goalsStore', () => ({ loadGoals: vi.fn(async () => void calls.push('goals')) }));
+vi.mock('$lib/stores/captureStore', () => ({ loadCaptures: vi.fn(async () => void calls.push('captures')) }));
 vi.mock('$lib/stores/investmentStore', () => ({ loadInvestments: vi.fn(async () => void calls.push('investments')) }));
 
 import { reloadAllStores } from '$lib/stores/reload';
@@ -19,6 +20,6 @@ beforeEach(() => {
 describe('reloadAllStores', () => {
   it('reloads every store quietly, then creates any recurring items now due', async () => {
     await reloadAllStores();
-    expect(calls).toEqual(['currency {"keepPrompt":true}', 'data {"background":true}', 'recurring', 'goals', 'investments', 'process']);
+    expect(calls).toEqual(['currency {"keepPrompt":true}', 'data {"background":true}', 'recurring', 'goals', 'investments', 'captures', 'process']);
   });
 });

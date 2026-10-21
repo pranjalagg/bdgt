@@ -8,13 +8,13 @@
 with synced(tbl) as (
   values ('settings'), ('buckets'), ('allocations'), ('month_notes'), ('recurring_transactions'),
          ('transactions'), ('incomes'), ('savings_goals'), ('investment_lots'), ('investment_sells'),
-         ('investment_prices')
+         ('investment_prices'), ('captures'), ('capture_rules')
 ),
 checks(name, ok) as (
-  select 'row level security is on for all 11 synced tables and the invite list',
+  select 'row level security is on for all 13 synced tables and the invite list',
          (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
            where n.nspname = 'public' and c.relrowsecurity
-             and c.relname in (select tbl from synced union select 'allowed_users')) = 12
+             and c.relname in (select tbl from synced union select 'allowed_users')) = 14
   union all
   select 'signed-out visitors have no access to any table',
          not exists (select 1 from synced where has_table_privilege('anon', 'public.' || tbl, 'select,insert,update,delete,truncate,references,trigger'))
@@ -32,7 +32,7 @@ checks(name, ok) as (
   union all
   select 'every synced table has the write rules (trigger)',
          (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
-           where n.nspname = 'public' and t.tgname = 'sync_write' and not t.tgisinternal) = 11
+           where n.nspname = 'public' and t.tgname = 'sync_write' and not t.tgisinternal) = 13
   union all
   select 'every synced table has exactly its three access policies, for signed-in users only',
          not exists (
@@ -58,7 +58,7 @@ checks(name, ok) as (
          and (select prosecdef from pg_proc where oid = 'public.sync_account_state()'::regprocedure)
          and (select prosecdef from pg_proc where oid = 'private.sync_is_allowed()'::regprocedure)
   union all
-  select 'the database is at the migration level the app needs (1 or later)', public.sync_schema_version() >= 1
+  select 'the database is at the migration level the app needs (2 or later)', public.sync_schema_version() >= 2
   union all
   select 'the invite list has at least one email (add yours before signing in)',
          exists (select 1 from public.allowed_users)
