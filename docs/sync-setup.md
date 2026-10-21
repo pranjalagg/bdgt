@@ -3,9 +3,9 @@
 Cloud sync is optional. The app works exactly as before until a Supabase project is connected and someone signs in. This guide has two parts:
 
 1. **The database** (this part): create the Supabase project, apply the migrations, invite yourself, check it.
-2. **Sign-in and the deployed site** (added with the sign-in release): the Google login key, redirect addresses and the GitHub variables.
+2. **Sign-in and the deployed site** (part 2, below): the Google login key, Supabase's Google provider and redirect addresses, and the app's two settings.
 
-You do part 1 once. It takes about 15 minutes. Nothing in it can change or delete data in the app itself.
+You do each part once. Part 1 takes about 15 minutes and part 2 about 25. Nothing in either can change or delete data in the app itself.
 
 ## Before you start
 
@@ -71,6 +71,156 @@ Open **Project Settings → API Keys** and note:
 Both are safe to put in the app. **Never put the secret key (`sb_secret_…`) or the old `service_role` key in the app or in GitHub variables**: it bypasses all access rules.
 
 Send me the URL and the publishable key when you have them; the sign-in release needs them.
+
+## Part 2: Google sign-in and the deployed site
+
+Part 1 must be finished first (the project exists, the migrations are applied, your email is on the invite list). Part 2 is about 25 minutes, most of it in Google Cloud Console.
+
+Steps 1 to 4 only configure Google and Supabase, so they can be done at any time. Steps 5 and 6 connect the app and need the release that adds the **Sync** section to Settings.
+
+You will handle two kinds of value. Know which is which:
+
+| Value | Where it comes from | Where it goes | Secret? |
+|---|---|---|---|
+| **Project URL** (`https://<project-ref>.supabase.co`) | Supabase → Project Settings → API | the app, GitHub variable | No |
+| **Publishable key** (`sb_publishable_…`) | Supabase → Project Settings → API Keys | the app, GitHub variable | No, public by design |
+| **Google Client ID** | Google Cloud, step 1 | Supabase only | No, but only Supabase needs it |
+| **Google Client secret** | Google Cloud, step 1 | **Supabase only** | **Yes. Never in the app, this repository, GitHub or a chat.** |
+
+`<project-ref>` is the part of your project URL before `.supabase.co`. Wherever it appears below, substitute yours.
+
+### 1. Create a Google login key
+
+Supabase signs people in with Google, so it needs a "client" registered with Google. Google's console has been reorganised more than once; if a menu name differs, look for the same word (Branding, Audience, Data Access, Clients).
+
+**a. A Google Cloud project**
+
+1. Open <https://console.cloud.google.com/> and sign in with the Google account you want to own this (it does not have to be the one you will sign in to the app with).
+2. In the project picker at the top choose **New project**, name it `bdgt`, and create it. Make sure it is the selected project.
+
+**b. The consent screen (Google Auth Platform)**
+
+1. Open **Google Auth Platform** (search for it in the top bar). If it says it is not configured, choose **Get started**.
+2. **Branding / App information**: app name `bdgt`, and your email as the user support email. This is what people see on Google's "choose an account" screen.
+3. **Audience**: choose **External** (this allows any Google account, which the invite list then restricts).
+4. **Contact information**: your email. Accept the policy checkbox and create.
+
+**c. Scopes**
+
+1. Open **Data Access**. The defaults are enough: `openid`, `.../auth/userinfo.email` and `.../auth/userinfo.profile`. If `openid` is not listed, choose **Add or remove scopes** and add it.
+2. Do **not** add any other scope. Anything beyond these three can trigger Google's verification process, which takes weeks.
+
+**d. Publish the app**
+
+1. Open **Audience**. The publishing status starts as **Testing**.
+2. Choose **Publish app** and confirm, so the status becomes **In production**. With only the basic scopes above, Google does not require verification.
+3. If you would rather stay in *Testing*: only the Google accounts listed under **Test users** can sign in (add yours), and Google may require you to sign in again every week.
+
+**e. The client**
+
+1. Open **Clients → Create client**.
+2. **Application type**: **Web application**. Name it `bdgt web`.
+3. **Authorized JavaScript origins**: add these two (an origin is the address with no path and no trailing slash):
+   - `https://pranjalagg.github.io`
+   - `http://localhost:5173`
+4. **Authorized redirect URIs**: add exactly one:
+   - `https://<project-ref>.supabase.co/auth/v1/callback`
+
+   This is Supabase's address, not the app's. It must match character for character.
+5. Choose **Create**. Google shows a **Client ID** (ends in `.apps.googleusercontent.com`) and a **Client secret**.
+6. **Copy both now.** Google may show the secret only this once; if you lose it you can create a new secret on the client's page. Keep them in your password manager until step 2, then you will not need them again.
+
+Changes to a Google client can take a few minutes (occasionally longer) to take effect.
+
+### 2. Turn on Google in Supabase
+
+1. Open your project in the Supabase dashboard → **Authentication → Sign In / Providers** (menu names move around; look for the list of providers).
+2. Open **Google** and switch **Enable Sign in with Google** on.
+3. Paste the **Client ID** into *Client IDs* and the **Client secret** into *Client Secret*.
+4. Leave *Skip nonce checks* and *Allow users without an email* **off**.
+5. Note the **Callback URL (for OAuth)** shown on the same screen. It must be exactly the redirect URI you gave Google in step 1e. If it differs, fix Google's, not Supabase's.
+6. **Save.**
+
+Check it from the outside: open this address in a browser. You should be sent to a Google sign-in page. If you instead see `Unsupported provider: provider is not enabled`, step 2 was not saved.
+
+```
+https://<project-ref>.supabase.co/auth/v1/authorize?provider=google
+```
+
+(Stop at Google's page: do not complete a sign-in from this address; the app does that part.)
+
+The other sign-in methods stay **off** (part 1, step 6). Google is the only way in.
+
+### 3. Allow the app's addresses
+
+Open **Authentication → URL Configuration**:
+
+- **Site URL**: `https://pranjalagg.github.io/bdgt/`
+- **Redirect URLs**: add both of these (the `**` matches any path after it):
+  - `https://pranjalagg.github.io/bdgt/**`
+  - `http://localhost:5173/**`
+
+Save. If an address the app uses is not on this list, signing in returns you to the Site URL instead of where you started, and you will look signed out.
+
+### 4. Check what you have so far
+
+Before going further, confirm these three things are true. Each is a common cause of a confusing failure later.
+
+- [ ] Google's **Authorized redirect URI** equals the **Callback URL** Supabase shows (step 2.5).
+- [ ] The Google app is **In production** (or your account is a test user).
+- [ ] Your Google account's email, in lower case, is in `public.allowed_users` (part 1, step 3). Run `select email from public.allowed_users;` to look.
+
+### 5. Tell the app about the project
+
+The app does nothing with Supabase until it is given the project URL and the publishable key. With neither, it behaves exactly as before and shows no Sync section.
+
+**Local development.** In the project folder create a file named `.env` (it is git-ignored, so it is never committed) with exactly two lines, using your values:
+
+```
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+Restart `npm run dev` after creating or changing it.
+
+**The deployed site.**
+
+1. In the GitHub repository open **Settings → Secrets and variables → Actions** and choose the **Variables** tab (not *Secrets*: these two values are public by design).
+2. **New repository variable**: name `VITE_SUPABASE_URL`, value your project URL.
+3. **New repository variable**: name `VITE_SUPABASE_PUBLISHABLE_KEY`, value your publishable key.
+4. Open the **Actions** tab, choose **Deploy to GitHub Pages** in the list on the left, press **Run workflow** and confirm. The site is only rebuilt when you do this; adding the variables alone changes nothing.
+
+Never put the Google Client secret, the Supabase secret key (`sb_secret_…`) or the old `service_role` key in the `.env` file or in a variable. The app refuses to use a secret key, but the right place for it is nowhere.
+
+### 6. Try it
+
+1. Open **Setup → Settings**. The **Sync** section is there, with **Sign in with Google**. Press it and choose the account whose email is on the invite list.
+2. You are sent to Google, then back to Settings, now signed in. The first time, one of three things happens:
+   - **This device has data and your account is empty:** the data uploads.
+   - **This device is new and your account has data:** the account's data downloads.
+   - **Both have data:** a dialog asks whether to replace this device's data with the account's. A backup file of this device's data downloads first. **Cancel** keeps this device's data and does not sync.
+3. The status shows under the Sync heading and in the side bar (`Synced · 2 min ago`). Edits upload a couple of seconds after you make them, and changes from another device arrive when you return to the tab, when the network comes back, or within five minutes.
+4. To check from the database side, in the Supabase SQL editor run `select count(*) from public.transactions where deleted_at is null;` and compare it with the app, or look at `select * from analytics.monthly_cashflow order by month desc limit 3;`.
+5. **Sign out** clears the budget data on this device (it stays in your account) and, if anything has not synced yet, offers to download a backup first. Signing in again brings the data back.
+
+### If something goes wrong
+
+| What you see | What to check |
+|---|---|
+| Pressing Sign in shows *provider is not enabled* | Step 2: Google is switched on and the Client ID and secret are saved. |
+| Google shows `Error 400: redirect_uri_mismatch` | The redirect URI in step 1e must be exactly `https://<project-ref>.supabase.co/auth/v1/callback`. No trailing slash, `https`, your real project ref. Wait a few minutes after changing it. |
+| Google shows `Access blocked: bdgt has not completed the Google verification process` or `Error 403: access_denied` | The app is in *Testing* and your account is not a test user: publish it (step 1d) or add yourself as a test user. |
+| You come back to the app but are not signed in, or land on the wrong page | Step 3: the address you started from is covered by a Redirect URL (`/bdgt/**` for the site, `http://localhost:5173/**` for local), and the Site URL is correct. |
+| There is no Sync section | Step 5: both variables are set and you restarted `npm run dev` or re-ran the deploy workflow. |
+| *Sync isn't enabled for this account* | The Google account's email, in lower case with no spaces, is on the invite list (part 1, step 3). It must be the email of the account you chose at Google. |
+| *Database needs update* | A newer file in `supabase/migrations/` has not been applied yet (part 1, step 2). |
+| *Sign in again* | The session ended. Press **Sign in with Google**. Nothing is lost: waiting changes are kept. |
+| *N changes couldn't sync* | Press **Try again**, or **Stop trying** if the reason shown cannot be fixed. The changes stay on this device either way. |
+| Anything else | Copy the exact message and tell me; do not retry repeatedly. |
+
+### Privacy
+
+Everything you sync is stored in the Supabase project, which you control and can read in the dashboard. The data of anyone you invite is equally readable by you. Browser-side encryption is not part of this release; the Sync section tells people this in one sentence.
 
 ## Looking at your data
 

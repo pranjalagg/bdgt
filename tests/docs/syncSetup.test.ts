@@ -31,3 +31,31 @@ describe('docs/sync-setup.md', () => {
     expect(guide).not.toMatch(/service_role['"` ]*=|sb_secret_[A-Za-z0-9]/);
   });
 });
+
+describe('docs/sync-setup.md part 2', () => {
+  it('gives the exact addresses Google and Supabase must allow', () => {
+    expect(guide).toContain('https://<project-ref>.supabase.co/auth/v1/callback');
+    expect(guide).toContain('https://pranjalagg.github.io/bdgt/**');
+    expect(guide).toContain('http://localhost:5173/**');
+    expect(guide).toContain('https://pranjalagg.github.io');
+    expect(guide).toContain('https://pranjalagg.github.io/bdgt/');
+  });
+
+  it('names the two variables and the workflow to run', () => {
+    expect(guide).toContain('VITE_SUPABASE_URL');
+    expect(guide).toContain('VITE_SUPABASE_PUBLISHABLE_KEY');
+    expect(guide).toMatch(/Run workflow/);
+  });
+
+  it('keeps the Google client secret out of the app, the repository and GitHub', () => {
+    expect(guide).toMatch(/Client secret/);
+    expect(guide).toMatch(/Supabase only/);
+    expect(guide).toMatch(/Never in the app, this repository, GitHub or a chat/);
+  });
+
+  it('has the troubleshooting entries for the failures people actually hit', () => {
+    for (const text of ['provider is not enabled', 'redirect_uri_mismatch', 'access_denied', "Sync isn't enabled for this account", 'Database needs update']) {
+      expect(guide).toContain(text);
+    }
+  });
+});
