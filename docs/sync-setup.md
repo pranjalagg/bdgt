@@ -130,11 +130,14 @@ Google's newer console does not pre-select any scopes, so the Data Access page m
 
 (Basic sign-in usually works even if these are not listed, but listing them removes a source of confusing errors, and it costs nothing.)
 
-**d. Publish the app**
+**d. Add yourself as a test user (do not publish)**
 
-1. Open **Audience**. The publishing status starts as **Testing**.
-2. Choose **Publish app** and confirm, so the status becomes **In production**. With only the basic scopes above, Google does not require verification.
-3. If you would rather stay in *Testing*: only the Google accounts listed under **Test users** can sign in (add yours), and Google may require you to sign in again every week.
+1. Open **Audience**. The publishing status is **Testing**. **Leave it there.** Switching to *In production* makes Google ask for a public homepage and privacy policy page, which a personal invite-only app does not have (the message is *Valid app name, support email, homepage URL and privacy policy URL are required for switching the app to external production mode*).
+2. Under **Test users**, press **Add users** and add the Google account(s) you will sign in with, one email per line. Save. Up to 100 accounts are allowed, which suits an invite-only app: whenever you invite someone in Supabase (part 1, step 3), also add their Google email here.
+3. Only the listed accounts can get past Google's screen. The Supabase invite list is still checked after that, so a test user who is not invited still cannot sync.
+4. When you sign in, Google shows *Google hasn't verified this app*. This is expected in Testing: press **Continue** (it may be under **Advanced**). Then approve the access to your name and email.
+
+If you later want the app to be *In production*, you need a public homepage URL and privacy policy URL under Branding (the app's site is `https://pranjalagg.github.io/bdgt/`; a privacy page would have to be added to it first). Nothing in this guide needs that.
 
 **e. The client**
 
@@ -187,7 +190,7 @@ Save. If an address the app uses is not on this list, signing in returns you to 
 Before going further, confirm these three things are true. Each is a common cause of a confusing failure later.
 
 - [ ] Google's **Authorized redirect URI** equals the **Callback URL** Supabase shows (step 2.5).
-- [ ] The Google app is **In production** (or your account is a test user).
+- [ ] Your Google account is listed under **Test users** (step 1d).
 - [ ] Your Google account's email, in lower case, is in `public.allowed_users` (part 1, step 3). Run `select email from public.allowed_users;` to look.
 
 ### 5. Tell the app about the project
@@ -229,7 +232,7 @@ Never put the Google Client secret, the Supabase secret key (`sb_secret_…`) or
 |---|---|
 | Pressing Sign in shows *provider is not enabled* | Step 2: Google is switched on and the Client ID and secret are saved. |
 | Google shows `Error 400: redirect_uri_mismatch` | The redirect URI in step 1e must be exactly `https://<project-ref>.supabase.co/auth/v1/callback`. No trailing slash, `https`, your real project ref. Wait a few minutes after changing it. |
-| Google shows `Access blocked: bdgt has not completed the Google verification process` or `Error 403: access_denied` | The app is in *Testing* and your account is not a test user: publish it (step 1d) or add yourself as a test user. |
+| Google shows `Access blocked: bdgt has not completed the Google verification process` or `Error 403: access_denied` | The app is in *Testing* and the account you chose is not a test user: add it under **Audience → Test users** (step 1d). |
 | You come back to the app but are not signed in, or land on the wrong page | Step 3: the address you started from is covered by a Redirect URL (`/bdgt/**` for the site, `http://localhost:5173/**` for local), and the Site URL is correct. |
 | There is no Sync section | Step 5: both variables are set and you restarted `npm run dev` or re-ran the deploy workflow. |
 | *Sync isn't enabled for this account* | The Google account's email, in lower case with no spaces, is on the invite list (part 1, step 3). It must be the email of the account you chose at Google. |
