@@ -6,7 +6,9 @@ import { reloadAllStores } from '$lib/stores/reload';
 import { derived } from 'svelte/store';
 import { SyncApp, type AuthClient } from './app';
 import { onCaptureCommitted } from './capture';
-import { AUTH_STORAGE_KEY, hasAuthCallback, hasStoredSession, signInRedirectUrl, supabaseAuthOptions, syncConfig } from './config';
+import { AUTH_STORAGE_KEY, googleClientId, hasAuthCallback, hasStoredSession, signInRedirectUrl, supabaseAuthOptions, syncConfig } from './config';
+import { phoneIdToken, type GoogleAuthPlugin } from './googleAuth';
+import { isAndroidPlatform, loadPlugin } from '$lib/android';
 import { BUSY, SyncService, needsAttention } from './service';
 import { SupabaseTransport } from './supabaseTransport';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -15,7 +17,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // needed), this browser's storage, timers, tab lock and events. Nothing runs
 // at import time, so the pages can still be built without a browser.
 
-export const syncEnabled = syncConfig() !== null;
+// Inside the Android app, signing in also needs the Google client ID (see
+// googleAuth.ts); a build without it has no Sync section there.
+const androidApp = isAndroidPlatform();
+const googleId = googleClientId();
+export const syncEnabled = syncConfig() !== null && (!androidApp || googleId !== null);
 
 let app: SyncApp<SupabaseClient & AuthClient> | null = null;
 let clientPromise: Promise<SupabaseClient> | null = null;
@@ -60,6 +66,10 @@ export function getSyncApp(): SyncApp<SupabaseClient & AuthClient> {
       exportBackup: exportToJson,
       saveFile: (text, filename) => downloadFile(text, filename, 'application/json'),
       redirectTo: () => signInRedirectUrl(location.origin, base),
+      googleIdToken:
+        androidApp && googleId
+          ? (hashedNonce) => loadPlugin<GoogleAuthPlugin>('GoogleAuth').then(({ plugin }) => phoneIdToken(plugin, googleId, hashedNonce))
+          : undefined,
       reloadPage: () => location.reload(),
       clearStoredSession: () => {
         try {

@@ -38,6 +38,20 @@ export function syncConfig(): SyncConfig | null {
   return readSyncConfig(import.meta.env as Record<string, unknown>);
 }
 
+const GOOGLE_CLIENT_ID = /^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
+
+// The Google web client ID that Supabase signs people in with. Public (it is
+// in every Google sign-in address); only the Android app needs it, to ask the
+// phone's account picker for an ID token meant for Supabase.
+export function readGoogleClientId(env: Record<string, unknown>): string | null {
+  const id = typeof env.VITE_GOOGLE_WEB_CLIENT_ID === 'string' ? env.VITE_GOOGLE_WEB_CLIENT_ID.trim() : '';
+  return GOOGLE_CLIENT_ID.test(id) ? id : null;
+}
+
+export function googleClientId(): string | null {
+  return readGoogleClientId(import.meta.env as Record<string, unknown>);
+}
+
 // Google returns to the Settings page, where the Sync section lives.
 export function signInRedirectUrl(origin: string, base: string): string {
   return `${origin}${base}/settings`;

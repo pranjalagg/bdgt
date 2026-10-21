@@ -9,6 +9,7 @@ import { getState, setState, LINKED_ACCOUNT } from '$lib/sync/state';
 import { resetClockForTests } from '$lib/sync/clock';
 import { setCaptureEnabled } from '$lib/sync/capture';
 import { REQUIRED_SCHEMA_VERSION } from '$lib/sync/engine';
+import { sha256Hex } from '$lib/sync/nonce';
 import type { BudgetDatabase } from '$lib/db';
 
 class ManualTimers implements Timers {
@@ -38,6 +39,11 @@ function fakeClient(session: Session) {
     auth: {
       getSession: vi.fn(async () => ({ data: { session } })),
       signInWithOAuth: vi.fn(async () => ({ error: null as { message: string } | null })),
+      // Like supabase-js: a good token saves the session and announces it.
+      signInWithIdToken: vi.fn(async (_args: { provider: 'google'; token: string; nonce: string }) => {
+        handlers.forEach((h) => h('SIGNED_IN', SESSION));
+        return { error: null as { message: string } | null };
+      }),
       signOut: vi.fn(async () => ({ error: null })),
       onAuthStateChange: vi.fn((cb: (event: string, session: Session) => void) => {
         handlers.push(cb);
@@ -68,7 +74,7 @@ async function serverHasBucket(id: string, name: string) {
   await server.upsert('buckets', [{ ...toRow(def, bucket(id, name)), updated_at: new Date(1000).toISOString(), deleted_at: null }]);
 }
 
-function makeApp(over: { enabled?: boolean; hint?: boolean } = {}) {
+function makeApp(over: { enabled?: boolean; hint?: boolean; googleIdToken?: (hashedNonce: string) => Promise<string | null> } = {}) {
   getClient = vi.fn(async () => client);
   return new SyncApp<typeof client>({
     db: device,
@@ -84,6 +90,7 @@ function makeApp(over: { enabled?: boolean; hint?: boolean } = {}) {
     exportBackup: async () => '{"backup":true}',
     saveFile: saveFile as never,
     redirectTo: () => 'https://example.com/bdgt/settings',
+    googleIdToken: over.googleIdToken,
     reloadPage: reloadPage as never,
     clearStoredSession: clearStoredSession as never,
     broadcast: broadcast as never,
@@ -292,6 +299,63 @@ describe('the session', () => {
     const app = makeApp({ hint: false });
     await app.signIn();
     expect(get(app.error)).toBe('provider is not enabled');
+  });
+});
+
+describe('signing in inside the Android app', () => {
+  it('exchanges the phone\'s Google ID token for a session and links the device', async () => {
+    client = fakeClient(null);
+    const googleIdToken = vi.fn(async (_hashed: string) => 'id-token');
+    const app = makeApp({ hint: false, googleIdToken });
+    await app.signIn();
+    expect(client.auth.signInWithOAuth).not.toHaveBeenCalled();
+    const { token, nonce } = client.auth.signInWithIdToken.mock.calls[0][0];
+    expect(token).toBe('id-token');
+    // Google gets the hash; Supabase gets the value itself and compares.
+    expect(googleIdToken).toHaveBeenCalledWith(await sha256Hex(nonce));
+    await eventually(async () => (await getState(device, LINKED_ACCOUNT)) === 'u1');
+    expect(get(app.account)).toEqual({ id: 'u1', email: 'me@example.com' });
+    expect(get(app.busy)).toBe(false);
+  });
+
+  it('does nothing when the person closes the account picker', async () => {
+    client = fakeClient(null);
+    const app = makeApp({ hint: false, googleIdToken: async () => null });
+    await app.signIn();
+    expect(client.auth.signInWithIdToken).not.toHaveBeenCalled();
+    expect(get(app.error)).toBe('');
+    expect(get(app.account)).toBeNull();
+  });
+
+  it('shows why the phone or Supabase refused', async () => {
+    client = fakeClient(null);
+    const app = makeApp({ hint: false, googleIdToken: async () => { throw new Error('No Google account on this phone'); } });
+    await app.signIn();
+    expect(get(app.error)).toBe('No Google account on this phone');
+
+    client.auth.signInWithIdToken.mockResolvedValueOnce({ error: { message: 'Unacceptable audience in id_token' } });
+    const other = makeApp({ hint: false, googleIdToken: async () => 'id-token' });
+    await other.signIn();
+    expect(get(other.error)).toBe('Unacceptable audience in id_token');
+    expect(get(other.account)).toBeNull();
+  });
+
+  it('signing in again after the session ended resumes syncing without a reload', async () => {
+    const app = makeApp({ googleIdToken: async () => 'id-token' });
+    await started(app);
+    client.emit('SIGNED_OUT', null);
+    expect(get(app.status)).toMatchObject({ state: 'auth' });
+    await app.signIn();
+    await app.syncService?.whenIdle();
+    expect(get(app.status)).toMatchObject({ state: 'idle' });
+  });
+
+  it('listens for the session only once, however many times sign-in is pressed', async () => {
+    client = fakeClient(null);
+    const app = makeApp({ hint: false, googleIdToken: async () => 'id-token' });
+    await app.signIn();
+    await app.signIn();
+    expect(client.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readSyncConfig, signInRedirectUrl, hasAuthCallback, hasStoredSession, supabaseAuthOptions, AUTH_STORAGE_KEY } from '$lib/sync/config';
+import { readSyncConfig, readGoogleClientId, signInRedirectUrl, hasAuthCallback, hasStoredSession, supabaseAuthOptions, AUTH_STORAGE_KEY } from '$lib/sync/config';
 
 const URL = 'https://kcggqvilbckwgvgaixwn.supabase.co';
 
@@ -51,5 +51,19 @@ describe('sign-in helpers', () => {
 
   it('uses the code-exchange flow and keeps the session in this browser', () => {
     expect(supabaseAuthOptions).toMatchObject({ flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true, storageKey: AUTH_STORAGE_KEY });
+  });
+});
+
+describe('readGoogleClientId', () => {
+  const ID = '611442995663-s1fb80ks2pqbv6isg7o0avebg6idirmo.apps.googleusercontent.com';
+  it('reads a web client ID', () => {
+    expect(readGoogleClientId({ VITE_GOOGLE_WEB_CLIENT_ID: ` ${ID} ` })).toBe(ID);
+  });
+
+  it('is null when missing or not a Google client ID', () => {
+    expect(readGoogleClientId({})).toBeNull();
+    expect(readGoogleClientId({ VITE_GOOGLE_WEB_CLIENT_ID: '' })).toBeNull();
+    expect(readGoogleClientId({ VITE_GOOGLE_WEB_CLIENT_ID: 'GOCSPX-secret' })).toBeNull();
+    expect(readGoogleClientId({ VITE_GOOGLE_WEB_CLIENT_ID: `https://${ID}` })).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import { setCaptureEnabled } from './capture';
 import { runFirstSignIn, signOutLocal, pendingChanges, type FirstSignInResult } from './firstSignIn';
 import { LINKED_ACCOUNT, getState } from './state';
 import { SyncService, type SyncStatus } from './service';
+import { randomNonce, sha256Hex } from './nonce';
 import type { SyncContext } from './types';
 import type { SyncTransport } from './transport';
 
@@ -25,6 +26,7 @@ export interface AuthClient {
   auth: {
     getSession(): Promise<{ data: { session: { user: { id: string; email?: string } } | null } }>;
     signInWithOAuth(args: { provider: 'google'; options: { redirectTo: string } }): Promise<{ error: { message: string } | null }>;
+    signInWithIdToken(args: { provider: 'google'; token: string; nonce: string }): Promise<{ error: { message: string } | null }>;
     signOut(options?: { scope: 'local' | 'global' | 'others' }): Promise<{ error: unknown } | void>;
     onAuthStateChange(
       callback: (event: string, session: { user: { id: string; email?: string } } | null) => void
@@ -47,6 +49,10 @@ export interface SyncAppDeps<C extends AuthClient> {
   exportBackup(): Promise<string>;
   saveFile(text: string, filename: string): void;
   redirectTo(): string; // where Google returns to; read when sign-in starts
+  // Inside the Android app, where Google refuses to sign in within a web
+  // view: asks the phone's account picker for an ID token carrying the hashed
+  // nonce. Null when the person closed the picker.
+  googleIdToken?(hashedNonce: string): Promise<string | null>;
   reloadPage(): void;
   // Forget the stored session when signing out could not (the session is the only thing that signs the person back in).
   clearStoredSession(): void;
@@ -69,6 +75,7 @@ export class SyncApp<C extends AuthClient> {
   private serviceStatus = writable<SyncStatus | null>(null);
 
   private client: C | null = null;
+  private listening = false;
   private service: SyncService | null = null;
   private unsubscribeStatus: (() => void) | null = null;
   private user: SyncUser | null = null;
@@ -101,7 +108,7 @@ export class SyncApp<C extends AuthClient> {
   private async connect(linked: boolean): Promise<void> {
     const client = await this.deps.getClient();
     this.client = client;
-    client.auth.onAuthStateChange((event, session) => void this.onAuthEvent(event, session));
+    this.listen(client);
     const { data } = await client.auth.getSession();
     if (data.session) {
       await this.handleSignedIn(toUser(data.session.user));
@@ -110,6 +117,12 @@ export class SyncApp<C extends AuthClient> {
       setCaptureEnabled(true);
       this.adopt(this.makeContext(client)).suspend({ status: 'auth', message: 'Your session ended' });
     }
+  }
+
+  private listen(client: C): void {
+    if (this.listening) return;
+    this.listening = true;
+    client.auth.onAuthStateChange((event, session) => void this.onAuthEvent(event, session));
   }
 
   private makeContext(client: C): SyncContext {
@@ -127,7 +140,10 @@ export class SyncApp<C extends AuthClient> {
 
   private async onAuthEvent(event: string, session: { user: { id: string; email?: string } } | null): Promise<void> {
     if (event === 'SIGNED_IN' && session) {
-      await this.handleSignedIn(toUser(session.user));
+      // The same person signing in again after their session ended (no page
+      // reload in the Android app): pick up where the device left off.
+      if (this.service && this.user?.id === session.user.id) this.service.resume();
+      else await this.handleSignedIn(toUser(session.user));
     } else if (event === 'SIGNED_OUT' && !this.signingOut) {
       // The session ended without the person asking (it could not be refreshed).
       this.service?.suspend({ status: 'auth', message: 'Your session ended' });
@@ -241,13 +257,29 @@ export class SyncApp<C extends AuthClient> {
     try {
       const client = this.client ?? (await this.deps.getClient());
       this.client = client;
-      const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: this.deps.redirectTo() } });
-      if (error) this.error.set(error.message);
+      if (this.deps.googleIdToken) {
+        await this.signInOnPhone(client, this.deps.googleIdToken);
+      } else {
+        const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: this.deps.redirectTo() } });
+        if (error) this.error.set(error.message);
+      }
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'Could not start signing in');
     } finally {
       this.busy.set(false);
     }
+  }
+
+  // No redirect inside the Android app: the phone hands over a Google ID token
+  // and Supabase exchanges it for a session. The library then announces
+  // SIGNED_IN, which links the device exactly as after a redirect.
+  private async signInOnPhone(client: C, googleIdToken: (hashedNonce: string) => Promise<string | null>): Promise<void> {
+    const nonce = randomNonce();
+    const token = await googleIdToken(await sha256Hex(nonce));
+    if (!token) return; // the person closed the account picker
+    this.listen(client);
+    const { error } = await client.auth.signInWithIdToken({ provider: 'google', token, nonce });
+    if (error) this.error.set(error.message);
   }
 
   // Development only: lets the screens be looked at in every state without a
