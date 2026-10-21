@@ -16,6 +16,7 @@ Last updated: 2026-10-21.
 ### Sign-in release leftovers
 - **Other open tabs are told only when this tab links or unlinks the device** (a `BroadcastChannel` makes them reload). Ordinary sync results (new data pulled from another device) do not refresh other tabs until they reload or regain focus; the cross-tab lock only stops two tabs syncing at once. Size S–M.
 - **There is no live view of another device's changes.** A change from another device arrives on the next cycle: when you return to the tab, regain the network, or within five minutes. Realtime is in the phase 2 list below.
+- **The first-run currency dialog can flash after Google sign-in.** The sign-in redirect reloads the page before the account's settings arrive, so the dialog opens and then closes itself once they do. Fix: hold the dialog back while a sign-in is finishing (`hasAuthCallback`). `Layout.svelte`. Size S.
 - **Real Google sign-in is only checked by hand** (Google blocks automated sign-in); everything around it is tested with a fake client. Re-check after any change to `src/lib/sync/app.ts` or the Supabase client options.
 - **A browser may block the backup download** that sign-out and the first-sign-in choice start (pop-up or multiple-download settings). The dialogs say what is happening, but do not detect a blocked download.
 - **Import and Reset while signed in do not wait for the sync;** they reach the account in the background a couple of seconds later. Closing the tab in that window leaves them queued for the next time the device syncs.
@@ -33,8 +34,8 @@ Last updated: 2026-10-21.
   - `aria-live` sits on an element that is inserted with its text, so some screen readers will not announce the first status.
   - Tests use `FakeServer` for not-invited accounts; the real database answers with empty selects under RLS. The first real run is the check.
 
-### Acceptance of the database on the real project (waiting on the project owner)
-The SQL is tested on a real Postgres in the test suite, but not yet on a real Supabase project. Follow part 1 of `docs/sync-setup.md` and confirm every row of `supabase/tests/verify_setup.sql` is `true`. Then record the project URL and publishable key for plan 4.
+### Acceptance on the real project (done 2026-10-22, local build)
+Checked by the project owner against `http://localhost:5173/settings` with the real Supabase project: Google sign-in, upload of the 2026-10-20 backup (284 transactions, 14 buckets, 3 recurring, 17 incomes, 1 goal, 78 allocations, 6 month notes and 2 settings, all matching the backup), an edit reaching the database, download on a second profile, edits in both directions, offline edit then reconnect, and sign-out. Still open: the deployed GitHub Pages build (needs the repository variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, then a run of "Deploy to GitHub Pages"; the Google and Supabase redirect lists must include `https://pranjalagg.github.io/bdgt/settings`).
 
 ### Backend review leftovers (Supabase)
 - **The invite check could also require the Google provider** (`auth.jwt() -> 'app_metadata' -> 'providers'` contains `google`). Skipped because Supabase links accounts by email in ways that could lock out the real owner; the guide turns the other sign-in methods off instead. Revisit if Email sign-in is ever enabled. Size S.
