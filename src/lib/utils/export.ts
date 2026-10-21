@@ -1,3 +1,4 @@
+import { getCapture, isAndroidApp } from '$lib/capture/native';
 import { normalizeForeign } from '$lib/currency/conversion';
 import { normalizeCurrencySettings, rowsToSettings, settingsToRows } from '$lib/currency/settings';
 import { db, DATE_FIELDS, SAVINGS_BUCKET_NAMES, FIXED_OBLIGATION_NAMES } from '$lib/db';
@@ -219,6 +220,13 @@ export async function resetAllData(): Promise<void> {
 }
 
 export function downloadFile(content: string, filename: string, type: string): void {
+  // The Android app's WebView cannot save a file from a link; the share sheet can.
+  if (isAndroidApp()) {
+    void getCapture()
+      .then((capture) => capture?.plugin.share({ filename, text: content, mimeType: type }))
+      .catch((e) => console.error('Sharing the file failed', e));
+    return;
+  }
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
