@@ -1,4 +1,5 @@
 import type { PluginListenerHandle } from '@capacitor/core';
+import { isAndroidPlatform, loadPlugin, type PluginHandle } from '$lib/android';
 
 // The bridge to payment capture in the Android app. In a browser none of it
 // loads: Capacitor is imported only when the page runs inside the app.
@@ -46,14 +47,7 @@ export interface CapturePlugin {
   addListener(event: 'itemKept', listener: (item: KeptItem) => void): Promise<PluginListenerHandle>;
 }
 
-// Capacitor's plugin object answers every property, `then` included, so a
-// Promise must never resolve to it (it would be taken for a thenable and
-// called). It is handed out inside this box instead.
-export interface CaptureHandle {
-  plugin: CapturePlugin;
-}
-
-type CapacitorGlobal = { isNativePlatform?: () => boolean; getPlatform?: () => string };
+export type CaptureHandle = PluginHandle<CapturePlugin>;
 
 // Under `npm run dev`, `window.__bdgtCapture` stands in for the plugin so the
 // screens can be looked at in a browser.
@@ -62,24 +56,14 @@ function devPlugin(): CapturePlugin | undefined {
   return (window as unknown as { __bdgtCapture?: CapturePlugin }).__bdgtCapture;
 }
 
-// True inside the Android app: Capacitor's bridge is on `window` before any
-// page script runs.
-export function isAndroidApp(win: unknown = typeof window === 'undefined' ? undefined : window): boolean {
-  if (devPlugin()) return true;
-  const cap = (win as { Capacitor?: CapacitorGlobal } | undefined)?.Capacitor;
-  try {
-    return cap?.isNativePlatform?.() === true && cap.getPlatform?.() === 'android';
-  } catch {
-    return false;
-  }
+// True inside the Android app (or with the development stand-in).
+export function isAndroidApp(win?: unknown): boolean {
+  return !!devPlugin() || (win === undefined ? isAndroidPlatform() : isAndroidPlatform(win));
 }
-
-let handle: Promise<CaptureHandle | null> | undefined;
 
 export function getCapture(): Promise<CaptureHandle | null> {
   const fake = devPlugin();
   if (fake) return Promise.resolve({ plugin: fake });
   if (!isAndroidApp()) return Promise.resolve(null);
-  handle ??= import('@capacitor/core').then(({ registerPlugin }) => ({ plugin: registerPlugin<CapturePlugin>('Capture') }));
-  return handle;
+  return loadPlugin<CapturePlugin>('Capture');
 }
