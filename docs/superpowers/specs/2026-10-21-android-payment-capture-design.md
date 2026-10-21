@@ -48,7 +48,7 @@ Users: the owner (pays mostly with Google Wallet) and invited friends (pay mostl
 | Transaction id | `capture:<captureId>` | Approving one capture on two devices gives one transaction, and a dismiss can delete it even on a device that never saw it |
 | Safe to spend | Pending captures that would land in everyday buckets, or have no suggestion, reduce the pool | The owner's call: the figure should never look better than it is |
 | Scope | Spending only | The owner's call for the first version |
-| Capture and accounts | On a build connected to Supabase, capture can only be turned on while signed in | A pending capture must not be lost when a device later signs in and takes the account's data. An exception to "no feature may require an account"; see Open questions |
+| Capture and accounts | Capture records without an account; on a build connected to Supabase, payments enter the queue only once the device is linked, and wait on the phone until then | A pending capture is never in the device's data when a first sign-in replaces it, and friends can record samples before they have an account |
 | Distribution | Google Play internal testing | Friends join by email and get updates from Play; Play installs avoid Android's restricted-settings prompts and the 2027 sideloading verification |
 
 ## How it fits together
@@ -94,7 +94,7 @@ The person chooses sources in Settings; only installed apps are offered. The tes
 - **Item ids.** For a message: a hash of the package, sender, message time and text, which stays the same when the conversation notification is re-posted. For any other notification: a hash of the package, notification key and post time; a re-post of the same notification with the same text within two minutes counts as the same item.
 - **Catch-up.** When the listener connects, it checks `getActiveNotifications()` for anything posted while it was not running.
 - **Buffer.** A small SQLite table of kept items: `id`, `package`, `sender`, `postedAt`, `title`, `text`. Items stay until the app acknowledges them.
-- **Reminder.** A daily WorkManager job at the chosen time posts "N payments to review" when the count last reported by the app plus unread buffer items is above zero. The count can be stale (a laptop may have cleared the queue); tapping opens Review, which syncs.
+- **Reminder** (follow-up, not built yet). A daily WorkManager job at the chosen time posts "N payments to review" when the count last reported by the app plus unread buffer items is above zero. The count can be stale (a laptop may have cleared the queue); tapping opens Review, which syncs.
 - **Permissions.** Notification access (granted by the person in system settings), `POST_NOTIFICATIONS` for the reminder, and `<queries>` entries for the supported apps. No SMS permission. Battery help opens the system battery settings rather than requesting an exemption.
 
 Plugin interface (`src/lib/capture/native.ts`; on the web every call is a no-op):
@@ -106,10 +106,11 @@ Plugin interface (`src/lib/capture/native.ts`; on the web every call is a no-op)
 | `installedSources()` | Which supported apps are installed |
 | `openAccessSettings()`, `openBatterySettings()` | System screens |
 | `requestRebind()` | Asks the system to reconnect a stopped listener |
-| `takePending()` | Buffered items, oldest first, not removed |
-| `ack({ ids })` | Removes items the app has stored |
-| `setPendingCount({ count })` | For the reminder |
-| `clear()` | Empties the buffer and turns capture off (sign-out) |
+| `takePending()` | Items not yet brought in, oldest first, not removed |
+| `ack({ ids })` | Marks items brought in; they stay as the capture log |
+| `setPendingCount({ count })` | For the reminder (with the reminder) |
+| `list()`, `clear()` | The capture log, newest first; **Clear log** empties it |
+| `reset()` | Sign-out: turns capture off and empties the log |
 | event `itemKept` | While the app is open, starts bringing items in |
 
 ### Sign-in on Android
@@ -183,7 +184,9 @@ Runs at app start, on resume and on `itemKept`, one run at a time.
 4. Build the capture: payee key, display merchant with digit runs masked, `kind` from the dictionary (matched on the raw payee and merchant), `hint` from transfer patterns.
 5. An `ignore` rule for the payee key makes it `dismissed`.
 6. Dedupe (below).
-7. Store the captures and their `captureRaw` rows in one transaction, then `ack` the ids and report the pending count.
+7. Store the captures and their `captureRaw` rows in one transaction, then `ack` the ids.
+
+Bringing in runs at start, on `itemKept`, on returning to the app and when the device becomes linked; on a build with sync it waits until the device is linked. Items recorded before this existed (the test build) count as brought in.
 
 A run cut off between the write and the `ack` is safe: step 2 skips those items next time.
 
@@ -262,11 +265,12 @@ Dismissing writes the capture and deletes transaction `capture:<captureId>`, whi
 
 ## Settings: Automatic capture (Android only)
 
-- On a build with sync, signed out: "Sign in to turn on automatic capture. Payments wait for your review on any of your devices."
-- Turning on: a disclosure (which apps are read; every other notification is ignored and never stored; amount, date and merchant sync to your account, which the app's owner can see; full message text stays on this phone), then the system Notification access screen, then choosing sources, then an optional daily reminder (default 8 pm), which asks for notification permission.
+- What it does and what is never stored; **Turn on** opens the system Notification access screen when access is off; **Read from** ticks each installed payment app and bank SMS; what stays on the phone and what syncs (the app's owner can see synced data).
+- On a build with sync, not yet linked: "Sign in under Sync to send payments to Review. Until then they wait on this phone (N so far)."
+- The daily reminder (default 8 pm, asking for notification permission) comes in a follow-up.
 - Status: **On**, with the time of the last payment seen; **Off**; or **Not running** with **Fix**: ask the system to reconnect the listener, open battery settings, and show the steps for the phone's maker.
 - A note that muting Wallet or bank SMS notifications stops capture from them.
-- A **Capture log** (from the test build) stays available for reporting parser problems.
+- **Recorded notifications**: the capture log, each item with what the parser made of it (a payment, or why it was skipped), **Share log** (which includes those results) and **Clear log**.
 
 ## Other changes
 
@@ -316,6 +320,5 @@ Setup guide additions (`docs/android-setup.md`): a Play developer account, the i
 
 ## Open questions
 
-- Capture requires sign-in on builds with sync, an exception to "no feature may require an account". The alternative keeps pending captures through first sign-in (left out of the device's data check, kept when the device takes the account's data, then uploaded), at the cost of more first-sign-in cases to build and test.
 - Reminder default (8 pm) and raw-text retention (30 days).
 - Which banks and UPI apps the first parsers cover (from the test group).

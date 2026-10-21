@@ -1,8 +1,8 @@
 # Android test build
 
-The test build is the normal budget app plus two things:
+The Android app is the normal budget app plus two things:
 
-- **Setup → Settings → Payment capture (test)** records the notifications that Google Wallet, UPI apps (Google Pay, PhonePe, Paytm) and bank SMS show. Nothing is added to the budget; the recordings are samples for building the automatic capture.
+- **Setup → Settings → Automatic capture** reads the payment notifications that Google Wallet, UPI apps (Google Pay, PhonePe, Paytm) and bank SMS show, and puts each payment in **Review** for you to approve. Nothing reaches a bucket until you approve it.
 - **Setup → Settings → Sync** signs in with Google, like the website, once the owner has done the one-time setup below.
 
 ## Getting the app
@@ -72,26 +72,36 @@ Friends sign in the same way. As for the website, add each friend's Google email
 | Android refuses to install the new build | The signing key changed (step 1, or GitHub deleted the cached key). Export a backup, uninstall, install, import. |
 | Anything else | Copy the exact message and tell me. |
 
-## Turning recording on
+## Turning automatic capture on
 
-1. Open **Setup → Settings → Payment capture (test)** and tap **Start recording**. Android opens the Notification access screen.
+1. Open **Setup → Settings → Automatic capture** and tap **Turn on**. Android opens the Notification access screen.
 2. Turn on **bdgt payment capture**. On Android 13 and later the switch may be greyed out for an app installed from a file. If so, open **Settings → Apps → bdgt**, tap the ⋮ menu, choose **Allow restricted settings**, and try again.
-3. Back in the app, Notification access shows **On**.
-4. If the section later says **Recording is on but not running**, tap **Reconnect**, then **Battery settings** and set bdgt to unrestricted. Samsung, Xiaomi, OnePlus and others stop background apps aggressively; https://dontkillmyapp.com has the steps for each make.
+3. Back in the app, Notification access shows **On**. Under **Read from**, untick any app you do not want read.
+4. If you are not signed in (Sync), payments wait on the phone and go to Review as soon as you sign in. The section says how many are waiting.
+5. If the section later says **Capture is on but not running**, tap **Reconnect**, then **Battery settings** and set bdgt to unrestricted. Samsung, Xiaomi, OnePlus and others stop background apps aggressively; https://dontkillmyapp.com has the steps for each make.
 
-Keep notifications on for Google Wallet, your UPI apps and your messaging app: the app can only see what the phone actually shows.
+Keep notifications on for Google Wallet, your UPI apps and your messaging app: the app can only see what the phone actually shows. Notifications recorded by an earlier test build are not sent to Review; only new ones are.
 
-## What is recorded
+## Trying it
 
-- Only notifications from Google Wallet, Google Pay, PhonePe, Paytm and your messaging apps.
+1. Pay with Google Wallet or a UPI app, or wait for a bank SMS about a payment.
+2. Open the app. The dashboard shows **N payments to review**, and Activity has a count. The payment is already counted in safe to spend.
+3. Open **Review**: approve it into the suggested bucket, edit it (amount with tip, bucket, date, note) or dismiss it. Approving teaches the app that payee's bucket.
+4. Signed in, the same queue is on every device: approve on the laptop if you prefer (until the merge, that means `npm run dev` from this branch; the live site does not have Review yet).
+
+When the same payment shows up twice (the bank's SMS and the UPI app), the second is folded under the first as **Also seen**. Money coming in, refunds, failed payments, payment requests, offers, due-date reminders and upcoming debits are skipped.
+
+## What is read and what is kept
+
+- Only notifications from the apps ticked under **Read from**.
 - From payment apps: notifications that mention an amount.
-- From messaging apps: only messages with an amount and a banking word (debited, credited, UPI, A/c, …). Personal messages are dropped as they arrive.
+- From messaging apps: only messages from banks (sender IDs such as `VM-HDFCBK`, short codes, or names with a bank word) that mention an amount and a banking word. Messages from contacts and phone numbers are never kept, whatever they say.
 - One-time passwords are never kept.
-- Everything stays on the phone until you share it.
+- The full text stays on the phone. Amount, date, merchant and card digits sync to your account (the owner of the Supabase project can see them); UPI IDs sync only as a scrambled key.
 
-## Sharing the log
+## When a payment is read wrongly or missed
 
-After about a week of normal spending, tap **Share log** and send the file (email, WhatsApp, Drive). Reference, account and phone numbers are masked to their last two digits; amounts and dates are kept. Names are not masked, so look through the file first. **Clear log** deletes the recordings from the phone.
+Open **Recorded notifications** at the bottom of the section: under each notification it says what the app made of it (**Payment: …** or **Skipped: …**). Tap **Share log**, send the file, and say which one is wrong. Reference, account and phone numbers are masked to their last two digits; amounts and dates are kept. Names are not masked, so look through the file first. **Clear log** deletes the recordings from the phone; payments already in Review stay. Signing out also turns capture off and clears the log.
 
 ## Building it yourself
 

@@ -99,6 +99,15 @@ Checked by the project owner against `http://localhost:5173/settings` with the r
 - **Signing out does not call Credential Manager's `clearCredentialState`.** The *Sign in with Google* sheet asks every time, so nothing is remembered to clear. Needed only if one-tap automatic sign-in is ever used. Size S.
 - **Until the signing-key secret exists, builds use a key in the Actions cache,** which GitHub deletes after 7 days without a build: the next build gets a new key, phones must reinstall, and Google stops recognising the app until the new SHA-1 is registered. Fix: the one-time step 1 in `docs/android-setup.md`. Size S.
 
+### Capture into the queue (stage 4)
+- **The daily reminder is not built** ("N payments to review" at a chosen time). Needs a WorkManager job, the notification permission, a notification channel and a tap that opens Review; testable only on a phone. The dashboard card and the Activity badge show waiting payments meanwhile. Size M.
+- **Parsers are built from known message shapes, not real ones.** Fixtures in `tests/lib/capture/parse.test.ts` are made up; Google Wallet's real wording has not been seen yet. Add each test group log's misreads as fixtures and fix `src/lib/capture/parse.ts`. Ongoing.
+- **A duplicate's better name is not used.** The bank SMS shows `swiggy@icici` while the PhonePe copy folded under it said *Swiggy*. Fix: when folding, give a still-pending original whose merchant is a UPI ID the duplicate's name (an automatic write). `bringIn.ts`. Size S.
+- **Stored text is not read again after a parser fix,** so past misreads stay as they were (the full text is kept in `captureRaw` for 30 days). Size S–M.
+- **A bare `$` is read as the budget's own dollar (else USD), and an amount without any currency (SBI) as the budget's currency.** Right for the test group; wrong for travel. Size S.
+- **Few merchants have a kind** (the dictionary in `src/lib/capture/payee.ts`); most suggestions will come from learned rules. Grow it from the logs. Size S.
+- **The listener and plugin changes of this stage have only run in CI** (unit tests and a build), not on a phone yet.
+
 ---
 
 ## Currency
