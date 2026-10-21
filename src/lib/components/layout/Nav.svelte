@@ -4,6 +4,7 @@
   import CurrencyChip from '$lib/components/shared/CurrencyChip.svelte';
   import SyncChip from '$lib/components/sync/SyncChip.svelte';
   import { syncAttention } from '$lib/sync/browser';
+  import { pendingCaptures } from '$lib/stores/captureStore';
 
   // A dot on the Setup tab when sync needs the person (mobile has no chip).
   const attention = syncAttention();
@@ -23,7 +24,7 @@
   // own sub-tabs (SectionTabs.svelte) once you're inside it.
   const navItems = [
     { href: '/', label: 'Month', icon: 'home', match: ['/'] },
-    { href: '/transactions', label: 'Activity', icon: 'list', match: ['/transactions'] },
+    { href: '/transactions', label: 'Activity', icon: 'list', match: ['/transactions', '/review'] },
     { href: '/analytics', label: 'Insights', icon: 'chart', match: ['/analytics', '/investments'] },
     { href: '/buckets', label: 'Setup', icon: 'cog', match: ['/buckets', '/recurring', '/settings'] },
   ];
@@ -65,6 +66,9 @@
             {@html iconPaths[item.icon]}
           </svg>
           <span>{item.label}</span>
+          {#if item.icon === 'list' && $pendingCaptures.length > 0}
+            <span class="ml-auto rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-5 text-white dark:text-gray-900" aria-label="{$pendingCaptures.length} payments to review">{$pendingCaptures.length}</span>
+          {/if}
         </a>
       </li>
     {/each}
@@ -91,6 +95,9 @@
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
               {@html iconPaths[item.icon]}
             </svg>
+            {#if item.icon === 'list' && $pendingCaptures.length > 0}
+              <span class="absolute -right-2 -top-1.5 min-w-[16px] rounded-full bg-primary px-1 text-center text-[10px] font-semibold leading-4 text-white dark:text-gray-900" aria-label="{$pendingCaptures.length} payments to review">{$pendingCaptures.length}</span>
+            {/if}
             {#if item.icon === 'cog' && $attention}
               <span class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-danger" role="img" aria-label="Sync needs attention"></span>
             {/if}

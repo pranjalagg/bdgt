@@ -3,6 +3,7 @@
   import { loadData } from '$lib/stores/budgetStore';
   import { loadRecurring } from '$lib/stores/recurringStore';
   import { loadGoals } from '$lib/stores/goalsStore';
+  import { loadCaptures } from '$lib/stores/captureStore';
   import { loadInvestments } from '$lib/stores/investmentStore';
   import { themePreference, setTheme, type ThemePreference } from '$lib/stores/themeStore';
   import { loadCurrency } from '$lib/stores/currencyStore';
@@ -10,6 +11,7 @@
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import SyncSection from '$lib/components/sync/SyncSection.svelte';
   import CaptureLogSection from '$lib/components/capture/CaptureLogSection.svelte';
+  import CaptureRulesSection from '$lib/components/capture/CaptureRulesSection.svelte';
   import { syncEnabled, getSyncApp } from '$lib/sync/browser';
   import { isAndroidApp } from '$lib/capture/native';
   import { browser } from '$app/environment';
@@ -59,6 +61,7 @@
       await loadData();
       await loadRecurring();
       await loadGoals();
+      await loadCaptures();
       await loadInvestments();
       alert('Data imported successfully!');
     } catch (e) {
@@ -79,6 +82,7 @@
     await loadData();
     await loadRecurring();
     await loadGoals();
+    await loadCaptures();
     await loadInvestments();
     alert('All data has been reset.');
   }
@@ -130,6 +134,8 @@
   {#if androidApp}
     <CaptureLogSection />
   {/if}
+
+  <CaptureRulesSection />
 
   <div class="card">
     <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">

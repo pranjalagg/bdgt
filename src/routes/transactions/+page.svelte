@@ -10,6 +10,8 @@
   import { baseCurrency } from '$lib/stores/currencyStore';
   import { shouldShowForeignNote } from '$lib/currency/conversion';
   import { openModal, openLog } from '$lib/stores/uiStore';
+  import { base } from '$app/paths';
+  import { pendingCaptures } from '$lib/stores/captureStore';
   import type { Transaction } from '$lib/types';
 
   // Arrives from the dashboard's "needs a bucket" banner.
@@ -58,6 +60,13 @@
     <h1 class="page-title">Transactions</h1>
     <MonthPicker />
   </div>
+
+  {#if $pendingCaptures.length > 0}
+    <a href="{base}/review" class="card flex items-center justify-between gap-3 p-4 text-sm hover:border-gray-300 dark:hover:border-white/20">
+      <span class="font-medium text-gray-900 dark:text-gray-50">{$pendingCaptures.length} captured {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review</span>
+      <span class="text-muted dark:text-muted-dark">Review &rarr;</span>
+    </a>
+  {/if}
 
   <div class="flex flex-wrap items-center gap-2">
     <div class="relative min-w-[180px] flex-1">

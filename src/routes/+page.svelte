@@ -8,7 +8,8 @@
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import MonthNotes from '$lib/components/shared/MonthNotes.svelte';
   import InfoPopover from '$lib/components/shared/InfoPopover.svelte';
-  import { unsortedTransactions, savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate, safeToSpendPerDay } from '$lib/stores/budgetStore';
+  import { unsortedTransactions, savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate } from '$lib/stores/budgetStore';
+  import { safeToSpendWithPending as safeToSpendPerDay, pendingCaptures, pendingTotal, pendingEverydaySpend } from '$lib/stores/captureStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, today, openModal, closeModal, openLog } from '$lib/stores/uiStore';
@@ -19,7 +20,8 @@
   // The same rule calculateSafeToSpendPerDay applies, spelled out for the popover.
   $: everydayStatuses = $bucketStatuses.filter((s) => !s.bucket.isSystem && !s.bucket.isSavings && s.bucket.isEveryday);
   $: notCountedStatuses = $bucketStatuses.filter((s) => !s.bucket.isSystem && (s.bucket.isSavings || !s.bucket.isEveryday));
-  $: everydayLeft = everydayStatuses.reduce((sum, s) => sum + s.remaining, 0);
+  // Pending captured payments are counted already (see captureStore).
+  $: everydayLeft = everydayStatuses.reduce((sum, s) => sum + s.remaining, 0) - $pendingEverydaySpend;
 
   $: daysLeftInMonth = getDaysInMonth($currentMonthKey) - $today.getDate() + 1;
 
@@ -148,7 +150,7 @@
         <span class="eyebrow">Safe to spend</span>
         <InfoPopover label="How safe to spend is calculated">
           <p class="font-medium text-gray-900 dark:text-gray-50">How this is worked out</p>
-          <p>What is left in your everyday envelopes, spread over the days remaining this month (today included).</p>
+          <p>What is left in your everyday envelopes, spread over the days remaining this month (today included). Payments waiting for review already count.</p>
           <p class="money rounded bg-background px-2 py-1 text-[12px] dark:bg-white/[0.05] amt">
             {formatCurrency(everydayLeft)} left &divide; {daysLeftInMonth} day{daysLeftInMonth === 1 ? '' : 's'} = {formatCurrency($safeToSpendPerDay)}/day
           </p>
@@ -179,6 +181,21 @@
       <p class="mt-1 text-[12.5px] text-muted dark:text-muted-dark">
         across everyday envelopes, {daysLeftInMonth} day{daysLeftInMonth === 1 ? '' : 's'} left
       </p>
+      {#if $pendingEverydaySpend > 0}
+        <p class="mt-1 text-[12.5px] text-muted dark:text-muted-dark">
+          includes <span class="money amt">{formatCurrency($pendingEverydaySpend)}</span> waiting for review
+        </p>
+      {/if}
+    </div>
+  {/if}
+
+  {#if $pendingCaptures.length > 0}
+    <div class="card flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-sm text-gray-700 dark:text-gray-200">
+        <span class="font-medium text-gray-900 dark:text-gray-50">{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review</span>
+        · <span class="money amt">{formatCurrency($pendingTotal)}</span>
+      </p>
+      <a href="{base}/review" class="btn-primary flex-none">Review</a>
     </div>
   {/if}
 

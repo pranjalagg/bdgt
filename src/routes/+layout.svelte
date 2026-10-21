@@ -12,6 +12,7 @@
 	import { loadData, isLoading } from '$lib/stores/budgetStore';
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
 	import { loadGoals } from '$lib/stores/goalsStore';
+	import { loadCaptures } from '$lib/stores/captureStore';
 	import { startClock } from '$lib/stores/uiStore';
 	import { loadCurrency, baseCurrency } from '$lib/stores/currencyStore';
 	import { initSync } from '$lib/sync/browser';
@@ -20,6 +21,7 @@
 	let { children } = $props();
 
 	onMount(() => {
+		if (import.meta.env.DEV) void import('$lib/capture/devSamples').then((m) => m.installSampleCaptures());
 		const stopClock = startClock();
 		void init();
 		return stopClock;
@@ -30,6 +32,7 @@
 		await loadData();
 		await loadRecurring();
 		await loadGoals();
+		await loadCaptures();
 		await processRecurring();
 		// Sync is an extra: the app is already usable, so it starts in the background.
 		void initSync();
