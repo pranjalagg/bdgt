@@ -101,9 +101,14 @@ Supabase signs people in with Google, so it needs a "client" registered with Goo
 **b. The consent screen (Google Auth Platform)**
 
 1. Open **Google Auth Platform** (search for it in the top bar). If it says it is not configured, choose **Get started**.
-2. **Branding / App information**: app name `bdgt`, and your email as the user support email. This is what people see on Google's "choose an account" screen.
-3. **Audience**: choose **External** (this allows any Google account, which the invite list then restricts).
-4. **Contact information**: your email. Accept the policy checkbox and create.
+2. Open **Branding** and fill in only these three fields:
+   - **App name**: `bdgt`. This is what people see on Google's "choose an account" screen.
+   - **User support email**: your email.
+   - **Developer contact information** (at the bottom): your email.
+3. Leave everything else on the page **empty**: *App logo*, *Application home page*, *Application privacy policy link*, *Application terms of service link* and *Authorized domains*.
+4. **Do not upload a logo.** It is optional, and adding one makes Google require a verification review (days to weeks) before you can publish. Without a logo, Google shows a plain letter icon, which is fine for a personal app.
+5. Press **Save**. If **Publish app** later says *To publish your app, you must complete your configuration on the Branding page*, a required field on this page is empty or the page was not saved: open it again, fill in the three fields above, and press **Save**. If it names a field I have not listed, tell me which.
+6. Open **Audience**: choose **External** (this allows any Google account; the invite list then restricts who can sync). Add your email under **Contact information** if it asks, accept the policy checkbox and save.
 
 **c. Scopes**
 
