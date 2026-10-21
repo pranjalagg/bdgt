@@ -107,8 +107,18 @@ Supabase signs people in with Google, so it needs a "client" registered with Goo
 
 **c. Scopes**
 
-1. Open **Data Access**. The defaults are enough: `openid`, `.../auth/userinfo.email` and `.../auth/userinfo.profile`. If `openid` is not listed, choose **Add or remove scopes** and add it.
-2. Do **not** add any other scope. Anything beyond these three can trigger Google's verification process, which takes weeks.
+Google's newer console does not pre-select any scopes, so the Data Access page may look empty. Add the three basic sign-in scopes yourself:
+
+1. Open **Data Access** and press **Add or remove scopes**.
+2. In the table that slides in, tick these three (they are listed under *Google Account* or similar; use the filter box and search for `userinfo` and `openid` if the list is long):
+   - `openid`
+   - `.../auth/userinfo.email` (*See your primary Google Account email address*)
+   - `.../auth/userinfo.profile` (*See your personal info*)
+3. If one is missing from the table, scroll to **Manually add scopes**, type or paste it there (`openid`, `https://www.googleapis.com/auth/userinfo.email`, `https://www.googleapis.com/auth/userinfo.profile`) and press **Add to table**.
+4. Press **Update**, then **Save** at the bottom of the Data Access page. The three scopes now appear under *Your non-sensitive scopes*.
+5. Do **not** add any other scope. Anything beyond these three can trigger Google's verification process, which takes weeks.
+
+(Basic sign-in usually works even if these are not listed, but listing them removes a source of confusing errors, and it costs nothing.)
 
 **d. Publish the app**
 
