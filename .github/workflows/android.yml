@@ -1,0 +1,62 @@
+name: Android test build
+
+# Runs only for the Android branch (and by hand); the live site is deployed
+# separately and never from here.
+on:
+  push:
+    branches: [claude/intelligent-davinci-7qblqz]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npx vitest run
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      # The app is served from the root inside Android, and has no Supabase
+      # settings: Google sign-in inside the app comes in a later stage.
+      - run: BASE_PATH= npm run build
+      - run: npx cap sync android
+      # The same debug key every run, so a new test build installs over the
+      # last one instead of needing an uninstall.
+      - name: Debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+      - name: Unit tests and debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bdgt-test-build-${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
