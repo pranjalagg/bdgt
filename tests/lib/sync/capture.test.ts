@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BudgetDatabase } from '$lib/db';
-import { setCaptureEnabled, isCaptureEnabled } from '$lib/sync/capture';
+import { setCaptureEnabled, isCaptureEnabled, onCaptureCommitted } from '$lib/sync/capture';
 import { setState, LINKED_ACCOUNT } from '$lib/sync/state';
 import { autoTransaction, remoteTransaction, resetTransaction } from '$lib/sync/transactions';
 import { resetClockForTests } from '$lib/sync/clock';
@@ -188,5 +188,53 @@ describe('capture: writes that must not be queued', () => {
     await device.syncOutbox.clear();
     await resetTransaction(device, [device.transactions], () => t().clear());
     expect(await device.syncOutbox.count()).toBe(0);
+  });
+});
+
+describe('capture: commit notifications', () => {
+  it('announces a committed edit once per transaction, however many records it wrote', async () => {
+    let calls = 0;
+    const stop = onCaptureCommitted(() => calls++);
+    await device.transaction('rw', device.transactions, async () => {
+      await t().add(rec('1'));
+      await t().add(rec('2'));
+    });
+    stop();
+    expect(calls).toBe(1);
+  });
+
+  it('announces an automatic write but not one that came from the server or a local reset', async () => {
+    let calls = 0;
+    const stop = onCaptureCommitted(() => calls++);
+    await remoteTransaction(device, [device.transactions], () => t().put(rec('r')));
+    await resetTransaction(device, [device.transactions], () => t().put(rec('s')));
+    expect(calls).toBe(0);
+    await autoTransaction(device, [device.transactions], () => t().put(rec('a')));
+    stop();
+    expect(calls).toBe(1);
+  });
+
+  it('says nothing when the transaction rolls back, or after the listener is removed', async () => {
+    let calls = 0;
+    const stop = onCaptureCommitted(() => calls++);
+    await expect(
+      device.transaction('rw', device.transactions, async () => {
+        await t().add(rec('1'));
+        throw new Error('boom');
+      })
+    ).rejects.toThrow('boom');
+    expect(calls).toBe(0);
+    stop();
+    await t().add(rec('2'));
+    expect(calls).toBe(0);
+  });
+
+  it('says nothing while capture is off', async () => {
+    let calls = 0;
+    const stop = onCaptureCommitted(() => calls++);
+    setCaptureEnabled(false);
+    await t().add(rec('1'));
+    stop();
+    expect(calls).toBe(0);
   });
 });

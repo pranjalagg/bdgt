@@ -27,6 +27,17 @@ export function markTransaction(kind: WriteKind): void {
   if (trans) kinds.set(trans, kind);
 }
 
+// Tells the sync service a write worth uploading has committed. Fires once
+// per IndexedDB transaction, only after it commits (a rollback fires
+// nothing), and never for writes that came from the server or a local reset.
+const commitListeners = new Set<() => void>();
+const announced = new WeakSet<object>();
+
+export function onCaptureCommitted(listener: () => void): () => void {
+  commitListeners.add(listener);
+  return () => commitListeners.delete(listener);
+}
+
 export function currentWriteKind(): WriteKind {
   const trans = Dexie.currentTransaction;
   return (trans && kinds.get(trans)) || 'edit';
@@ -81,7 +92,13 @@ async function capturedMutate(down: DBCore, table: DBCoreTable, name: string, re
     op = 'delete';
     keys = req.keys;
   }
-  if (keys.length > 0) await record(down, req.trans, name, keys.map(String), op, kind);
+  if (keys.length > 0) {
+    await record(down, req.trans, name, keys.map(String), op, kind);
+    if (!announced.has(idb)) {
+      announced.add(idb);
+      idb.addEventListener('complete', () => commitListeners.forEach((l) => l()));
+    }
+  }
   return res;
 }
 
