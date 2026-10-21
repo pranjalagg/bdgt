@@ -10,7 +10,7 @@
   import CurrencyChip from '$lib/components/shared/CurrencyChip.svelte';
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import SyncSection from '$lib/components/sync/SyncSection.svelte';
-  import CaptureLogSection from '$lib/components/capture/CaptureLogSection.svelte';
+  import CaptureSection from '$lib/components/capture/CaptureSection.svelte';
   import CaptureRulesSection from '$lib/components/capture/CaptureRulesSection.svelte';
   import { syncEnabled, getSyncApp } from '$lib/sync/browser';
   import { isAndroidApp } from '$lib/capture/native';
@@ -132,7 +132,7 @@
   {/if}
 
   {#if androidApp}
-    <CaptureLogSection />
+    <CaptureSection />
   {/if}
 
   <CaptureRulesSection />

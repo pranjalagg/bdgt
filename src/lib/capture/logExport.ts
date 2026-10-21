@@ -23,10 +23,13 @@ export interface LogFile {
   version: 1;
   appVersion: string;
   exportedAt: string;
-  items: KeptItem[];
+  items: (KeptItem & { parsed?: string })[];
 }
 
-export function buildLogFile(items: KeptItem[], appVersion: string, now: Date = new Date()): LogFile {
+// `describe` adds what the app made of each item ("Payment: ₹250.00 ·
+// Swiggy", "Skipped: money coming in"), so a shared log doubles as a report
+// of parser mistakes.
+export function buildLogFile(items: KeptItem[], appVersion: string, now: Date = new Date(), describe?: (item: KeptItem) => string): LogFile {
   const mask = (value: string | undefined) => (value === undefined ? undefined : maskDigits(value));
   return {
     app: 'bdgt',
@@ -41,6 +44,7 @@ export function buildLogFile(items: KeptItem[], appVersion: string, now: Date = 
       title: mask(item.title),
       text: maskDigits(item.text),
       extras: item.extras && Object.fromEntries(Object.entries(item.extras).map(([key, value]) => [key, maskDigits(value)])),
+      ...(describe && { parsed: maskDigits(describe(item)) }),
     })),
   };
 }

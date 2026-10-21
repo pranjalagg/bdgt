@@ -3,12 +3,14 @@
   import { db } from '$lib/db';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { getSyncApp } from '$lib/sync/browser';
+  import { isAndroidPlatform } from '$lib/android';
   import { describeSync } from '$lib/sync/statusText';
   import { listParked, retryParked, discardParked } from '$lib/sync/parked';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { SyncOutboxEntry } from '$lib/sync/types';
 
   const app = getSyncApp();
+  const androidApp = isAndroidPlatform();
   const { account, status, prompt, error, busy, linked } = app;
 
   let now = Date.now();
@@ -138,7 +140,7 @@
       </div>
 
       <p class="text-sm text-muted">
-        Your data is stored in a database controlled by whoever runs this app. Signing out of a synced device clears it; your data stays in your account.
+        Your data is stored in a database controlled by whoever runs this app. Signing out of a synced device clears it; your data stays in your account.{#if androidApp} Automatic capture turns off and its recorded notifications are deleted from this phone.{/if}
       </p>
     </div>
   {/if}

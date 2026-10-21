@@ -57,6 +57,15 @@ describe('buildLogFile', () => {
   });
 });
 
+describe('buildLogFile with descriptions', () => {
+  it('adds what the app made of each item, masked like the rest', () => {
+    const item: KeptItem = { id: 'a', packageName: 'p', kind: 'sms', notificationKey: 'k', postedAt: 1, text: 't' };
+    const [out] = buildLogFile([item], '0.1.9', new Date(), () => 'Payment: ₹250.00 · 9876543210@ybl').items;
+    expect(out.parsed).toBe('Payment: ₹250.00 · XXXXXXXX10@ybl');
+    expect(buildLogFile([item], '0.1.9').items[0]).not.toHaveProperty('parsed');
+  });
+});
+
 describe('logFilename', () => {
   it('names the file by the local day', () => {
     expect(logFilename(new Date(2026, 9, 21, 23, 30))).toBe('bdgt-capture-log-2026-10-21.json');
