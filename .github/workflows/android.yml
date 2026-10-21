@@ -47,13 +47,22 @@ jobs:
       - run: npx cap sync android
       # The same debug key every run, so a new test build installs over the
       # last one instead of needing an uninstall.
-      - name: Debug signing key
+      - name: Debug signing key (restore)
+        id: keystore
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: android-debug-keystore-v1
+          path: ~/bdgt-debug.keystore
+          key: bdgt-debug-keystore-v1
+      - name: Debug signing key (create on first run)
+        if: steps.keystore.outputs.cache-hit != 'true'
+        run: >
+          keytool -genkeypair -v -keystore ~/bdgt-debug.keystore -storepass android
+          -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000
+          -dname "CN=Android Debug,O=Android,C=US"
       - name: Unit tests and debug APK
         working-directory: android
+        env:
+          BDGT_DEBUG_KEYSTORE: /home/runner/bdgt-debug.keystore
         run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
       - uses: actions/upload-artifact@v4
         with:
