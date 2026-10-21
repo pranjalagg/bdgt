@@ -1,4 +1,5 @@
 import { loadData } from './budgetStore';
+import { loadCaptures } from './captureStore';
 import { loadCurrency } from './currencyStore';
 import { loadGoals } from './goalsStore';
 import { loadInvestments } from './investmentStore';
@@ -13,5 +14,6 @@ export async function reloadAllStores(): Promise<void> {
   await loadRecurring();
   await loadGoals();
   await loadInvestments();
+  await loadCaptures();
   await processRecurring();
 }

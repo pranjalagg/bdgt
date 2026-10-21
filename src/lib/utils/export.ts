@@ -212,8 +212,10 @@ export async function importFromJson(json: string): Promise<void> {
   });
 }
 
+// Reset also empties the review queue; import leaves it (backups do not
+// carry captures or their rules).
 export async function resetAllData(): Promise<void> {
-  const tables = localTables();
+  const tables = [...localTables(), db.captures, db.captureRules, db.captureRaw];
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()));
   });

@@ -227,11 +227,12 @@ export function monthlyBucketSpend(
 // are already committed, not safe to eat into.
 export function calculateSafeToSpendPerDay(
   statuses: { bucket: { isSavings: boolean; isEveryday: boolean }; remaining: number }[],
-  daysLeftInMonth: number
+  daysLeftInMonth: number,
+  pendingCents = 0 // captured payments not yet approved, counted already
 ): number {
   const pool = statuses
     .filter((s) => !s.bucket.isSavings && s.bucket.isEveryday)
-    .reduce((sum, s) => sum + s.remaining, 0);
+    .reduce((sum, s) => sum + s.remaining, 0) - pendingCents;
   const days = Math.max(daysLeftInMonth, 1);
   return Math.round(pool / days);
 }
