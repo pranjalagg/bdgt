@@ -41,24 +41,49 @@ jobs:
           java-version: 21
           cache: gradle
       - run: npm ci
-      # The app is served from the root inside Android, and has no Supabase
-      # settings: Google sign-in inside the app comes in a later stage.
+      # The app is served from the root inside Android. Repository variables,
+      # all public by design (never secrets): without them the app has no Sync
+      # section, as before.
       - run: BASE_PATH= npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.VITE_GOOGLE_WEB_CLIENT_ID }}
       - run: npx cap sync android
-      # The same debug key every run, so a new test build installs over the
-      # last one instead of needing an uninstall.
-      - name: Debug signing key (restore)
+      # The same signing key every run, so a new test build installs over the
+      # last one and Google keeps recognising the app. It lives in a
+      # repository secret (docs/android-setup.md). Until that exists, a key made
+      # on the first run is kept in the Actions cache, which GitHub empties
+      # after 7 days without a build.
+      - name: Signing key (repository secret)
+        id: secret_key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > ~/bdgt-debug.keystore
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Signing key (cache)
         id: keystore
+        if: steps.secret_key.outputs.found != 'true'
         uses: actions/cache@v4
         with:
           path: ~/bdgt-debug.keystore
           key: bdgt-debug-keystore-v1
-      - name: Debug signing key (create on first run)
-        if: steps.keystore.outputs.cache-hit != 'true'
+      - name: Signing key (create on first run)
+        if: steps.secret_key.outputs.found != 'true' && steps.keystore.outputs.cache-hit != 'true'
         run: >
           keytool -genkeypair -v -keystore ~/bdgt-debug.keystore -storepass android
           -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000
           -dname "CN=Android Debug,O=Android,C=US"
+      # Google only lets an app signed with a registered key ask for sign-in:
+      # this is the SHA-1 to give the Android client in Google Cloud.
+      - name: Signing key fingerprint
+        run: |
+          sha1=$(keytool -list -v -keystore ~/bdgt-debug.keystore -storepass android -alias androiddebugkey | awk '/SHA1:/ {print $2}')
+          echo "Signing key SHA-1: $sha1"
+          echo "Signing key SHA-1 (Google Cloud → Android OAuth client): \`$sha1\`" >> "$GITHUB_STEP_SUMMARY"
       - name: Unit tests and debug APK
         working-directory: android
         env:
