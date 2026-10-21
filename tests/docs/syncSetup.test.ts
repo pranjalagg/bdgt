@@ -17,6 +17,15 @@ describe('docs/sync-setup.md', () => {
     expect(mentioned).toEqual([...mentioned].sort());
   });
 
+  it('tells the owner to turn off every sign-in method except Google, and about the Max rows setting and the expected advisor messages', () => {
+    expect(guide).toMatch(/Turn off the other sign-in methods/);
+    expect(guide).toMatch(/Email/);
+    expect(guide).toMatch(/anonymous/i);
+    expect(guide).toMatch(/Max rows/);
+    expect(guide).toMatch(/Security Advisor/);
+    expect(guide).toMatch(/highlighted/);
+  });
+
   it('never tells anyone to put a secret key in the app', () => {
     expect(guide).toMatch(/Never put the secret key/);
     expect(guide).not.toMatch(/service_role['"` ]*=|sb_secret_[A-Za-z0-9]/);

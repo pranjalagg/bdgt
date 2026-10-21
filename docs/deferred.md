@@ -19,6 +19,13 @@ Not deferred in the sense of dropped; it is the next plan. It covers the Supabas
 ### Acceptance of the database on the real project (waiting on the project owner)
 The SQL is tested on a real Postgres in the test suite, but not yet on a real Supabase project. Follow part 1 of `docs/sync-setup.md` and confirm every row of `supabase/tests/verify_setup.sql` is `true`. Then record the project URL and publishable key for plan 4.
 
+### Backend review leftovers (Supabase)
+- **The invite check could also require the Google provider** (`auth.jwt() -> 'app_metadata' -> 'providers'` contains `google`). Skipped because Supabase links accounts by email in ways that could lock out the real owner; the guide turns the other sign-in methods off instead. Revisit if Email sign-in is ever enabled. Size S.
+- **A deleted auth user whose token is still valid** hits the `user_id` foreign key (SQLSTATE 23503, HTTP 409) and its rows are parked as "rejected" instead of showing "sign in again". Rare. Fix: map 23503 on `user_id` to `auth`. `supabaseTransport.ts`. Size S.
+- **The PostgREST stand-in in tests is not PostgREST.** `json_populate_recordset(null::t)` fills missing keys with NULL rather than the column default, it applies no `max-rows`, and PGlite's owner is a superuser, so rights of Supabase's non-superuser `postgres` role on `auth.users` are not tested (the foreign key and the `analytics.users` view work on Supabase today). The first real-project run is the check for these.
+- **Pulls can stall if the project's Max rows is set below 1000** and more than that many rows fall in the 60-second overlap window. Documented in the setup guide; the engine fix is to stop paging on `fresh === 0` only, or to read `Content-Range`. `pull.ts`. Size S.
+- **Unknown request-size limits.** Whether Supabase's gateway caps a 500-row batch is unknown; a 413 is now treated as rejected, so the batch is split rather than retried whole.
+
 ### Phase 2 of sync (from the design's non-goals)
 - **Live updates between open devices (Supabase Realtime), and other tabs refreshing instantly.** Today a change shows up on the next sync cycle (a couple of seconds after an edit on the same device, up to five minutes for changes from another device). Size L.
 - **Account deletion and data download for invited users, from inside the app.** Today only the project owner can do either, in the dashboard. Size M.

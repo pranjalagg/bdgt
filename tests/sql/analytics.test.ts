@@ -97,6 +97,12 @@ describe('analytics views', () => {
     expect(s).toEqual([{ base_currency: 'INR', currency_confirmed: true }]);
   });
 
+  it('still show the currency when a setting holds something unexpected', async () => {
+    await pg.query(`update public.settings set value = '"yes"' where user_id = $1 and id = 'currencyConfirmed'`, [USER_A.id]);
+    const s = await rows(`select base_currency, currency_confirmed from analytics.user_settings where user_id = '${USER_A.id}'`);
+    expect(s).toEqual([{ base_currency: 'INR', currency_confirmed: false }]);
+  });
+
   it('list users with their emails', async () => {
     const u = await rows(`select email from analytics.users order by email`);
     expect(u).toEqual([{ email: USER_A.email }, { email: USER_B.email }]);

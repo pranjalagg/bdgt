@@ -24,7 +24,7 @@ You do part 1 once. It takes about 15 minutes. Nothing in it can change or delet
 
 ### 2. Apply the migrations
 
-Open **SQL Editor → New query** and run each file below, in this order, one at a time. Copy the whole file from this repository, paste it in, and press **Run**. Each should end with *Success. No rows returned*.
+Open **SQL Editor → New query** and run each file below, in this order, one at a time. Copy the whole file from this repository, paste it in, and press **Run** with **nothing highlighted**: when text is highlighted the editor runs only the highlighted part, which would leave tables half-created. Each should end with *Success. No rows returned*.
 
 1. `supabase/migrations/20261021000000_sync_core.sql` — the tables, the write rules and the access rules.
 2. `supabase/migrations/20261021000100_analytics.sql` — the views for studying your data.
@@ -45,12 +45,23 @@ To invite someone else later, add their email the same way. To stop someone sync
 
 In a new query paste the whole of `supabase/tests/verify_setup.sql` and run it. Every row in the result must say `true`. The last row is `true` only after step 3.
 
+Supabase's **Security Advisor** may then list two findings. Both are intended; do not "fix" them: *RLS enabled, no policy* on `allowed_users` (no policy is what keeps everyone but you out of the invite list), and *function can be executed by signed-in users* on `sync_account_state` (it only ever returns the caller's own data).
+
 ### 5. Check the API settings
 
 1. Open **Project Settings → Data API** (shown as *API* in older dashboards).
 2. Under **Exposed schemas**, only `public` (and `graphql_public`) should be listed. `analytics` and `private` must **not** be: they hold helper functions and every user's analysis views.
+3. Leave **Max rows** at its default of 1000. The app downloads in pages of 1000; a lower limit can leave newer rows undelivered.
 
-### 6. Copy the project's address and public key
+### 6. Turn off the other sign-in methods
+
+The invite list matches the email on a person's login, and Supabase offers email-and-password, phone and anonymous sign-up by default. Sync is meant to be reached with Google only, so close the others:
+
+1. Open **Authentication → Sign In / Providers** (menu names move around; look for the list of providers). Turn **off** *Email* and *Phone*. Google is set up in part 2.
+2. Turn **off** *Allow anonymous sign-ins*.
+3. If you ever turn Email back on for testing, keep *Confirm email* on, and turn it off again afterwards.
+
+### 7. Copy the project's address and public key
 
 Open **Project Settings → API Keys** and note:
 

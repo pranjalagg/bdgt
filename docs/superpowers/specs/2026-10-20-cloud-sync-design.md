@@ -65,7 +65,7 @@ studied in the Supabase SQL editor or copied to tools like BigQuery.
   - `extra jsonb not null default '{}'`: any record field the mapping does not know yet, so a forgotten migration never drops data.
 - Domain columns are nullable at the type level; a table-level `check (deleted_at is not null or (<required columns> is not null))` enforces required fields on live rows only, so a tombstone needs just its keys.
 - No foreign-key constraints between user tables: rows from different devices can arrive in any order, and one orphaned historic transaction must not block sync forever. Views use left joins.
-- Index on `(user_id, synced_at, id)` for pulls, plus indexes for common joins (`bucket_id`, `lot_id`, `month`).
+- Index on `(user_id, synced_at, id)` for pulls. No other indexes: the app never queries these tables by anything else, and the analytics views are for a single owner at personal scale. Add one in a new migration if a view ever gets slow.
 
 ### Tables
 
@@ -99,9 +99,9 @@ Plus `allowed_users (email text primary key, note text, added_at timestamptz def
 ### Access control
 
 - Row-level security on every synced table, one policy template applied to all tables in a loop: `select`, `insert` and `update` only where `user_id = auth.uid()` and `public.sync_is_allowed()`; inserts and updates also `with check` the same. No `delete` policy: deletes are soft.
-- `sync_is_allowed()` is `security definer`: true when `auth.jwt() ->> 'email'` (lowercased) is in `allowed_users`. Google emails are verified.
+- `sync_is_allowed()` is `security definer`: true when `auth.jwt() ->> 'email'` (lowercased) is in `allowed_users`. Google emails are verified, but the check trusts the email claim from *any* sign-in method, so the setup guide has the owner turn off Email, Phone and anonymous sign-in: Google is the only way in. (The invite list only holds lower-case emails without surrounding spaces; a row inserted without an edit time is stamped now.)
 - `allowed_users` has row-level security enabled with no policies: unreachable through the API, maintained in the dashboard.
-- `sync_account_state()` (`security definer`), called once after sign-in, returns `{ allowed, schema_version, buckets (live rows, only when allowed), has_other_rows (any live row in any other table, only when allowed) }`.
+- `sync_account_state()` (`security definer`), called once after sign-in, returns `{ allowed, schemaVersion, buckets (live rows, only when allowed), hasOtherRows (any live row in any other table, only when allowed) }`.
 - `sync_schema_version()` returns the migration level the database is at.
 - The app holds only the publishable key (`sb_publishable_…`), never a secret key.
 

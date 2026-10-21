@@ -19,7 +19,7 @@ create view analytics.user_settings as
   select
     user_id,
     max(value #>> '{}') filter (where id = 'baseCurrency') as base_currency,
-    (max(value #>> '{}') filter (where id = 'currencyConfirmed'))::boolean as currency_confirmed
+    coalesce((max(value #>> '{}') filter (where id = 'currencyConfirmed')) = 'true', false) as currency_confirmed
   from public.settings
   where deleted_at is null
   group by user_id;

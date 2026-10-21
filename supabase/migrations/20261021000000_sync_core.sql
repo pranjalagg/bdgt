@@ -16,7 +16,7 @@ grant usage on schema private to authenticated;
 -- The invite list. Nobody can read or change it through the API; maintain it
 -- in the dashboard (Table editor or SQL editor).
 create table public.allowed_users (
-  email text primary key check (email = lower(email)),
+  email text primary key check (email = lower(btrim(email))),
   note text,
   added_at timestamptz not null default now()
 );
@@ -48,7 +48,9 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  new.updated_at := least(new.updated_at, now() + interval '1 minute');
+  -- coalesce: a row added without an edit time (the dashboard's table editor)
+  -- is stamped now, not left to the cap below.
+  new.updated_at := least(coalesce(new.updated_at, now()), now() + interval '1 minute');
   if tg_op = 'UPDATE' then
     if new.updated_at < old.updated_at then
       return null;

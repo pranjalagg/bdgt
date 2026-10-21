@@ -59,6 +59,20 @@ describe('mapPostgrestError', () => {
     expect(kind({ status: 400, code: '22P02', message: 'invalid input syntax' })).toBe('rejected');
   });
 
+  it('treats a request too large to store as rejected, so the batch is split instead of resent whole forever', () => {
+    expect(kind({ status: 413, message: 'Payload Too Large' })).toBe('rejected');
+    expect(kind({ status: 400, code: '54000', message: 'index row size exceeds maximum' })).toBe('rejected');
+  });
+
+  it('does not call a bare gateway 403 "not invited"; only the database refusal is', () => {
+    expect(kind({ status: 403, message: 'Forbidden' })).toBe('network');
+    expect(kind({ status: 403, code: '42501', message: 'row-level security' })).toBe('notAllowed');
+  });
+
+  it('treats a conflict target that no longer matches the table as an out-of-date database', () => {
+    expect(kind({ status: 400, code: '42P10', message: 'there is no unique or exclusion constraint matching the ON CONFLICT specification' })).toBe('schema');
+  });
+
   it('retries rather than parks anything it does not recognise', () => {
     expect(kind({ status: 418, code: 'XX999', message: 'teapot' })).toBe('network');
   });

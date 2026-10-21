@@ -19,6 +19,7 @@ const SCHEMA_CODES = new Set([
   '42703', // undefined column
   '42P01', // undefined table
   '42883', // undefined function
+  '42P10', // ON CONFLICT target no longer matches a constraint: the schema has drifted
 ]);
 
 const NETWORK_MESSAGE = /fetch|network|load failed|timeout|timed out|abort/i;
@@ -32,13 +33,15 @@ export function mapPostgrestError(failure: PostgrestFailure): SyncError {
   const code = failure.code ?? '';
 
   if (status === 401 || code.startsWith('PGRST30') || code.startsWith('28')) return new SyncError('auth', message);
-  if (code === '42501' || status === 403) return new SyncError('notAllowed', message);
+  // Only the database's own refusal means "not invited"; a bare 403 may come from a gateway.
+  if (code === '42501') return new SyncError('notAllowed', message);
   if (SCHEMA_CODES.has(code)) return new SyncError('schema', message);
   if (status === 0 || status === 408 || status === 429 || (status >= 500 && !code) || NETWORK_MESSAGE.test(message)) {
     return new SyncError('network', message);
   }
-  // A constraint or data problem with a row: the batch is refused for good.
-  if (/^(21|22|23)/.test(code) || code === 'P0001' || [400, 409, 422].includes(status)) {
+  // A constraint or data problem with a row (or a payload too big to store):
+  // the batch is refused for good, so the engine splits it to find the cause.
+  if (/^(21|22|23|54)/.test(code) || code === 'P0001' || [400, 409, 413, 422].includes(status)) {
     return new SyncError('rejected', message);
   }
   // Unknown: retry later rather than park the person's data.

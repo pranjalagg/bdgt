@@ -160,6 +160,13 @@ describe('write rules', () => {
     expect((await pg.query<{ user_id: string }>(`select user_id from public.allocations where id = 'a'`)).rows[0].user_id).toBe(USER_A.id);
   });
 
+  it('stamps a row inserted without an edit time with now, not a time in the future', async () => {
+    await asOwner(pg);
+    await pg.query(`insert into public.allocations (user_id, id, month, bucket_id, amount_cents) values ($1, 'dash', '2026-10', 'b', 1)`, [USER_A.id]);
+    const { rows } = await pg.query<{ future: boolean }>(`select updated_at > now() + interval '5 seconds' as future from public.allocations where id = 'dash'`);
+    expect(rows[0].future).toBe(false);
+  });
+
   it('keeps fields it does not know in extra', async () => {
     await upsert('allocations', [alloc('a', at('2026-01-01T00:00:00Z'), 1, { extra: { futureField: 1 } })]);
     expect((await pg.query<{ extra: unknown }>(`select extra from public.allocations where id = 'a'`)).rows[0].extra).toEqual({ futureField: 1 });
@@ -189,6 +196,15 @@ describe('constraints', () => {
   it('refuses a batch containing a bad row and stores none of it', async () => {
     expect(await code(upsert('allocations', [alloc('good', at('2026-01-01T00:00:00Z')), alloc('bad', at('2026-01-01T00:00:00Z'), 1, { month: 'nope' })]))).toBe('23514');
     expect((await pg.query(`select 1 from public.allocations`)).rows).toEqual([]);
+  });
+});
+
+describe('the invite list', () => {
+  it('only accepts emails already in lower case with no surrounding spaces', async () => {
+    await asOwner(pg);
+    for (const bad of [' you@gmail.com', 'you@gmail.com ', 'You@Gmail.com']) {
+      await expect(pg.query(`insert into public.allowed_users (email) values ($1)`, [bad]), bad).rejects.toMatchObject({ code: '23514' });
+    }
   });
 });
 
