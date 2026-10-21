@@ -112,7 +112,7 @@ Supabase signs people in with Google, so it needs a "client" registered with Goo
    `localhost` is not added: it needs no registration.
 4. Leave everything else on the page **empty**: *App logo*, *Application home page*, *Application privacy policy link* and *Application terms of service link*.
 5. **Do not upload a logo.** It is optional, and adding one makes Google require a verification review (days to weeks) before you can publish. Without a logo, Google shows a plain letter icon, which is fine for a personal app.
-6. Press **Save** (the button turns grey once saved). If **Publish app** later says *To publish your app, you must complete your configuration on the Branding page*, a required field on this page is empty or the page was not saved: open it again, fill in the three fields above, and press **Save**. If it names a field I have not listed, tell me which.
+6. Press **Save** (the button turns grey once saved).
 7. Open **Audience**: choose **External** (this allows any Google account; the invite list then restricts who can sync). Add your email under **Contact information** if it asks, accept the policy checkbox and save.
 
 **c. Scopes**
