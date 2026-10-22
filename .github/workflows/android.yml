@@ -49,6 +49,11 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.VITE_GOOGLE_WEB_CLIENT_ID }}
+      # Development helpers (fake phone, sample payments) live behind
+      # import.meta.env.DEV and must never ship.
+      - name: No development helpers in the build
+        run: |
+          if grep -rlE '__bdgt[A-Za-z]+' build/; then echo "Development helpers found in the build"; exit 1; fi
       - run: npx cap sync android
       # The same signing key every run, so a new test build installs over the
       # last one and Google keeps recognising the app. It lives in a

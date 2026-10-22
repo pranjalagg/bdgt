@@ -31,6 +31,11 @@ jobs:
           # design; never put a secret or service_role key here.
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      # Development helpers (fake phone, sample payments) live behind
+      # import.meta.env.DEV and must never ship.
+      - name: No development helpers in the build
+        run: |
+          if grep -rlE '__bdgt[A-Za-z]+' build/; then echo "Development helpers found in the build"; exit 1; fi
       - run: cp build/index.html build/404.html
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -13,6 +13,12 @@ describe('deployment configuration', () => {
   });
 });
 
+describe('development helpers', () => {
+  it('are checked out of both builds', () => {
+    for (const w of [workflow, androidWorkflow]) expect(w).toContain("grep -rlE '__bdgt[A-Za-z]+' build/");
+  });
+});
+
 describe('Android build configuration', () => {
   it('passes the sync variables and the Google client ID from repository variables, never secrets', () => {
     expect(androidWorkflow).toMatch(/VITE_SUPABASE_URL: \$\{\{ vars\.VITE_SUPABASE_URL \}\}/);
