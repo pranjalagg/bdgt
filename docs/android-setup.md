@@ -103,6 +103,47 @@ When the same payment shows up twice (the bank's SMS and the UPI app), the secon
 
 Open **Recorded notifications** at the bottom of the section: under each notification it says what the app made of it (**Payment: …** or **Skipped: …**). Tap **Share log**, send the file, and say which one is wrong. Reference, account and phone numbers are masked to their last two digits; amounts and dates are kept. Names are not masked, so look through the file first. **Clear log** deletes the recordings from the phone; payments already in Review stay. Signing out also turns capture off and clears the log.
 
+## Checking real messages without paying (development only)
+
+Copy a notification or SMS word for word and see what the app makes of it, in a browser on your Mac. These helpers exist only under `npm run dev`: the website and the Android app are built without them, and CI fails the build if one ever appears in it.
+
+1. Start the app with sync off, so nothing reaches your account: `VITE_SUPABASE_URL= npm run dev`. (Signed in, the fake phone refuses to start.)
+2. Open it in the browser and open the developer console (⌥⌘J in Chrome).
+3. Ask the parser, which changes nothing:
+   ```js
+   __bdgtParse('sms', 'VM-HDFCBK', 'Rs.250.00 debited from A/c XX1234 on 21-10-26 to VPA swiggy@icici. UPI Ref 612345678902')
+   // → 'Payment: ₹250.00 · swiggy@icici (card or account ••1234)'
+   __bdgtParse('wallet', 'Starbucks', '$5.45 with Visa •••• 1234')
+   ```
+   The first argument is the source: `'wallet'`, `'gpay'`, `'phonepe'`, `'paytm'` (then the notification's title and text) or `'sms'` (then the sender as the Messages app shows it, such as `VM-HDFCBK` or `HDFC Bank`, and the message). Copy the sender exactly: messages from contacts and phone numbers are never read. The answer is a payment, *Skipped: …* with the reason, or *The phone would not keep this: …* when the phone itself would drop it.
+4. For the whole flow, start a fake phone and send it notifications; payments appear in Review, the dashboard and Settings → Automatic capture, as on the phone:
+   ```js
+   await __bdgtFakePhone()
+   __bdgtNotify('sms', 'VM-SBIUPI', 'Dear UPI user A/C X1234 debited by 250.0 on date 21Oct26 trf to SWIGGY Refno 612345678904')
+   __bdgtNotify('phonepe', 'Paid ₹250 to Swiggy', 'UPI transaction successful', 1) // optional: minutes ago
+   ```
+   Move between pages with the app's menu: reloading the page turns the fake phone off (payments already in Review stay).
+
+## Changing what is read
+
+Everything below has tests in `tests/lib/capture/`. When a message is read wrongly: add it to `tests/lib/capture/parse.test.ts` with what it should give (copy a test next to it), run `npx vitest run tests/lib/capture/parse.test.ts`, change the pattern until it passes, then run all tests (`npx vitest run`).
+
+| To change | Where |
+|---|---|
+| Amounts and currencies (`Rs.`, `₹`, `INR`, `$`, …), and which amounts are balances or limits | `src/lib/capture/parse.ts`: `AMOUNT`, `BALANCE_BEFORE`, `currencyFor` |
+| Payment or not: money out, money in, refunds, failures, requests, offers, upcoming debits and statements | `parse.ts`: `OUT`, `IN`, `SENT`, `CREDIT`, `REFUND`, `FAILED`, `REQUEST`, `UPCOMING`, `PROMO`, and the order they are checked in `classify` |
+| The payee | `parse.ts`: `SPECIFIC` (one bank's own shape, such as SBI's `trf to SWIGGY Refno`), `GENERIC` (`to X`, `at X`, `transaction with X`), `NOT_A_PAYEE` (words that are never a payee) |
+| Card or account digits, UPI reference | `parse.ts`: `ACCOUNT`, `MASKED`, `REFERENCE`, `P2M_REFERENCE` |
+| Card bill, cash withdrawal, UPI Lite top-up, own-account transfer | `parse.ts`: `findHint` |
+| Bank names from sender IDs (`HDFCBK` → HDFC Bank), which senders count as banks | `parse.ts`: `BANK_SENDERS`, `isBusinessSender` |
+| Supported apps and their names; Wallet titles that are not a merchant | `parse.ts`: `APPS`, `GENERIC_TITLE` |
+| Merchant kinds behind first suggestions (Swiggy → Dining Out) | `src/lib/capture/payee.ts`: `KINDS` |
+| When two payees are the same (`SQ *BLUE BOTTLE #12` = `Blue Bottle`) | `payee.ts`: `normalizeName` |
+| When two notifications are the same payment | `src/lib/capture/dedupe.ts` |
+| What the phone keeps at all (before any of the above) | `android/app/src/main/java/io/github/pranjalagg/bdgt/capture/KeepRules.kt`, mirrored for the fake phone in `src/lib/capture/devPhone.ts` (change both). Tests: `android/app/src/test/.../KeepRulesTest.kt`, run by CI |
+
+Changes in `src/` reach the phone with the next build: push to the branch and install the new APK from the run. `KeepRules.kt` changes are checked only by CI (no Android tools on the Mac).
+
 ## Building it yourself
 
 ```sh

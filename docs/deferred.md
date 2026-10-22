@@ -104,7 +104,7 @@ Checked by the project owner against `http://localhost:5173/settings` with the r
 - **Parsers are built from known message shapes, not real ones.** Fixtures in `tests/lib/capture/parse.test.ts` are made up; Google Wallet's real wording has not been seen yet. Add each test group log's misreads as fixtures and fix `src/lib/capture/parse.ts`. Ongoing.
 - **A duplicate's better name is not used.** The bank SMS shows `swiggy@icici` while the PhonePe copy folded under it said *Swiggy*. Fix: when folding, give a still-pending original whose merchant is a UPI ID the duplicate's name (an automatic write). `bringIn.ts`. Size S.
 - **Stored text is not read again after a parser fix,** so past misreads stay as they were (the full text is kept in `captureRaw` for 30 days). Size S–M.
-- **A bare `$` is read as the budget's own dollar (else USD), and an amount without any currency (SBI) as the budget's currency.** Right for the test group; wrong for travel. Size S.
+- **A bare `$` is read as the budget's own dollar (else USD); an amount without any currency is read as rupees from an Indian bank sender ID, otherwise as the budget's currency.** Right for the test group; wrong for some travel. Size S.
 - **Few merchants have a kind** (the dictionary in `src/lib/capture/payee.ts`); most suggestions will come from learned rules. Grow it from the logs. Size S.
 - **The listener and plugin changes of this stage have only run in CI** (unit tests and a build), not on a phone yet.
 
