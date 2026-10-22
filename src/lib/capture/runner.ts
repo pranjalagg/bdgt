@@ -46,10 +46,10 @@ export function bringInSoon(): Promise<void> {
   return running;
 }
 
-export function startCapture(): void {
-  if (started || !isAndroidApp()) return;
+export function startCapture(): Promise<void> {
+  if (started || !isAndroidApp()) return Promise.resolve();
   started = true;
-  void (async () => {
+  return (async () => {
     const capture = await getCapture();
     if (!capture || stopped) return;
     plugin = capture.plugin;

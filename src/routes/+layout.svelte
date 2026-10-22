@@ -22,7 +22,12 @@
 	let { children } = $props();
 
 	onMount(() => {
-		if (import.meta.env.DEV) void import('$lib/capture/devSamples').then((m) => m.installSampleCaptures());
+		// Development only: Vite sets import.meta.env.DEV to false in every build
+		// (website and Android app) and drops these imports.
+		if (import.meta.env.DEV) {
+			void import('$lib/capture/devSamples').then((m) => m.installSampleCaptures());
+			void import('$lib/capture/devPhone').then((m) => m.installDevPhone());
+		}
 		const stopClock = startClock();
 		void init();
 		return stopClock;
@@ -38,7 +43,7 @@
 		// Sync is an extra: the app is already usable, so it starts in the background.
 		void initSync();
 		// Android app only: payments the phone noticed go to Review.
-		startCapture();
+		void startCapture();
 	}
 </script>
 

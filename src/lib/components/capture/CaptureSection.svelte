@@ -2,12 +2,9 @@
   import { onMount } from 'svelte';
   import { getCapture, type CapturePlugin, type CaptureStatus, type InstalledSource, type KeptItem } from '$lib/capture/native';
   import { buildLogFile, logFilename } from '$lib/capture/logExport';
-  import { parseItem, SKIP_TEXT } from '$lib/capture/parse';
-  import { displayMerchant } from '$lib/capture/payee';
-  import { HINT_TEXT } from '$lib/capture/queue';
+  import { describeItem } from '$lib/capture/describe';
   import { baseCurrency } from '$lib/stores/currencyStore';
   import { getSyncApp, syncEnabled } from '$lib/sync/browser';
-  import { formatMoney } from '$lib/utils/currency';
 
   // Android app only. Reads payment notifications on this phone and sends
   // each payment to Review. On a build with sync, payments wait on the phone
@@ -29,12 +26,7 @@
   $: notRunning = !!status && status.enabled && status.accessGranted && !status.listenerConnected;
 
   // What the app makes of an item: shown in the log and written into the shared file.
-  function describe(item: KeptItem): string {
-    const r = parseItem(item, $baseCurrency);
-    if (!r.ok) return `Skipped: ${SKIP_TEXT[r.reason]}`;
-    const p = r.payment;
-    return `Payment: ${formatMoney(p.amount, p.currency)} · ${displayMerchant(p)}${p.hint ? ` (${HINT_TEXT[p.hint].toLowerCase()})` : ''}`;
-  }
+  const describe = (item: KeptItem) => describeItem(item, $baseCurrency);
 
   async function refresh() {
     if (!plugin) return;

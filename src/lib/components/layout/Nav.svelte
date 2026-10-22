@@ -67,7 +67,7 @@
           </svg>
           <span>{item.label}</span>
           {#if item.icon === 'list' && $pendingCaptures.length > 0}
-            <span class="ml-auto rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-5 text-white dark:text-gray-900" aria-label="{$pendingCaptures.length} payments to review">{$pendingCaptures.length}</span>
+            <span class="ml-auto rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-5 text-white dark:text-gray-900" aria-label="{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review">{$pendingCaptures.length}</span>
           {/if}
         </a>
       </li>
@@ -96,7 +96,7 @@
               {@html iconPaths[item.icon]}
             </svg>
             {#if item.icon === 'list' && $pendingCaptures.length > 0}
-              <span class="absolute -right-2 -top-1.5 min-w-[16px] rounded-full bg-primary px-1 text-center text-[10px] font-semibold leading-4 text-white dark:text-gray-900" aria-label="{$pendingCaptures.length} payments to review">{$pendingCaptures.length}</span>
+              <span class="absolute -right-2 -top-1.5 min-w-[16px] rounded-full bg-primary px-1 text-center text-[10px] font-semibold leading-4 text-white dark:text-gray-900" aria-label="{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review">{$pendingCaptures.length}</span>
             {/if}
             {#if item.icon === 'cog' && $attention}
               <span class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-danger" role="img" aria-label="Sync needs attention"></span>
