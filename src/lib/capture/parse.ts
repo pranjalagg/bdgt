@@ -64,6 +64,8 @@ export function isBusinessSender(sender: string | undefined): boolean {
   return s === s.toUpperCase() && /[A-Z0-9]/.test(s);
 }
 
+const INDIAN_SENDER_ID = /^(?:[A-Z]{2}-)?[A-Z0-9]{6}(?:-[A-Z])?$/;
+
 export function bankLabel(sender: string | undefined): string {
   const s = (sender ?? '').trim();
   const core = /^(?:[A-Z]{2}-)?([A-Z0-9]{6})(?:-[A-Z])?$/.exec(s)?.[1];
@@ -85,7 +87,7 @@ const BALANCE_BEFORE = /\b(?:bal|balance|lmt|limit)\b[\s:.\-a-z]*$/i;
 
 const DOLLARS: CurrencyCode[] = ['USD', 'CAD', 'AUD', 'SGD'];
 
-function currencyFor(marker: string | undefined, base: CurrencyCode): CurrencyCode {
+function currencyFor(marker: string | undefined, base: CurrencyCode, unmarked: CurrencyCode): CurrencyCode {
   const m = (marker ?? '').toLowerCase();
   if (m === '₹' || m.startsWith('rs') || m === 'inr' || m.startsWith('rupee')) return 'INR';
   if (m === '€' || m === 'eur') return 'EUR';
@@ -96,17 +98,18 @@ function currencyFor(marker: string | undefined, base: CurrencyCode): CurrencyCo
   if (m === 'a$' || m === 'aud') return 'AUD';
   if (m === 's$' || m === 'sgd') return 'SGD';
   if (m === '$') return DOLLARS.includes(base) ? base : 'USD';
-  return base; // unmarked: the budget's own currency
+  return unmarked;
 }
 
-// The first amount that is not a balance or a credit limit.
-export function findAmount(text: string, base: CurrencyCode): { amount: number; currency: CurrencyCode } | null {
+// The first amount that is not a balance or a credit limit. `unmarked` is
+// the currency of an amount written without one (SBI's "debited by 250.0").
+export function findAmount(text: string, base: CurrencyCode, unmarked: CurrencyCode = base): { amount: number; currency: CurrencyCode } | null {
   for (const m of text.matchAll(AMOUNT)) {
     if (BALANCE_BEFORE.test(text.slice(Math.max(0, m.index - 30), m.index))) continue;
     const digits = (m[3] ?? m[4] ?? m[6])!.replace(/,/g, '');
     const amount = Math.round(Number(digits) * 100);
     if (!Number.isFinite(amount) || amount <= 0) continue;
-    return { amount, currency: currencyFor(m[1] ?? m[2] ?? m[5], base) };
+    return { amount, currency: currencyFor(m[1] ?? m[2] ?? m[5], base, unmarked) };
   }
   return null;
 }
@@ -219,7 +222,9 @@ export function parseItem(item: KeptItem, base: CurrencyCode): ParseResult {
 
   const skip = classify(text, source);
   if (skip) return { ok: false, reason: skip };
-  const found = findAmount(text, base);
+  // An Indian bank sender ID (VM-SBIUPI) means rupees when no currency is written.
+  const indian = item.kind === 'sms' && INDIAN_SENDER_ID.test((item.sender ?? item.title ?? '').trim());
+  const found = findAmount(text, base, indian ? 'INR' : base);
   if (!found) return { ok: false, reason: 'no-amount' };
 
   const upiId = UPI_ID.exec(text)?.[1]?.toLowerCase();

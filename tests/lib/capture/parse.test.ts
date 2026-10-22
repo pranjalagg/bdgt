@@ -54,6 +54,11 @@ describe('bank SMS', () => {
     expect(p).toMatchObject({ sourceLabel: 'SBI SMS', amount: 25000, currency: 'INR', merchant: 'SWIGGY', accountHint: '1234', reference: '612345678904' });
   });
 
+  it('reads an SBI amount as rupees whatever the budget\'s currency', () => {
+    const p = payment(parseItem(sms('VM-SBIUPI', 'Dear UPI user A/C X1234 debited by 250.0 on date 21Oct26 trf to SWIGGY Refno 612345678904'), 'USD'));
+    expect(p).toMatchObject({ amount: 25000, currency: 'INR' });
+  });
+
   it('Axis UPI', () => {
     const p = payment(parseItem(sms('AX-AXISBK', 'INR 250.00 debited\nA/c no. XX1234\n21-10-26, 12:00:00\nUPI/P2M/612345678905/SWIGGY\nNot you? SMS BLOCKUPI Cust ID to 919951860002\nAxis Bank'), 'INR'));
     expect(p).toMatchObject({ amount: 25000, merchant: 'SWIGGY', accountHint: '1234', reference: '612345678905' });
