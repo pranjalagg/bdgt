@@ -141,14 +141,6 @@ class CapturePlugin : Plugin() {
         call.resolve()
     }
 
-    // Signing out: recording stops and everything recorded on this phone goes.
-    @PluginMethod
-    fun reset(call: PluginCall) {
-        CaptureSettings(context).enabled = false
-        CaptureStore.get(context).clear()
-        call.resolve()
-    }
-
     // Hands text to the share sheet as a file: the WebView cannot save files
     // from a link, so backups and the capture log leave the app this way.
     @PluginMethod

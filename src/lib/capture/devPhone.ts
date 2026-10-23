@@ -96,10 +96,6 @@ function fakePlugin() {
       items: items.filter((i) => !acked.has(i.id)).sort((a, b) => a.postedAt - b.postedAt).slice(0, limit),
     }),
     ack: async ({ ids }) => ids.forEach((id) => acked.add(id)),
-    reset: async () => {
-      status.enabled = false;
-      items.splice(0);
-    },
     share: async ({ text }) => console.log(text),
     addListener: async (_event, listener) => {
       listeners.push(listener);

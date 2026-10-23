@@ -62,11 +62,11 @@ export function startCapture(): Promise<void> {
   })().catch((e) => console.error('Payment capture could not start', e));
 }
 
-// Signing out: nothing more reaches the queue, recording stops and the
-// phone's log is emptied, before the device's data is cleared.
+// Signing out: nothing more reaches the queue while the device's data is
+// cleared. Recording goes on and the log stays (they hold nothing the phone's
+// own notifications and messages do not); payments wait on the phone until
+// it is signed in again.
 export async function stopCapture(): Promise<void> {
   stopped = true;
   await running;
-  const capture = await getCapture();
-  await capture?.plugin.reset();
 }

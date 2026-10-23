@@ -101,7 +101,7 @@ When the same payment shows up twice (the bank's SMS and the UPI app), the secon
 
 ## When a payment is read wrongly or missed
 
-Open **Recorded notifications** at the bottom of the section: under each notification it says what the app made of it (**Payment: …** or **Skipped: …**). Tap **Share log**, send the file, and say which one is wrong. Reference, account and phone numbers are masked to their last two digits; amounts and dates are kept. Names are not masked, so look through the file first. **Clear log** deletes the recordings from the phone; payments already in Review stay. Signing out also turns capture off and clears the log.
+Open **Recorded notifications** at the bottom of the section: under each notification it says what the app made of it (**Payment: …** or **Skipped: …**). Tap **Share log**, send the file, and say which one is wrong. Reference, account and phone numbers are masked to their last two digits; amounts and dates are kept. Names are not masked, so look through the file first. **Clear log** deletes the recordings from the phone; payments already in Review stay. Signing out leaves capture on and keeps the log; payments that arrive while signed out wait on the phone and go to Review when you sign in again.
 
 ## Checking real messages without paying (development only)
 

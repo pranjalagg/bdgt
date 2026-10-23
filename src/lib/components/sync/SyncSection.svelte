@@ -140,7 +140,7 @@
       </div>
 
       <p class="text-sm text-muted">
-        Your data is stored in a database controlled by whoever runs this app. Signing out of a synced device clears it; your data stays in your account.{#if androidApp} Automatic capture turns off and its recorded notifications are deleted from this phone.{/if}
+        Your data is stored in a database controlled by whoever runs this app. Signing out of a synced device clears it; your data stays in your account.{#if androidApp} Automatic capture keeps recording; new payments wait on this phone until you sign in again.{/if}
       </p>
     </div>
   {/if}

@@ -110,7 +110,6 @@ Plugin interface (`src/lib/capture/native.ts`; on the web every call is a no-op)
 | `ack({ ids })` | Marks items brought in; they stay as the capture log |
 | `setPendingCount({ count })` | For the reminder (with the reminder) |
 | `list()`, `clear()` | The capture log, newest first; **Clear log** empties it |
-| `reset()` | Sign-out: turns capture off and empties the log |
 | event `itemKept` | While the app is open, starts bringing items in |
 
 ### Sign-in on Android
@@ -274,7 +273,7 @@ Dismissing writes the capture and deletes transaction `capture:<captureId>`, whi
 
 ## Other changes
 
-- Sign-out turns capture off, clears the plugin's buffer and `captureRaw`, and clears captures and rules with the rest of the data.
+- Sign-out clears `captureRaw`, captures and rules with the rest of the data, after bringing in has stopped. Capture keeps recording and its log stays (they hold nothing the phone's own notifications and messages do not); payments that arrive while signed out wait on the phone until it is linked again. (Stage 4 first turned capture off and emptied the log; the owner lost a log that way and found capture off after signing back in.)
 - Reset clears captures, rules and `captureRaw` (`resetAllData` lists its tables explicitly today).
 - Import replaces budget data and leaves captures and rules alone; a rule pointing at a bucket that no longer exists stops suggesting.
 - The quiet reload after a sync also reloads the capture stores.

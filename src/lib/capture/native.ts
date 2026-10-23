@@ -48,7 +48,6 @@ export interface CapturePlugin {
   clear(): Promise<void>; // empties the log
   takePending(options?: { limit?: number }): Promise<{ items: KeptItem[] }>; // oldest first, kept until ack
   ack(options: { ids: string[] }): Promise<void>;
-  reset(): Promise<void>; // sign-out: recording off, log emptied
   share(options: { filename: string; text: string; mimeType: string }): Promise<void>;
   addListener(event: 'itemKept', listener: (item: KeptItem) => void): Promise<PluginListenerHandle>;
 }
