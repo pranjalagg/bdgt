@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import { haptic } from '$lib/ui/haptics';
 
   // An iOS switch. The visible label sits beside it; `label` names it for
@@ -6,6 +7,8 @@
   export let checked = false;
   export let label: string;
   export let id: string | undefined = undefined;
+
+  const dispatch = createEventDispatcher<{ change: boolean }>();
 </script>
 
 <button
@@ -18,6 +21,7 @@
   on:click={() => {
     checked = !checked;
     haptic('selection');
+    dispatch('change', checked);
   }}
 ></button>
 

@@ -16,6 +16,7 @@
 	import { loadData, isLoading } from '$lib/stores/budgetStore';
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
 	import { loadGoals } from '$lib/stores/goalsStore';
+	import { loadHomeLayout } from '$lib/stores/homeLayoutStore';
 	import { loadCaptures } from '$lib/stores/captureStore';
 	import { startCapture } from '$lib/capture/runner';
 	import { startClock } from '$lib/stores/uiStore';
@@ -65,6 +66,7 @@
 	async function init() {
 		await loadCurrency();
 		await loadData();
+		await loadHomeLayout();
 		await loadRecurring();
 		await loadGoals();
 		await loadCaptures();

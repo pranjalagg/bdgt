@@ -2,6 +2,7 @@ import { loadData } from './budgetStore';
 import { loadCaptures } from './captureStore';
 import { loadCurrency } from './currencyStore';
 import { loadGoals } from './goalsStore';
+import { loadHomeLayout } from './homeLayoutStore';
 import { loadInvestments } from './investmentStore';
 import { loadRecurring, processRecurring } from './recurringStore';
 
@@ -11,6 +12,7 @@ import { loadRecurring, processRecurring } from './recurringStore';
 export async function reloadAllStores(): Promise<void> {
   await loadCurrency({ keepPrompt: true });
   await loadData({ background: true });
+  await loadHomeLayout();
   await loadRecurring();
   await loadGoals();
   await loadInvestments();

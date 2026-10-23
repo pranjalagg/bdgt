@@ -9,6 +9,9 @@
   export let title: string;
   export let large = true;
   export let back: { href: string; label: string } | null = null;
+  // Shown in the bar once scrolled, when it should differ from the heading
+  // (Home shows today's figure there). Treated as an amount for Hide amounts.
+  export let compactTitle: string | null = null;
 
   let top: HTMLElement;
   let below: HTMLElement;
@@ -48,7 +51,7 @@
       {/if}
       <slot name="leading" />
     </div>
-    <span class="title pointer-events-none absolute left-1/2 top-1/2 max-w-[50%] truncate text-[17px] font-semibold text-label" class:show={compact} aria-hidden={!compact || large}>{title}</span>
+    <span class="title pointer-events-none absolute left-1/2 top-1/2 max-w-[50%] truncate text-[17px] font-semibold text-label" class:amt={compactTitle !== null} class:show={compact} aria-hidden={!compact || large}>{compactTitle ?? title}</span>
     <div class="flex flex-1 items-center justify-end gap-1.5">
       <slot name="trailing" />
     </div>

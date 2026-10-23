@@ -117,10 +117,74 @@ async function smoke(browser, errors) {
   const results = [];
   const text = (t) => page.getByText(t, { exact: false }).first();
   await step(results, 'import sample backup', async () => { await seed(page); });
-  await step(results, 'dashboard shows safe to spend and envelopes', async () => {
+  const heroFigure = () => page.locator('section[aria-label="Safe to spend"] [role=img]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')).join(''));
+  const homeHeadings = () => page.locator('main h2').allTextContents();
+  await step(results, 'Home shows safe to spend $234.47 and the plan pill', async () => {
     await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
-    await text('Safe to spend').waitFor({ timeout: 4000 });
+    await text('Safe to spend today').waitFor({ timeout: 4000 });
+    const fig = await heroFigure();
+    if (fig !== '$234.47') throw new Error('hero reads ' + fig);
+    await page.getByText(/\$[\d,.]+ (under|over) plan/).first().waitFor({ timeout: 2000 });
     await text('Grocery').waitFor({ timeout: 4000 });
+  });
+  await step(results, 'scrubbing the pace chart changes the hero label, releasing restores it', async () => {
+    const box = await page.locator('.pace').boundingBox();
+    await page.mouse.move(box.x + box.width * 0.3, box.y + 60); await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.4, box.y + 60, { steps: 4 });
+    await text('Spent on everyday envelopes by Oct').waitFor({ timeout: 2000 });
+    await text('Plan by then').waitFor({ timeout: 2000 });
+    await page.mouse.up();
+    await text('Safe to spend today').waitFor({ timeout: 2000 });
+    if (await page.getByText('Spent on everyday envelopes by').count()) throw new Error('scrub label stayed');
+  });
+  await step(results, 'Edit Home: turn on Upcoming bills, it appears; reorder Recent above Envelopes; reload keeps both', async () => {
+    if ((await homeHeadings()).includes('Upcoming bills')) throw new Error('bills on by default');
+    await page.getByRole('button', { name: 'Edit Home' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Edit Home' });
+    await sheet.waitFor({ timeout: 3000 }); await page.waitForTimeout(400);
+    await sheet.getByRole('switch', { name: 'Show Upcoming bills' }).click();
+    await sheet.getByRole('button', { name: 'Move Recent activity' }).press('ArrowUp');
+    // The tap menu and dragging move cards too.
+    await sheet.getByRole('button', { name: 'Move Month notes' }).click();
+    await sheet.getByRole('button', { name: 'Move up', exact: true }).click();
+    const grip = await sheet.getByRole('button', { name: 'Move Upcoming bills' }).boundingBox();
+    const rowH = await sheet.locator('li').first().evaluate((li) => li.offsetHeight);
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2); await page.mouse.down();
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2 + rowH * 1.1, { steps: 8 }); await page.mouse.up();
+    const order = await sheet.locator('li [id^="home-card-"]').allTextContents();
+    const want = ['Payments to review', 'Recent activity', 'Envelopes', 'Savings goals', 'Upcoming bills', 'Month notes', 'Savings rate'];
+    if (order.join('|') !== want.join('|')) throw new Error('sheet order ' + order.join(', '));
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+    const check = async (when) => {
+      const h = await homeHeadings();
+      if (!h.includes('Upcoming bills')) throw new Error('bills missing ' + when + ': ' + h.join(', '));
+      if (h.indexOf('Recent') > h.indexOf('Envelopes')) throw new Error('order ' + when + ': ' + h.join(', '));
+    };
+    await check('before reload');
+    await page.reload(); await page.waitForLoadState('networkidle'); await page.waitForTimeout(500);
+    await check('after reload');
+  });
+  await step(results, 'review card opens Review', async () => {
+    await page.getByRole('link', { name: /payments? to review$/ }).click();
+    await page.waitForURL('**/review', { timeout: 3000 });
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+  });
+  await step(results, 'envelope card opens its envelope page', async () => {
+    await page.locator('section[aria-labelledby="home-envelopes"] a[href*="/budget/"]').filter({ hasText: 'Grocery' }).click();
+    await page.waitForURL(/\/budget\/(?!bills)[^/]+$/, { timeout: 3000 });
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+  });
+  await step(results, 'past month shows Left in September', async () => {
+    await page.getByRole('button', { name: /^October/ }).first().click();
+    await page.getByRole('menuitemradio', { name: 'September 2026' }).click();
+    await text('Left in September').waitFor({ timeout: 3000 });
+    await page.keyboard.press('t');
+    await text('Safe to spend today').waitFor({ timeout: 3000 });
+  });
+  await step(results, 'Home hides every amount with the eye on', async () => {
+    await page.getByRole('button', { name: 'Hide amounts' }).first().click();
+    await page.waitForTimeout(300);
+    try { await assertAmountsHidden(page); } finally { await page.getByRole('button', { name: 'Hide amounts' }).first().click(); }
   });
   await step(results, 'month menu picks a month; T returns to this one', async () => {
     await page.getByRole('button', { name: /^October/ }).first().click();
@@ -389,6 +453,10 @@ async function a11y(browser, errors) {
     await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.waitForTimeout(500);
     await run(page, `${theme} log-sheet`);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Edit Home' }).click(); await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'Move Envelopes' }).click(); await page.waitForTimeout(200);
+    await run(page, `${theme} edit-home-sheet`);
+    await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.goto(BASE + ROUTES[1]); await page.waitForLoadState('networkidle');
     await page.locator('[data-row]').first().click(); await page.waitForTimeout(500);
     await run(page, `${theme} edit-sheet`);
