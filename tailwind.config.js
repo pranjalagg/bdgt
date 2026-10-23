@@ -2,6 +2,9 @@
 export default {
   content: ['./src/**/*.{html,js,svelte,ts}'],
   darkMode: 'class',
+  // hover: styles apply only on devices that can hover. On touch screens a
+  // tapped element would otherwise keep its hover look, as if stuck.
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       colors: {
@@ -15,9 +18,12 @@ export default {
         // correctly in both themes from one definition, instead of each
         // call site needing its own dark: patch.
         surface: '#ffffff',
-        'surface-dark': '#1b1d20',
-        background: '#f4f5f3',
-        'background-dark': '#131416',
+        'surface-dark': '#18191c',
+        background: '#f3f4f1',
+        'background-dark': '#0e0f11',
+        // A step above a card: inputs, chips, the safe-to-spend ring's track.
+        raised: '#ecedea',
+        'raised-dark': '#232428',
         primary: 'rgb(var(--color-ctl) / <alpha-value>)',
         'primary-hover': 'rgb(var(--color-ctl-hover) / <alpha-value>)',
         success: '#2b7a52',         // money set aside -- the one job green has
@@ -28,16 +34,24 @@ export default {
         muted: '#5d625f',
         'muted-dark': '#9da2a0',
         border: '#e3e5e1',
-        'border-dark': 'rgba(255,255,255,0.09)',
+        'border-dark': 'rgba(255,255,255,0.08)',
         rule: '#cdcfcc',
+        // The dashboard's two tiles, always with dark text: bills that are
+        // due (committed money) and money set aside (the same meaning green
+        // has everywhere, in a tile-sized tint).
+        'tile-bills': '#8d91f7',
+        'tile-saved': '#7cd462',
+        'tile-ink': '#0e0f11',
       },
       fontFamily: {
         sans: ['"IBM Plex Sans Variable"', '"IBM Plex Sans"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        // Large titles and hero figures, set wide (font-stretch 125%).
+        display: ['"Archivo Variable"', '"IBM Plex Sans Variable"', 'system-ui', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       borderRadius: {
-        'xl': '0.375rem',
-        '2xl': '0.5rem',
+        'xl': '1.25rem', // cards
+        '2xl': '1.75rem', // sheets, dialogs, tiles
       },
     },
   },

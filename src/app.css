@@ -9,16 +9,50 @@
      etc.) keeps working. */
   --color-ctl: 23 24 26;
   --color-ctl-hover: 42 44 47;
+
+  /* Depth comes from a 1px ring plus soft lift, not from borders. */
+  --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 2px 6px 0 rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 10px 24px -6px rgba(0, 0, 0, 0.22), 0 2px 6px -2px rgba(0, 0, 0, 0.12);
+
+  /* Room for the status bar, notch and gesture bar when the app draws edge
+     to edge (viewport-fit=cover). Capacitor's Android bridge also sets the
+     --safe-area-inset-* variables for older WebViews. */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
 }
 
 :root.dark {
   /* Near-white on dark grounds -- the same ink relationship, inverted. */
   --color-ctl: 236 237 234;
   --color-ctl-hover: 213 214 210;
+
+  /* Shadows vanish on near-black: one faint white ring instead. */
+  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px -8px rgba(0, 0, 0, 0.7);
 }
 
-body {
-  @apply bg-background text-gray-800 antialiased;
+@layer base {
+  html {
+    /* Controls draw their own pressed state; the grey flash would double it. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-gray-800 antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  /* Controls behave like an app's, not a document's: no text selection on
+     a long press, and no double-tap zoom delay. */
+  button,
+  [role='button'],
+  [role='tab'],
+  nav a,
+  summary {
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
 }
 
 /* Hide amounts: blur everything marked .amt (the dedicated marker for a
@@ -59,87 +93,135 @@ body {
 }
 
 @layer components {
-  /* Money is always mono. IBM Plex Mono is drawn for tabular data, so
-     amounts share a decimal column and a ledger can actually be scanned.
-     Every figure in the app goes through this class. */
+  /* Amounts use tabular figures, so they share a decimal column and a
+     ledger can be scanned. Every figure in the app goes through this class. */
   .money {
-    @apply font-mono tabular-nums tracking-tight;
+    @apply tabular-nums tracking-tight;
+  }
+
+  /* Wide display type for large titles and hero figures. */
+  .display {
+    @apply font-display tabular-nums;
+    font-stretch: 125%;
   }
 
   .card {
-    @apply rounded-xl border border-border bg-white dark:border-border-dark dark:bg-surface-dark;
+    @apply rounded-xl border border-transparent bg-white dark:bg-surface-dark;
+    /* The transparent border still draws an edge in forced-colors mode,
+       which removes box-shadow. */
+    box-shadow: var(--shadow-card);
   }
 
   .card-padded {
     @apply card p-5;
   }
 
+  /* Outlined field: the outline keeps 3:1 against the surface, so the
+     field is findable before it is focused. */
   .input-base {
-    @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2
-           text-gray-800 placeholder-gray-400
-           transition-shadow
-           focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
-           dark:border-border-dark dark:bg-gray-800/50 dark:text-gray-100 dark:placeholder-gray-500
+    @apply w-full rounded-[14px] border border-[#8f938f] bg-white px-3.5 py-2.5 text-[15px]
+           text-gray-900 placeholder-gray-500
+           focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25
+           dark:border-white/[0.36] dark:bg-white/[0.04] dark:text-gray-100 dark:placeholder-gray-400
            dark:focus:border-primary dark:focus:ring-primary/30;
+    min-height: 2.75rem;
+    transition-property: border-color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
   }
 
   .select-base {
-    @apply input-base appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_8px_center] bg-no-repeat pr-8;
+    @apply input-base appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_10px_center] bg-no-repeat pr-9;
   }
 
+  /* Buttons are pills with a 44px touch height. The filled one is the
+     single primary action on a view; tonal ones are everything else. */
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2
-           font-medium text-white transition-colors
-           hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/30
-           disabled:opacity-50 disabled:cursor-not-allowed
-           dark:text-gray-900;
+    @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full bg-primary px-5
+           text-[15px] font-semibold text-white
+           hover:bg-primary-hover
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background
+           disabled:cursor-not-allowed disabled:opacity-50
+           dark:text-gray-900 dark:focus-visible:ring-offset-background-dark;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2
-           font-medium text-gray-700 transition-colors
-           hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200
-           dark:border-border-dark dark:text-gray-200 dark:hover:bg-gray-800 dark:focus:ring-gray-700
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-transparent bg-raised px-5
+           text-[15px] font-semibold text-gray-900
+           hover:bg-[#e2e4e0]
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+           disabled:cursor-not-allowed disabled:opacity-50
+           dark:bg-raised-dark dark:text-gray-100 dark:hover:bg-[#2d2e33];
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center rounded-lg border border-danger px-4 py-2
-           font-medium text-danger transition-colors
-           hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200
-           dark:hover:bg-red-900/30 dark:focus:ring-red-900/50
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-transparent bg-danger/10 px-5
+           text-[15px] font-semibold text-danger
+           hover:bg-danger/15
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-danger/40
+           disabled:cursor-not-allowed disabled:opacity-50
+           dark:bg-danger-light/10 dark:text-danger-light dark:hover:bg-danger-light/15;
   }
 
   .btn-icon {
-    @apply inline-flex items-center justify-center rounded-lg p-2
-           text-gray-500 transition-colors
-           hover:bg-gray-100 hover:text-gray-700
-           dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200;
+    @apply inline-flex items-center justify-center rounded-full p-2.5
+           text-gray-600
+           hover:bg-black/5 hover:text-gray-900
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+           dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-gray-100;
+  }
+
+  /* Press feedback for buttons and tappable rows: a quick 0.96 scale, never
+     on a disabled control; an opacity dip when motion is reduced. */
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .btn-icon,
+  .pressable {
+    transition-property: transform, background-color, border-color, color, opacity, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :is(.btn-primary, .btn-secondary, .btn-danger, .btn-icon):not(:disabled):active {
+      transform: scale(0.96);
+    }
+
+    /* Whole rows and cards move less, or the scale reads as a wobble. */
+    .pressable:not(:disabled):active {
+      transform: scale(0.985);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :is(.btn-primary, .btn-secondary, .btn-danger, .btn-icon, .pressable):not(:disabled):active {
+      opacity: 0.7;
+    }
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-600 dark:text-gray-300;
+    @apply block text-[13px] font-medium text-gray-600 dark:text-gray-300;
   }
 
   .page-title {
-    @apply text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-50;
+    @apply display text-[28px] font-semibold leading-tight tracking-tight text-gray-950 dark:text-white;
   }
 
   .section-title {
-    @apply text-lg font-semibold text-gray-800 dark:text-gray-100;
+    @apply text-[17px] font-semibold text-gray-900 dark:text-gray-50;
   }
 
   .metric-value {
-    @apply font-mono text-2xl font-medium tabular-nums tracking-tight text-gray-900 dark:text-gray-50;
+    @apply display text-2xl font-semibold tracking-tight text-gray-950 dark:text-white;
   }
 
   .metric-label {
-    @apply text-xs font-semibold uppercase tracking-wider text-muted dark:text-muted-dark;
+    @apply text-[13px] font-medium text-muted dark:text-muted-dark;
   }
 
-  /* Section label: small, spaced, quiet — structure without decoration. */
+  /* Section header above a group of cards or rows. */
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-muted dark:text-muted-dark;
+    @apply text-sm font-semibold text-gray-900 dark:text-gray-100;
   }
 }
