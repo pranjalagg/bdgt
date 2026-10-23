@@ -1,4 +1,5 @@
 <script lang="ts">
+  import NavBar from '$lib/components/layout/NavBar.svelte';
   import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
@@ -76,11 +77,10 @@
   const initial = (name: string | undefined) => (name ? Array.from(name)[0].toUpperCase() : '?');
 </script>
 
+<NavBar title="Activity" />
+
 <div class="space-y-4">
-  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-    <h1 class="page-title">Transactions</h1>
-    <MonthPicker />
-  </div>
+  <MonthPicker />
 
   <ReviewBanner />
 

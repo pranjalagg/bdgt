@@ -63,7 +63,7 @@ async function shots(browser, errors) {
     }
     // Overlays, at normal viewport size.
     await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /^Log/ }).first().click(); await page.waitForTimeout(500);
+    await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, cfg.name + '-log-sheet.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.getByRole('button', { name: /Income/ }).first().click(); await page.waitForTimeout(500);
@@ -88,6 +88,25 @@ async function chipStep(page) {
   if (await page.locator('[data-row]').count() !== all) throw new Error('All did not restore');
 }
 
+// With Hide amounts on, every visible amount must be blurred: each text
+// node that looks like money has an ancestor marked .amt.
+async function assertAmountsHidden(page) {
+  const offenders = await page.evaluate(() => {
+    const out = [];
+    const roots = [document.querySelector('main'), ...document.querySelectorAll('[role=dialog]')].filter(Boolean);
+    for (const root of roots) {
+      const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        const el = n.parentElement;
+        if (!/[$₹€£]\s?\d/.test(n.textContent) || !el || !el.getClientRects().length) continue;
+        if (!el.closest('.amt') && !el.closest('[aria-hidden="true"] .roller')) out.push(n.textContent.trim().slice(0, 40));
+      }
+    }
+    return out;
+  });
+  if (offenders.length) throw new Error('amounts not hidden: ' + offenders.slice(0, 6).join(' | '));
+}
+
 async function step(results, name, fn) {
   try { await fn(); results.push('ok    ' + name); } catch (e) { results.push('FAIL  ' + name + ': ' + String(e).split('\n')[0]); }
 }
@@ -103,11 +122,12 @@ async function smoke(browser, errors) {
     await text('Safe to spend').waitFor({ timeout: 4000 });
     await text('Grocery').waitFor({ timeout: 4000 });
   });
-  await step(results, 'month picker goes back and forward', async () => {
-    await page.getByRole('button', { name: 'Previous month' }).first().click();
-    await text('September 2026').waitFor({ timeout: 3000 });
-    await page.getByRole('button', { name: 'Next month' }).first().click();
-    await text('October 2026').waitFor({ timeout: 3000 });
+  await step(results, 'month menu picks a month; T returns to this one', async () => {
+    await page.getByRole('button', { name: /^October/ }).first().click();
+    await page.getByRole('menuitemradio', { name: 'September 2026' }).click();
+    await page.getByRole('button', { name: /^September/ }).first().waitFor({ timeout: 3000 });
+    await page.keyboard.press('t');
+    await page.getByRole('button', { name: /^October/ }).first().waitFor({ timeout: 3000 });
   });
   await step(results, 'income sheet lists this month', async () => {
     await page.getByRole('button', { name: /Income/ }).first().click();
@@ -115,7 +135,7 @@ async function smoke(browser, errors) {
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
   });
   await step(results, 'sheet closes by button, Escape and dragging down', async () => {
-    const open = async () => { await page.getByRole('button', { name: /^Log/ }).first().click(); await page.getByRole('dialog').waitFor({ timeout: 3000 }); await page.waitForTimeout(400); };
+    const open = async () => { await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.getByRole('dialog').waitFor({ timeout: 3000 }); await page.waitForTimeout(400); };
     const gone = async (how) => { await page.waitForTimeout(450); if (await page.getByRole('dialog').count()) throw new Error('still open after ' + how); };
     await open(); await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click(); await gone('close button');
     await open(); await page.keyboard.press('Escape'); await gone('Escape');
@@ -126,7 +146,7 @@ async function smoke(browser, errors) {
     await page.mouse.up(); await gone('drag');
   });
   await step(results, 'log an expense', async () => {
-    await page.getByRole('button', { name: /^Log/ }).first().click();
+    await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click();
     await page.locator('#log-amount').fill('12.34');
     await page.locator('#log-note').fill('Smoke test');
     await page.getByRole('group', { name: 'Buckets' }).getByRole('button', { name: /Grocery/ }).click();
@@ -237,11 +257,44 @@ async function smoke(browser, errors) {
     await page.goto(BASE + '/recurring'); await page.waitForLoadState('networkidle');
     if (new URL(page.url()).pathname !== '/budget/bills') throw new Error('landed on ' + new URL(page.url()).pathname);
   });
-  await step(results, 'bottom nav reaches every section', async () => {
-    for (const label of ['Activity', 'Insights', 'Setup', 'Month']) {
-      await page.getByRole('link', { name: new RegExp(label) }).last().click();
-      await page.waitForTimeout(300);
+  await step(results, 'tab bar reaches every tab and the lens follows', async () => {
+    const tabs = page.getByRole('navigation', { name: 'Tabs' });
+    const lens = () => page.evaluate(() => getComputedStyle(document.querySelector('.tabbar .lens')).transform);
+    const seen = new Set();
+    for (const [label, path] of [['Budget', '/budget'], ['Activity', '/activity'], ['Insights', '/insights'], ['Home', '/']]) {
+      await tabs.getByRole('link', { name: new RegExp('^' + label) }).click();
+      await page.waitForTimeout(700);
+      if (new URL(page.url()).pathname !== path) throw new Error(label + ' opened ' + new URL(page.url()).pathname);
+      seen.add(await lens());
     }
+    if (seen.size < 4) throw new Error('lens positions ' + [...seen].join(' | '));
+  });
+  await step(results, 'Activity tab badge shows the number to review', async () => {
+    await page.goto(BASE + '/review'); await page.waitForLoadState('networkidle');
+    const label = await page.getByRole('tab', { selected: true }).textContent();
+    const want = (label.match(/\((\d+)\)/) || [, '0'])[1];
+    const link = page.getByRole('navigation', { name: 'Tabs' }).locator('a[href="/activity"]');
+    const badge = await link.locator('.badge').textContent();
+    const name = await link.getAttribute('aria-label');
+    if (badge.trim() !== want || name !== `Activity, ${want} to review`) throw new Error('badge ' + badge + ', label ' + name + ', want ' + want);
+  });
+  await step(results, 'tapping the current tab scrolls to the top', async () => {
+    await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle');
+    await page.evaluate(() => document.querySelector('main').scrollTo(0, 800));
+    await page.getByRole('navigation', { name: 'Tabs' }).getByRole('link', { name: /^Budget/ }).click();
+    await page.waitForTimeout(900);
+    const top = await page.evaluate(() => document.querySelector('main').scrollTop);
+    if (top !== 0) throw new Error('scrollTop ' + top);
+  });
+  await step(results, 'navigation bar turns glass and shows the title after scrolling', async () => {
+    await page.evaluate(() => document.querySelector('main').scrollTo(0, 0));
+    await page.waitForTimeout(300);
+    const atTop = await page.evaluate(() => ({ glass: document.querySelector('header.navbar').classList.contains('scrolled'), title: !!document.querySelector('header.navbar .title.show') }));
+    if (atTop.glass || atTop.title) throw new Error('at the top: ' + JSON.stringify(atTop));
+    await page.evaluate(() => document.querySelector('main').scrollTo(0, 300));
+    await page.waitForTimeout(400);
+    const state = await page.evaluate(() => ({ glass: document.querySelector('header.navbar').classList.contains('scrolled'), title: !!document.querySelector('header.navbar .title.show') }));
+    if (!state.glass || !state.title) throw new Error(JSON.stringify(state));
   });
   await page.context().close();
   return results;
@@ -268,7 +321,7 @@ async function a11y(browser, errors) {
       await run(page, `${theme} ${r}`);
     }
     await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /^Log/ }).first().click(); await page.waitForTimeout(500);
+    await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.waitForTimeout(500);
     await run(page, `${theme} log-sheet`);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.goto(BASE + ROUTES[1]); await page.waitForLoadState('networkidle');

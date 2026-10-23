@@ -1,4 +1,6 @@
 <script lang="ts">
+  import NavBar from '$lib/components/layout/NavBar.svelte';
+  import { base } from '$app/paths';
   import { segmentedPill } from '$lib/actions/segmentedPill';
   import { exportToJson, exportToCsv, importFromJson, resetAllData, downloadFile } from '$lib/utils/export';
   import { loadData } from '$lib/stores/budgetStore';
@@ -9,7 +11,6 @@
   import { themePreference, setTheme, type ThemePreference } from '$lib/stores/themeStore';
   import { loadCurrency } from '$lib/stores/currencyStore';
   import CurrencyChip from '$lib/components/shared/CurrencyChip.svelte';
-  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import SyncSection from '$lib/components/sync/SyncSection.svelte';
   import CaptureSection from '$lib/components/capture/CaptureSection.svelte';
   import CaptureRulesSection from '$lib/components/capture/CaptureRulesSection.svelte';
@@ -95,10 +96,9 @@
   ];
 </script>
 
-<div class="space-y-6">
-  <SectionTabs tabs={[{ href: '/budget', label: 'Buckets' }, { href: '/budget/bills', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
+<NavBar title="Settings" back={{ href: base || '/', label: 'Home' }} />
 
-  <h1 class="page-title">Settings</h1>
+<div class="space-y-6">
 
   <section>
     <h2 class="settings-label">Appearance</h2>

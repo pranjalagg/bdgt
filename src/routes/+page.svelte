@@ -1,7 +1,10 @@
 <script lang="ts">
+  import NavBar from '$lib/components/layout/NavBar.svelte';
+  import MonthMenu from '$lib/components/layout/MonthMenu.svelte';
+  import AvatarButton from '$lib/components/layout/AvatarButton.svelte';
+  import PrivacyToggle from '$lib/components/shared/PrivacyToggle.svelte';
   import { segmentedPill } from '$lib/actions/segmentedPill';
   import { base } from '$app/paths';
-  import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import EnvelopeLine from '$lib/components/shared/EnvelopeLine.svelte';
   import EnvelopeRow from '$lib/components/shared/EnvelopeRow.svelte';
   import AssignPanel from '$lib/components/shared/AssignPanel.svelte';
@@ -154,11 +157,12 @@
   }
 </script>
 
+<NavBar title="Home" large={false}>
+  <svelte:fragment slot="leading"><MonthMenu /></svelte:fragment>
+  <svelte:fragment slot="trailing"><PrivacyToggle /><AvatarButton /></svelte:fragment>
+</NavBar>
+
 <div class="space-y-6">
-  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-    <h1 class="page-title">Dashboard</h1>
-    <MonthPicker />
-  </div>
 
   {#if $safeToSpendPerDay !== null}
     <!-- The number this app exists to answer: what's actually free to

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import NavBar from '$lib/components/layout/NavBar.svelte';
   import { showToast } from '$lib/stores/toastStore';
   import { segmentedPill } from '$lib/actions/segmentedPill';
   import { base } from '$app/paths';
@@ -141,15 +142,10 @@
   }
 </script>
 
+<NavBar title="Review payments" back={{ href: `${base}/activity`, label: 'Activity' }} />
+
 <div class="space-y-5 pb-16">
   <div class="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <a href="{base}/activity" class="-ml-2 inline-flex min-h-[2.75rem] items-center gap-0.5 rounded-full pl-1 pr-3 text-[15px] font-medium text-gray-700 hover:bg-black/[0.04] dark:text-gray-200 dark:hover:bg-white/[0.06]">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-        Activity
-      </a>
-      <h1 class="page-title">Review payments</h1>
-    </div>
     {#if filter === 'pending' && $bulkApprovable.length > 0}
       <button type="button" class="btn-secondary" on:click={approveAll}>
         Approve all suggested ({$bulkApprovable.length})

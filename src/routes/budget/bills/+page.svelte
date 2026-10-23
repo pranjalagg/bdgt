@@ -1,11 +1,13 @@
 <!-- src/routes/recurring/+page.svelte -->
 <script lang="ts">
+  import NavBar from '$lib/components/layout/NavBar.svelte';
+  import Icon from '$lib/components/ui/Icon.svelte';
+  import { base } from '$app/paths';
   import { recurringTransactions, addRecurring, updateRecurring, deleteRecurring, toggleRecurring } from '$lib/stores/recurringStore';
   import { buckets } from '$lib/stores/budgetStore';
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, currencySymbol, symbolPadding } from '$lib/utils/currency';
   import { parseLocalDate } from '$lib/utils/dates';
   import Modal from '$lib/components/shared/Modal.svelte';
-  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { RecurringTransaction } from '$lib/types';
 
@@ -113,16 +115,13 @@
   );
 </script>
 
-<div class="space-y-6">
-  <SectionTabs tabs={[{ href: '/budget', label: 'Buckets' }, { href: '/budget/bills', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
+<NavBar title="Bills" back={{ href: `${base}/budget`, label: 'Budget' }}>
+  <svelte:fragment slot="trailing">
+    <button class="btn-icon text-tint" on:click={handleAdd} aria-label="Add a recurring item"><Icon name="plus" size={24} /></button>
+  </svelte:fragment>
+</NavBar>
 
-  <div class="flex items-center justify-between gap-3">
-    <h1 class="page-title">Recurring</h1>
-    <button class="btn-secondary !pl-4" on:click={handleAdd}>
-      <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-      Add
-    </button>
-  </div>
+<div class="space-y-6">
 
   {#if sortedRecurring.length === 0}
     <div class="card px-5 py-12 text-center text-sm text-muted dark:text-muted-dark">No recurring transactions</div>

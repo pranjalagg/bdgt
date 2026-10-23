@@ -9,6 +9,9 @@
   import { currencyConfirmed, takeCurrencyPrompt, currencyAnsweredElsewhere } from '$lib/stores/currencyStore';
   import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId, scaledBack } from '$lib/stores/uiStore';
   import Toast from '$lib/components/ui/Toast.svelte';
+  import TabBar from './TabBar.svelte';
+  import LogButton from './LogButton.svelte';
+  import { goto } from '$app/navigation';
   import { onNavigate, beforeNavigate, afterNavigate } from '$app/navigation';
   import { navDirection } from '$lib/ui/navDirection';
   import { edgeSwipeBack } from '$lib/ui/edgeSwipe';
@@ -67,6 +70,12 @@
   $: path = $page.url.pathname.slice(base.length).replace(/(.)\/$/, '$1') || '/';
   $: title = TITLES[path] ? `${TITLES[path]} · bdgt` : 'bdgt';
 
+  // Tapping the tab you are on goes back to its first page, then to the top.
+  function reselect(tab: string) {
+    if (path !== tab) return void goto(tab === '/' ? base || '/' : base + tab);
+    main?.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+
   function handleLogComplete() {
     closeModal();
     logPreselectedBucketId.set(undefined);
@@ -100,31 +109,14 @@
       aria-hidden="true"
     ></div>
     <UpdateBanner />
-    <div class="mx-auto max-w-5xl px-4 pb-[calc(9rem+var(--safe-bottom))] pt-4 sm:px-6 md:pb-24 md:pt-8">
+    <div class="mx-auto max-w-5xl px-4 pb-[calc(110px+var(--safe-bottom))] pt-4 sm:px-6 md:pb-24 md:pt-8">
       <slot />
     </div>
   </main>
 
-  <!-- Persistent action, not a button that only exists on some pages:
-       logging a spend is the one thing you do here more than anything
-       else, so it's reachable from every screen. An extended action button
-       above the bottom bar on phones. -->
-  <button
-    type="button"
-    on:click={() => openLog()}
-    aria-keyshortcuts="Meta+K"
-    class="btn-primary fixed right-4 z-30 !min-h-[3.5rem] !px-6 text-base [view-transition-name:log-button]
-           bottom-[calc(5rem+var(--safe-bottom))] md:bottom-6 md:right-6"
-    style="box-shadow: var(--shadow-float)"
-  >
-    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-    Log
-    <kbd class="hidden rounded border border-white/25 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white/80 md:inline-block">
-      ⌘K
-    </kbd>
-  </button>
+  <!-- Phones: the floating tab bar and the round Log button beside it. -->
+  <TabBar on:reselect={(e) => reselect(e.detail)} />
+  <LogButton />
 </div>
 
 <Toast />

@@ -1,7 +1,9 @@
 <!-- src/routes/analytics/+page.svelte -->
 <script lang="ts">
+  import NavBar from '$lib/components/layout/NavBar.svelte';
+  import Icon from '$lib/components/ui/Icon.svelte';
+  import { base } from '$app/paths';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
-  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import DonutChart from '$lib/components/charts/DonutChart.svelte';
   import BarChart from '$lib/components/charts/BarChart.svelte';
   import LineChart from '$lib/components/charts/LineChart.svelte';
@@ -101,13 +103,16 @@
   $: savingsRateLabels = $savingsRateTrend.map(m => formatMonthYear(m.month).split(' ')[0]);
 </script>
 
-<div class="space-y-6">
-  <SectionTabs tabs={[{ href: '/insights', label: 'Analytics' }, { href: '/insights/investments', label: 'Investments' }]} />
+<NavBar title="Insights" />
 
-  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-    <h1 class="page-title">Analytics</h1>
-    <MonthPicker />
-  </div>
+<div class="space-y-6">
+  <MonthPicker />
+
+  <a href="{base}/insights/investments" class="group flex min-h-[56px] items-center gap-3 rounded-card bg-surface px-4 py-2.5 text-label" style="box-shadow: var(--shadow-card)">
+    <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="trend" size={19} /></span>
+    <span class="min-w-0 flex-1"><span class="block text-[16px] font-medium">Investments</span><span class="block text-[13px] text-label-2">Holdings, purchases and sales</span></span>
+    <span class="text-label-2"><Icon name="chevron-right" size={18} /></span>
+  </a>
 
   <!-- Monthly summary: a statement on phones (label left, figure right),
        three figures side by side on wider screens. Income and spending are

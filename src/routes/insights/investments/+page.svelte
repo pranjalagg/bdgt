@@ -1,7 +1,8 @@
 <script lang="ts">
+  import NavBar from '$lib/components/layout/NavBar.svelte';
+  import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { openModal } from '$lib/stores/uiStore';
-  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import PrivacyToggle from '$lib/components/shared/PrivacyToggle.svelte';
   import {
     loadInvestments,
@@ -32,13 +33,11 @@
   }
 </script>
 
-<div class="space-y-6">
-  <SectionTabs tabs={[{ href: '/insights', label: 'Analytics' }, { href: '/insights/investments', label: 'Investments' }]} />
+<NavBar title="Investments" back={{ href: `${base}/insights`, label: 'Insights' }}>
+  <svelte:fragment slot="trailing"><PrivacyToggle /></svelte:fragment>
+</NavBar>
 
-  <div class="flex items-center justify-between gap-4">
-    <h1 class="page-title">Investments</h1>
-    <PrivacyToggle />
-  </div>
+<div class="space-y-6">
 
   {#if $isLoadingInvestments}
     <div class="flex items-center justify-center py-12">

@@ -1,11 +1,13 @@
 <script lang="ts">
+  import NavBar from '$lib/components/layout/NavBar.svelte';
+  import Icon from '$lib/components/ui/Icon.svelte';
+  import { base } from '$app/paths';
   import { buckets, bucketStatuses, addBucket, updateBucket, deleteBucket, setAllocation, updateBucketAllocation, totalPercentage, computedAllocations } from '$lib/stores/budgetStore';
   import { loadRecurring } from '$lib/stores/recurringStore';
   import { loadGoals } from '$lib/stores/goalsStore';
   import { formatCurrency, evaluateExpression, currencySymbol } from '$lib/utils/currency';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
-  import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { AllocationType } from '$lib/types';
 
@@ -125,19 +127,20 @@
   }
 </script>
 
-<div class="space-y-6">
-  <SectionTabs tabs={[{ href: '/budget', label: 'Buckets' }, { href: '/budget/bills', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
+<NavBar title="Budget">
+  <svelte:fragment slot="trailing">
+    <button class="btn-icon text-tint" on:click={handleAddBucket} aria-label="Add bucket"><Icon name="plus" size={24} /></button>
+  </svelte:fragment>
+</NavBar>
 
-  <div class="space-y-3">
-    <div class="flex items-center justify-between gap-3">
-      <h1 class="page-title">Buckets</h1>
-      <button class="btn-secondary !pl-4" on:click={handleAddBucket}>
-        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        Add bucket
-      </button>
-    </div>
-    <MonthPicker />
-  </div>
+<div class="space-y-6">
+  <MonthPicker />
+
+  <a href="{base}/budget/bills" class="group flex min-h-[56px] items-center gap-3 rounded-card bg-surface px-4 py-2.5 text-label" style="box-shadow: var(--shadow-card)">
+    <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="calendar" size={19} /></span>
+    <span class="min-w-0 flex-1"><span class="block text-[16px] font-medium">Bills and subscriptions</span><span class="block text-[13px] text-label-2">Recurring items</span></span>
+    <span class="text-label-2"><Icon name="chevron-right" size={18} /></span>
+  </a>
 
   {#if $totalPercentage > 100}
     <div class="flex items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger dark:text-danger-light">
