@@ -41,7 +41,7 @@
 </script>
 
 <!-- Desktop sidebar -->
-<nav class="hidden h-full w-56 flex-shrink-0 flex-col border-r border-border bg-white dark:border-border-dark dark:bg-surface-dark md:flex">
+<nav class="hidden h-full w-56 flex-shrink-0 flex-col border-r [view-transition-name:sidebar] border-border bg-white dark:border-border-dark dark:bg-surface-dark md:flex">
   <div class="flex items-center gap-2.5 px-5 py-5">
     <div class="flex h-8 w-8 items-center justify-center rounded-[9px] bg-primary text-white dark:text-gray-900">
       <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -84,7 +84,7 @@
 <!-- Mobile bottom bar: the active destination gets a pill behind its icon,
      as in Material 3; the bar sits on the gesture bar's safe area. -->
 <nav
-  class="fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.06] bg-white/90 backdrop-blur-xl dark:border-white/[0.06] dark:bg-[#141518]/90 md:hidden"
+  class="fixed inset-x-0 bottom-0 z-40 border-t [view-transition-name:bottom-bar] border-black/[0.06] bg-white/90 backdrop-blur-xl dark:border-white/[0.06] dark:bg-[#141518]/90 md:hidden"
   style="padding-bottom: var(--safe-bottom)"
 >
   <ul class="flex h-16 items-stretch justify-around px-1">

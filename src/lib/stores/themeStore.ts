@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { browser } from '$app/environment';
+import { followTheme } from '$lib/systemBars';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
@@ -43,7 +44,10 @@ if (browser) {
   // colour transition fires at once and the switch smears.
   let firstApply = true;
   resolvedTheme.subscribe((resolved) => {
-    const apply = () => document.documentElement.classList.toggle('dark', resolved === 'dark');
+    const apply = () => {
+      document.documentElement.classList.toggle('dark', resolved === 'dark');
+      followTheme(resolved);
+    };
     if (firstApply) {
       firstApply = false;
       apply();
