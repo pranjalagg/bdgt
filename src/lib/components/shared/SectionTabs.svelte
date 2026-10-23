@@ -19,16 +19,10 @@
   }
 </script>
 
-<div class="flex gap-1 border-b border-border dark:border-border-dark">
+<nav class="segmented" aria-label="Section">
   {#each tabs as tab}
-    <a
-      href={getHref(tab.href)}
-      class="border-b-2 px-3 pb-2.5 text-sm font-medium transition-colors
-             {isActive(tab.href, currentPath)
-               ? 'border-primary text-gray-900 dark:text-gray-50'
-               : 'border-transparent text-muted hover:text-gray-700 dark:text-muted-dark dark:hover:text-gray-300'}"
-    >
+    <a href={getHref(tab.href)} class="segment" aria-current={isActive(tab.href, currentPath) ? 'page' : undefined}>
       {tab.label}
     </a>
   {/each}
-</div>
+</nav>

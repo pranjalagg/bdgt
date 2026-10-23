@@ -39,12 +39,22 @@ if (browser) {
     localStorage.setItem(STORAGE_KEY, preference);
   });
 
+  // The swap happens with transitions off: otherwise every control's
+  // colour transition fires at once and the switch smears.
+  let firstApply = true;
   resolvedTheme.subscribe((resolved) => {
-    if (resolved === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const apply = () => document.documentElement.classList.toggle('dark', resolved === 'dark');
+    if (firstApply) {
+      firstApply = false;
+      apply();
+      return;
     }
+    const pause = document.createElement('style');
+    pause.textContent = '*,*::before,*::after{transition:none!important}';
+    document.head.appendChild(pause);
+    apply();
+    void document.documentElement.offsetHeight; // flush styles before transitions return
+    setTimeout(() => pause.remove(), 0);
   });
 
   // Listen for system theme changes

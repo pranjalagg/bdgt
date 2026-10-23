@@ -9,6 +9,8 @@
      etc.) keeps working. */
   --color-ctl: 23 24 26;
   --color-ctl-hover: 42 44 47;
+  /* Secondary text: 6.2:1 on white, 5.6:1 on the page; dark 6.8:1 on a card. */
+  --color-muted: 93 98 95;
 
   /* Depth comes from a 1px ring plus soft lift, not from borders. */
   --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 2px 6px 0 rgba(0, 0, 0, 0.04);
@@ -25,6 +27,7 @@
   /* Near-white on dark grounds -- the same ink relationship, inverted. */
   --color-ctl: 236 237 234;
   --color-ctl-hover: 213 214 210;
+  --color-muted: 157 162 160;
 
   /* Shadows vanish on near-black: one faint white ring instead. */
   --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06);
@@ -186,6 +189,27 @@
     @apply bg-primary text-white hover:bg-primary-hover dark:text-gray-900;
   }
 
+  /* Segmented control: a few views of one thing (sub-pages of a section,
+     a list's filter). The selected segment is a raised surface on a track. */
+  .segmented {
+    @apply flex w-full gap-1 rounded-full bg-raised p-1 dark:bg-raised-dark md:inline-flex md:w-auto;
+  }
+
+  .segment {
+    @apply flex min-h-[2.25rem] flex-1 items-center justify-center whitespace-nowrap rounded-full px-4
+           text-sm font-medium text-gray-600 hover:text-gray-950
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+           dark:text-gray-300 dark:hover:text-white;
+    transition-property: background-color, color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+
+  .segment:is([aria-current='page'], [aria-selected='true'], [aria-pressed='true']) {
+    @apply bg-white font-semibold text-gray-950 dark:bg-[#3a3b40] dark:text-white;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
   /* A row that scrolls sideways by touch; the clipped last item is the cue
      that there is more. */
   .scroll-row {
@@ -246,6 +270,11 @@
 
   .metric-label {
     @apply text-[13px] font-medium text-muted dark:text-muted-dark;
+  }
+
+  /* A settings group's name, above its card. */
+  .settings-label {
+    @apply px-1 pb-2 text-[13px] font-semibold text-muted dark:text-muted-dark;
   }
 
   /* Section header above a group of cards or rows. */

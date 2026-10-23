@@ -31,7 +31,10 @@ export default {
         warning: '#a8722a',
         danger: '#b83a26',          // envelope empty or overspent -- the one job red has
         'danger-light': '#f0836c',
-        muted: '#5d625f',
+        // Follows the theme (app.css), so a bare text-muted stays legible in
+        // dark mode; muted-dark is the same dark value, kept for existing
+        // dark: variants.
+        muted: 'rgb(var(--color-muted) / <alpha-value>)',
         'muted-dark': '#9da2a0',
         border: '#e3e5e1',
         'border-dark': 'rgba(255,255,255,0.08)',
