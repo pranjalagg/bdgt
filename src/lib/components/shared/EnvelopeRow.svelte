@@ -69,7 +69,9 @@
       {/if}
     </span>
 
-    <span class="pl-5 text-[12.5px] text-muted dark:text-muted-dark">
+    <!-- Spans under the figure too, so on a phone it fits on one line
+         instead of wrapping beside an empty column. -->
+    <span class="col-span-2 pl-5 text-[12.5px] text-muted dark:text-muted-dark">
       {#if unfunded}
         Nothing assigned yet
       {:else if spent === 0}
@@ -85,11 +87,10 @@
         {Math.round(fillPct)}%
       {/if}
     </span>
-    <span aria-hidden="true"></span>
 
     {#if rollover !== 0 && allocated > 0}
       <!-- Past months are a balance to work down, not a verdict on this one. -->
-      <span class="col-span-3 text-[11.5px] text-muted dark:text-muted-dark">
+      <span class="col-span-3 pl-5 text-[11.5px] text-muted dark:text-muted-dark">
         <span class="font-medium {monthLeft >= 0 ? 'text-success dark:text-success-light' : 'text-danger dark:text-danger-light'}">
           {monthLeft >= 0 ? 'On plan this month' : 'Over plan this month'}
         </span>

@@ -134,10 +134,8 @@
         on:keydown={handleEnter}
         placeholder="0.00"
         style:padding-left={symbolPadding(2.25, currencyInfo(foreignCurrency).symbol)}
-        class="money w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-3xl font-medium tracking-tight
-               transition-shadow focus:outline-none focus:ring-2 focus:ring-primary/20
-               dark:bg-gray-800/50 dark:text-gray-100
-               {amountError ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border focus:border-primary dark:border-border-dark'}"
+        class="input-base money !py-3 pl-9 !text-3xl font-medium tracking-tight
+               {amountError ? '!border-danger focus:!ring-danger/20 dark:!border-danger-light' : ''}"
       />
     </div>
     {#if amountError}
@@ -170,14 +168,14 @@
     on:keydown={handleListKeydown}
     role="group"
     aria-label="Buckets"
-    class="max-h-[42vh] space-y-1.5 overflow-y-auto pr-1"
+    class="-mx-1 max-h-[42vh] space-y-1.5 overflow-y-auto overscroll-contain px-1 py-0.5"
   >
     {#each rows as row (row.status.bucket.id)}
       <button
         type="button"
         on:click={() => commit(row.status.bucket.id)}
         disabled={isSubmitting || !rateValid}
-        class="flex w-full items-center gap-3 rounded-lg border px-3.5 py-2.5 text-left transition-colors
+        class="pressable flex min-h-[3rem] w-full items-center gap-3 rounded-[14px] border px-4 py-2.5 text-left
                focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60
                {row.fit === 'fits'
           ? 'border-success/40 bg-success/[0.06] hover:bg-success/10 dark:border-success-light/30'
@@ -185,12 +183,12 @@
             ? 'border-danger/40 bg-danger/[0.06] hover:bg-danger/10 dark:border-danger-light/30'
             : 'border-border bg-white hover:border-rule dark:border-border-dark dark:bg-surface-dark dark:hover:border-white/20'}"
       >
-        <span class="h-4 w-[3px] flex-none rounded-sm" style="background:{row.status.bucket.color}"></span>
-        <span class="flex-1 truncate text-[13.5px] font-medium text-gray-900 dark:text-gray-100">
+        <span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{row.status.bucket.color}" aria-hidden="true"></span>
+        <span class="flex-1 truncate text-[15px] font-medium text-gray-900 dark:text-gray-100">
           {row.status.bucket.name}
         </span>
         <span
-          class="money amt flex-none text-[12.5px] font-medium
+          class="money amt flex-none text-[13px] font-medium
                  {row.fit === 'fits'
             ? 'text-success dark:text-success-light'
             : row.fit === 'tight' || row.fit === 'unfunded'

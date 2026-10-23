@@ -348,18 +348,10 @@
 <Modal id="income" title="Manage Income">
   <form on:submit|preventDefault={handleSubmitIncome} class="space-y-4">
     <div>
-      <span class="label mb-1.5 block">Type</span>
-      <div class="flex rounded-lg border border-gray-200 dark:border-border-dark p-0.5">
-        <button
-          type="button"
-          class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors {incomeType === 'fixed' ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}"
-          on:click={() => incomeType = 'fixed'}
-        >Fixed</button>
-        <button
-          type="button"
-          class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors {incomeType === 'one-time' ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}"
-          on:click={() => incomeType = 'one-time'}
-        >Variable</button>
+      <span id="income-type-label" class="label mb-1.5 block">Type</span>
+      <div class="segmented md:!flex md:!w-full" role="group" aria-labelledby="income-type-label">
+        <button type="button" class="segment" aria-pressed={incomeType === 'fixed'} on:click={() => (incomeType = 'fixed')}>Fixed</button>
+        <button type="button" class="segment" aria-pressed={incomeType === 'one-time'} on:click={() => (incomeType = 'one-time')}>Variable</button>
       </div>
     </div>
     <div>
@@ -403,31 +395,31 @@
   </form>
 
   {#if $currentMonthIncomes.length > 0}
-    <div class="mt-5 border-t border-gray-200 pt-5 dark:border-border-dark">
-      <h3 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">This Month's Income</h3>
+    <div class="mt-6">
+      <h3 class="settings-label">This month's income</h3>
       <div class="space-y-2">
         {#each $currentMonthIncomes as income}
-          <div class="flex items-center justify-between rounded-lg border border-gray-100 p-3 dark:border-border-dark">
+          <div class="flex items-center justify-between gap-3 rounded-[14px] bg-raised py-2 pl-4 pr-1.5 dark:bg-raised-dark">
             <div>
               <div class="flex items-center gap-2">
-                <p class="amt font-semibold tabular-nums dark:text-gray-100">{formatCurrency(income.amount)}</p>
-                <span class="rounded-full px-2 py-0.5 text-[10px] font-medium {income.type === 'fixed' ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning'}">
-                  {income.type === 'fixed' ? 'Fixed' : 'One-time'}
+                <p class="money amt text-[15px] font-semibold text-gray-950 dark:text-gray-50">{formatCurrency(income.amount)}</p>
+                <span class="rounded-full bg-white px-1.5 py-px text-[10.5px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-white/10 dark:text-gray-200">
+                  {income.type === 'fixed' ? 'Fixed' : 'Variable'}
                 </span>
               </div>
-              {#if income.note}<p class="text-sm text-muted">{income.note}</p>{/if}
+              {#if income.note}<p class="text-[13px] text-muted">{income.note}</p>{/if}
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-none items-center">
               <button
-                class="btn-icon !p-1.5"
+                class="btn-icon"
                 on:click={() => handleEditIncome(income)}
                 aria-label="Edit income"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
               </button>
               <button
-                class="btn-icon !p-1.5 hover:!bg-red-50 hover:!text-danger dark:hover:!bg-red-900/30"
-                on:click={() => deleteIncome(income.id)}
+                class="btn-icon hover:!bg-danger/10 hover:!text-danger dark:hover:!text-danger-light"
+                on:click={() => confirm(`Delete this ${formatCurrency(income.amount)} income?`) && deleteIncome(income.id)}
                 aria-label="Delete income"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>

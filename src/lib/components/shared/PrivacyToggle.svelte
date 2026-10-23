@@ -4,8 +4,8 @@
 
 <button
   type="button"
-  class="btn-icon rounded-lg border border-gray-200 bg-white p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary
-         dark:border-border-dark dark:bg-surface-dark {$hideAmounts ? 'text-gray-900 dark:text-gray-50' : ''}"
+  class="btn-icon border border-transparent bg-white !p-3 dark:bg-surface-dark {$hideAmounts ? 'text-gray-900 dark:text-gray-50' : ''}"
+  style="box-shadow: var(--shadow-card)"
   aria-pressed={$hideAmounts}
   aria-label="Hide amounts"
   title={$hideAmounts ? 'Show amounts' : 'Hide amounts'}
