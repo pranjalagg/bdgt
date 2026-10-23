@@ -24,9 +24,9 @@
   // own sub-tabs (SectionTabs.svelte) once you're inside it.
   const navItems = [
     { href: '/', label: 'Month', icon: 'home', match: ['/'] },
-    { href: '/transactions', label: 'Activity', icon: 'list', match: ['/transactions', '/review'] },
-    { href: '/analytics', label: 'Insights', icon: 'chart', match: ['/analytics', '/investments'] },
-    { href: '/buckets', label: 'Setup', icon: 'cog', match: ['/buckets', '/recurring', '/settings'] },
+    { href: '/activity', label: 'Activity', icon: 'list', match: ['/activity', '/review'] },
+    { href: '/insights', label: 'Insights', icon: 'chart', match: ['/insights', '/insights/investments'] },
+    { href: '/budget', label: 'Setup', icon: 'cog', match: ['/budget', '/budget/bills', '/settings'] },
   ];
 
   $: currentPath = $page.url.pathname;

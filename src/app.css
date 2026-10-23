@@ -142,6 +142,41 @@
   }
 }
 
+/* Pages that go deeper slide in from the right while the page behind
+   drifts left and dims; coming back reverses it. Review and Settings slide
+   up over everything and back down. Switching tabs keeps the fade above.
+   Reduced motion keeps the fade for all of them. */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-nav='push']::view-transition-old(root),
+  :root[data-nav='push']::view-transition-new(root),
+  :root[data-nav='pop']::view-transition-old(root),
+  :root[data-nav='pop']::view-transition-new(root),
+  :root[data-nav='up']::view-transition-new(root),
+  :root[data-nav='down']::view-transition-old(root) {
+    animation-duration: var(--ms-smooth, 450ms);
+    animation-timing-function: var(--ease-smooth, cubic-bezier(0.2, 0.8, 0.2, 1));
+    animation-fill-mode: both;
+    animation-delay: 0s;
+    mix-blend-mode: normal;
+  }
+
+  :root[data-nav='push']::view-transition-new(root) { animation-name: vt-from-right; }
+  :root[data-nav='push']::view-transition-old(root) { animation-name: vt-drift-left; }
+  :root[data-nav='pop']::view-transition-new(root) { animation-name: vt-drift-back; }
+  :root[data-nav='pop']::view-transition-old(root) { animation-name: vt-to-right; z-index: 1; }
+  :root[data-nav='up']::view-transition-new(root) { animation-name: vt-from-below; }
+  :root[data-nav='up']::view-transition-old(root) { animation: none; }
+  :root[data-nav='down']::view-transition-old(root) { animation-name: vt-to-below; z-index: 1; }
+  :root[data-nav='down']::view-transition-new(root) { animation: none; }
+}
+
+@keyframes vt-from-right { from { transform: translateX(100%); } }
+@keyframes vt-to-right { to { transform: translateX(100%); } }
+@keyframes vt-drift-left { to { transform: translateX(-28%); filter: brightness(0.86); } }
+@keyframes vt-drift-back { from { transform: translateX(-28%); filter: brightness(0.86); } }
+@keyframes vt-from-below { from { transform: translateY(100%); } }
+@keyframes vt-to-below { to { transform: translateY(100%); } }
+
 /* Section tabs: show the new page's tabs at once (their pill is mid-slide),
    not a cross-fade of two pill positions. */
 ::view-transition-group(section-tabs),

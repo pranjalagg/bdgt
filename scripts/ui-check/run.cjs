@@ -14,7 +14,7 @@ const OUT = process.argv[3] || path.join(__dirname, 'out');
 const BASE = process.env.UI_CHECK_URL || 'http://localhost:5174';
 const CHROME = process.env.UI_CHECK_CHROME || path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell');
 const SEED = path.join(__dirname, 'sample-backup.json');
-const ROUTES = ['/', '/transactions', '/review', '/analytics', '/investments', '/buckets', '/recurring', '/settings'];
+const ROUTES = ['/', '/activity', '/review', '/insights', '/insights/investments', '/budget', '/budget/bills', '/settings'];
 const CONFIGS = [
   { name: 'phone-light', viewport: { width: 390, height: 844 }, theme: 'light', mobile: true },
   { name: 'phone-dark', viewport: { width: 390, height: 844 }, theme: 'dark', mobile: true },
@@ -59,7 +59,7 @@ async function shots(browser, errors) {
     await seed(page);
     for (const r of ROUTES) {
       await page.goto(BASE + r); await page.waitForLoadState('networkidle');
-      await fullShot(page, path.join(OUT, cfg.name + (r === '/' ? '-dashboard' : r.replace('/', '-')) + '.png'), cfg);
+      await fullShot(page, path.join(OUT, cfg.name + (r === '/' ? '-dashboard' : r.replace(/\//g, '-')) + '.png'), cfg);
     }
     // Overlays, at normal viewport size.
     await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
@@ -69,7 +69,7 @@ async function shots(browser, errors) {
     await page.getByRole('button', { name: /Income/ }).first().click(); await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, cfg.name + '-income-sheet.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
-    await page.goto(BASE + '/transactions'); await page.waitForLoadState('networkidle');
+    await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
     await page.locator('[data-row]').first().click(); await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, cfg.name + '-edit-sheet.png') });
     await page.context().close();
@@ -77,7 +77,7 @@ async function shots(browser, errors) {
 }
 
 async function chipStep(page) {
-  await page.goto(BASE + '/transactions'); await page.waitForLoadState('networkidle');
+  await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
   const all = await page.locator('[data-row]').count();
   await page.getByRole('group', { name: 'Filter by bucket' }).getByRole('button', { name: /Grocery/ }).click();
   await page.waitForTimeout(200);
@@ -131,7 +131,7 @@ async function smoke(browser, errors) {
     await page.locator('#log-note').fill('Smoke test');
     await page.getByRole('group', { name: 'Buckets' }).getByRole('button', { name: /Grocery/ }).click();
     await page.waitForTimeout(400);
-    await page.goto(BASE + '/transactions'); await page.waitForLoadState('networkidle');
+    await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
     await text('Smoke test').waitFor({ timeout: 3000 });
   });
   await step(results, 'edit it', async () => {
@@ -170,7 +170,7 @@ async function smoke(browser, errors) {
     await page.waitForTimeout(400);
   });
   await step(results, 'buckets list and edit sheet', async () => {
-    await page.goto(BASE + '/buckets'); await page.waitForLoadState('networkidle');
+    await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle');
     await text('Grocery').waitFor({ timeout: 3000 });
     await page.getByRole('button', { name: 'Edit Grocery' }).click();
     const dlg = page.getByRole('dialog');
@@ -191,7 +191,7 @@ async function smoke(browser, errors) {
     if (await page.getByRole('dialog').count()) throw new Error('sheet still open');
   });
   await step(results, 'recurring lists bills', async () => {
-    await page.goto(BASE + '/recurring'); await page.waitForLoadState('networkidle');
+    await page.goto(BASE + '/budget/bills'); await page.waitForLoadState('networkidle');
     await text('Netflix').waitFor({ timeout: 3000 });
     await page.locator('[data-row]').filter({ hasText: 'Netflix' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Pause' }).click();
@@ -203,11 +203,11 @@ async function smoke(browser, errors) {
     if (await page.locator('[data-row]').filter({ hasText: 'Paused' }).count()) throw new Error('still paused');
   });
   await step(results, 'investments lists a holding', async () => {
-    await page.goto(BASE + '/investments'); await page.waitForLoadState('networkidle');
+    await page.goto(BASE + '/insights/investments'); await page.waitForLoadState('networkidle');
     await text('VTI').waitFor({ timeout: 3000 });
   });
   await step(results, 'analytics draws charts', async () => {
-    await page.goto(BASE + '/analytics'); await page.waitForLoadState('networkidle');
+    await page.goto(BASE + '/insights'); await page.waitForLoadState('networkidle');
     await page.locator('canvas').first().waitFor({ timeout: 4000 });
   });
   await step(results, 'settings switches theme', async () => {
@@ -221,7 +221,7 @@ async function smoke(browser, errors) {
     if (await page.evaluate(() => document.querySelectorAll('head style').length && [...document.querySelectorAll('head style')].some((s) => s.textContent.includes('transition:none')))) throw new Error('transition pause left behind');
   });
   await step(results, 'new page starts at the top; Back returns to the same place', async () => {
-    await page.goto(BASE + '/transactions'); await page.waitForLoadState('networkidle');
+    await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.querySelector('main').scrollTo(0, 1200));
     await page.getByRole('link', { name: /Insights/ }).last().click(); await page.waitForTimeout(700);
     const top = await page.evaluate(() => document.querySelector('main').scrollTop);
@@ -229,6 +229,13 @@ async function smoke(browser, errors) {
     await page.goBack(); await page.waitForTimeout(700);
     const back = await page.evaluate(() => document.querySelector('main').scrollTop);
     if (Math.abs(back - 1200) > 2) throw new Error('Back returned to ' + back);
+  });
+  await step(results, 'old addresses redirect and keep their query', async () => {
+    await page.goto(BASE + '/transactions?bucket=unsorted'); await page.waitForLoadState('networkidle');
+    const u = new URL(page.url());
+    if (u.pathname !== '/activity' || u.searchParams.get('bucket') !== 'unsorted') throw new Error('landed on ' + u.pathname + u.search);
+    await page.goto(BASE + '/recurring'); await page.waitForLoadState('networkidle');
+    if (new URL(page.url()).pathname !== '/budget/bills') throw new Error('landed on ' + new URL(page.url()).pathname);
   });
   await step(results, 'bottom nav reaches every section', async () => {
     for (const label of ['Activity', 'Insights', 'Setup', 'Month']) {

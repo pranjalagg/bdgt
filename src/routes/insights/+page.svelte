@@ -102,7 +102,7 @@
 </script>
 
 <div class="space-y-6">
-  <SectionTabs tabs={[{ href: '/analytics', label: 'Analytics' }, { href: '/investments', label: 'Investments' }]} />
+  <SectionTabs tabs={[{ href: '/insights', label: 'Analytics' }, { href: '/insights/investments', label: 'Investments' }]} />
 
   <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Analytics</h1>

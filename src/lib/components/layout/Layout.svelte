@@ -10,6 +10,9 @@
   import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId, scaledBack } from '$lib/stores/uiStore';
   import Toast from '$lib/components/ui/Toast.svelte';
   import { onNavigate, beforeNavigate, afterNavigate } from '$app/navigation';
+  import { navDirection } from '$lib/ui/navDirection';
+  import { edgeSwipeBack } from '$lib/ui/edgeSwipe';
+  import { isTabRoot } from '$lib/ui/routes';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
 
@@ -36,8 +39,12 @@
 
   // Moving between pages fades through: the old one fades out, the new one
   // in (app.css). The bars and the Log button are named so they stay put.
+  // The page change slides the way the app's structure goes (navDirection);
+  // app.css reads data-nav to pick the animation.
   onNavigate((navigation) => {
     if (!document.startViewTransition || navigation.from?.url.pathname === navigation.to?.url.pathname) return;
+    const strip = (p: string) => p.slice(base.length) || '/';
+    document.documentElement.dataset.nav = navDirection(navigation.from ? strip(navigation.from.url.pathname) : null, strip(navigation.to?.url.pathname ?? '/'));
     return new Promise((resolve) => {
       document.startViewTransition(async () => {
         resolve();
@@ -48,13 +55,13 @@
 
   // Each page's name in the tab, the task switcher and screen readers.
   const TITLES: Record<string, string> = {
-    '/': 'Month',
-    '/transactions': 'Transactions',
+    '/': 'Home',
+    '/budget': 'Budget',
+    '/budget/bills': 'Bills',
+    '/activity': 'Activity',
     '/review': 'Review payments',
-    '/analytics': 'Analytics',
-    '/investments': 'Investments',
-    '/buckets': 'Buckets',
-    '/recurring': 'Recurring',
+    '/insights': 'Insights',
+    '/insights/investments': 'Investments',
     '/settings': 'Settings',
   };
   $: path = $page.url.pathname.slice(base.length).replace(/(.)\/$/, '$1') || '/';
@@ -84,7 +91,7 @@
 
 <div id="stage" class:scaled={$scaledBack} class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
   <Nav />
-  <main bind:this={main} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
+  <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path)} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
     <!-- The app draws under the status bar; this strip keeps content that
          scrolls up from running into the clock and icons. -->
     <div

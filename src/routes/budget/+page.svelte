@@ -126,7 +126,7 @@
 </script>
 
 <div class="space-y-6">
-  <SectionTabs tabs={[{ href: '/buckets', label: 'Buckets' }, { href: '/recurring', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
+  <SectionTabs tabs={[{ href: '/budget', label: 'Buckets' }, { href: '/budget/bills', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
 
   <div class="space-y-3">
     <div class="flex items-center justify-between gap-3">

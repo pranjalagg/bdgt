@@ -96,7 +96,7 @@
 </script>
 
 <div class="space-y-6">
-  <SectionTabs tabs={[{ href: '/buckets', label: 'Buckets' }, { href: '/recurring', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
+  <SectionTabs tabs={[{ href: '/budget', label: 'Buckets' }, { href: '/budget/bills', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
 
   <h1 class="page-title">Settings</h1>
 

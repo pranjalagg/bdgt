@@ -192,7 +192,7 @@
         title="Upcoming bills"
         caption={$upcomingRecurring.length === 0 ? 'Nothing due in 7 days' : `${$upcomingRecurring.length} due in 7 days`}
         amount={billsTotal}
-        href="{base}/recurring"
+        href="{base}/budget/bills"
       >
         <svg slot="icon" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
       </Tile>
@@ -235,7 +235,7 @@
         <span class="font-medium text-warning">{$unsortedTransactions.length} {$unsortedTransactions.length === 1 ? 'transaction needs' : 'transactions need'} a bucket.</span>
         Their bucket was removed, so they are kept as Unsorted until you move them.
       </p>
-      <a href="{base}/transactions?bucket=unsorted" class="btn-secondary flex-none">Review</a>
+      <a href="{base}/activity?bucket=unsorted" class="btn-secondary flex-none">Review</a>
     </div>
   {/if}
 
