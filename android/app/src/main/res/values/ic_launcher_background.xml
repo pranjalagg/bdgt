@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- The app's ink (Tailwind `primary` in light mode). -->
+    <color name="ic_launcher_background">#17181A</color>
 </resources>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The mark on its ink tile, as in the sidebar and the favicon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="88dp"
+    android:height="88dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <path
+        android:fillColor="#17181A"
+        android:pathData="M7,0H25A7,7 0,0 1,32 7V25A7,7 0,0 1,25 32H7A7,7 0,0 1,0 25V7A7,7 0,0 1,7 0Z" />
+    <group
+        android:translateX="4"
+        android:translateY="4">
+        <path
+            android:pathData="M2,17L12,22L22,17"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M2,12L12,17L22,12"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M12,2L2,7L12,12L22,7L12,2Z"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>
