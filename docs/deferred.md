@@ -2,7 +2,7 @@
 
 A running list of things we chose not to do yet, kept so they are not lost. Each entry says what it is, why it was deferred, where it lives, and a suggested fix. Add to it whenever something is deferred; move an entry to "Resolved" when it is done.
 
-Last updated: 2026-10-21.
+Last updated: 2026-10-23.
 
 ## How to read this
 
@@ -135,6 +135,18 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 
 ### Verification not done
 - **Safari/WebKit formatting of `en-AE`, `en-SG` and `en-CA`.** Checked only in Chromium 155 (`AED 1,234,567.89`, `$1,234,567.89`). Run `(1234567.89).toLocaleString('en-AE', {style:'currency', currency:'AED'})` in Safari's console, and the same for the other two. Also unverified in Safari: parsing of six-digit fractional timestamps with `Date.parse` (affects sync cursors, see `pull.ts` `sinceFor`).
+
+---
+
+## Native-feeling UI (branch `claude/native-ui`, plan: `docs/superpowers/plans/2026-10-23-native-ui.md`)
+- **Editing a paused recurring item resumes it.** `handleSubmit` in `src/routes/recurring/+page.svelte` always saves `isActive: true`. Pause now lives in the same sheet, so it is easier to hit. Not changed because it is behaviour, not UI. Fix: save `editing.isActive`. Size S.
+- **Insights charts still draw spending in red and income in green** (`#ef4444`, `#22c55e`), against the app's colour meanings (red means overspent, green means set aside), and use the same fixed colours in both themes. Needs a chart colour pass: neutral or ink for spending, a separate hue for income, theme-aware values. `src/routes/analytics/+page.svelte`, `src/lib/components/charts/`. Size M.
+- **Edit sheets focus their first field when they open**, so on a phone the keyboard covers the sheet even when you came to look or delete. Consider focusing the sheet itself for edit sheets (not Log) on touch screens. `Modal.svelte` `focusFirst`. Size S.
+- **The preview app ("bdgt preview") has no sync.** Google sign-in is registered for the real app id only. To turn it on: add an Android OAuth client for `io.github.pranjalagg.bdgt.preview` with the same SHA-1 in Google Cloud, then drop the `PREVIEW` gating of the three `VITE_` variables in `.github/workflows/android.yml`. Size S.
+- **Review keeps its action cards** (Approve, Edit, Dismiss on each) rather than the avatar rows of Activity and Recurring. Swipe to approve or dismiss, and haptics (`@capacitor/haptics`), were left out. Size M.
+- **Back restores scroll only within a session:** positions are kept in memory per URL, so after a full reload Back starts at the top. `Layout.svelte`. Size S.
+- **The bottom bar's count of payments to review is red**, the platform convention for badges and the one place red does not mean overspent.
+- **GitHub Actions warns that `actions/checkout@v4` and `actions/setup-node@v4` target Node 20** (deprecated, now forced onto Node 24). Move to the next major versions when convenient. Size S.
 
 ---
 
