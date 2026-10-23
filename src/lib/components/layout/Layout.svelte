@@ -35,28 +35,35 @@
 
 <svelte:window on:keydown={handleGlobalKeydown} />
 
-<div class="flex h-screen bg-background dark:bg-background-dark">
+<div class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
   <Nav />
-  <main class="flex-1 overflow-auto pb-36 md:pb-24">
+  <main class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
+    <!-- The app draws under the status bar; this strip keeps content that
+         scrolls up from running into the clock and icons. -->
+    <div
+      class="pointer-events-none fixed inset-x-0 top-0 z-30 bg-background/85 backdrop-blur-xl dark:bg-background-dark/85 md:hidden"
+      style="height: var(--safe-top)"
+      aria-hidden="true"
+    ></div>
     <UpdateBanner />
-    <div class="mx-auto max-w-5xl p-6">
+    <div class="mx-auto max-w-5xl px-4 pb-[calc(9rem+var(--safe-bottom))] pt-4 sm:px-6 md:pb-24 md:pt-8">
       <slot />
     </div>
   </main>
 
   <!-- Persistent action, not a button that only exists on some pages:
        logging a spend is the one thing you do here more than anything
-       else, so it's reachable from every screen. -->
+       else, so it's reachable from every screen. An extended action button
+       above the bottom bar on phones. -->
   <button
     type="button"
     on:click={() => openLog()}
     aria-keyshortcuts="Meta+K"
-    class="fixed bottom-20 right-4 z-30 flex items-center gap-2 rounded-full bg-primary px-5 py-3.5
-           text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
-           dark:text-gray-900 md:bottom-6 md:right-6"
+    class="btn-primary fixed right-4 z-30 !min-h-[3.5rem] !px-6 text-base
+           bottom-[calc(5rem+var(--safe-bottom))] md:bottom-6 md:right-6"
+    style="box-shadow: var(--shadow-float)"
   >
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
     </svg>
     Log

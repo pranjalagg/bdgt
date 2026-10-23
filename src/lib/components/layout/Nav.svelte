@@ -43,12 +43,12 @@
 <!-- Desktop sidebar -->
 <nav class="hidden h-full w-56 flex-shrink-0 flex-col border-r border-border bg-white dark:border-border-dark dark:bg-surface-dark md:flex">
   <div class="flex items-center gap-2.5 px-5 py-5">
-    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white dark:text-gray-900">
+    <div class="flex h-8 w-8 items-center justify-center rounded-[9px] bg-primary text-white dark:text-gray-900">
       <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 17L12 22L22 17" /><path d="M2 12L12 17L22 12" /><path d="M12 2L2 7L12 12L22 7L12 2Z" />
       </svg>
     </div>
-    <span class="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-50">Budget</span>
+    <span class="display text-lg font-semibold tracking-tight text-gray-950 dark:text-white">bdgt</span>
   </div>
 
   <ul class="flex-1 space-y-0.5 px-3 pt-2">
@@ -57,10 +57,11 @@
       <li>
         <a
           href={getHref(item.href)}
-          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+          aria-current={active ? 'page' : undefined}
+          class="flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm font-medium transition-colors duration-150
                  {active
-                   ? 'bg-primary/10 text-primary dark:bg-primary/15'
-                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200'}"
+                   ? 'bg-primary/[0.08] font-semibold text-gray-950 dark:bg-white/10 dark:text-white'
+                   : 'text-gray-600 hover:bg-black/[0.04] hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-200'}"
         >
           <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             {@html iconPaths[item.icon]}
@@ -80,29 +81,37 @@
   </div>
 </nav>
 
-<!-- Mobile bottom nav -->
-<nav class="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 backdrop-blur-sm dark:border-border-dark dark:bg-surface-dark/95 md:hidden">
-  <ul class="flex justify-around pb-[env(safe-area-inset-bottom)]">
+<!-- Mobile bottom bar: the active destination gets a pill behind its icon,
+     as in Material 3; the bar sits on the gesture bar's safe area. -->
+<nav
+  class="fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.06] bg-white/90 backdrop-blur-xl dark:border-white/[0.06] dark:bg-[#141518]/90 md:hidden"
+  style="padding-bottom: var(--safe-bottom)"
+>
+  <ul class="flex h-16 items-stretch justify-around px-1">
     {#each navItems as item}
       {@const active = isActive(item.match, currentPath)}
       <li class="flex-1">
         <a
           href={getHref(item.href)}
-          class="flex min-h-[44px] flex-col items-center justify-center gap-1 py-2 transition-colors
-                 {active ? 'text-primary' : 'text-muted dark:text-muted-dark'}"
+          aria-current={active ? 'page' : undefined}
+          class="group flex h-full flex-col items-center justify-center gap-1 focus:outline-none"
         >
-          <span class="relative">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <span
+            class="relative flex h-8 w-16 items-center justify-center rounded-full transition-colors duration-150 ease-out
+                   group-focus-visible:ring-2 group-focus-visible:ring-primary/40
+                   {active ? 'bg-primary/[0.09] text-gray-950 dark:bg-white/[0.12] dark:text-white' : 'text-muted dark:text-muted-dark'}"
+          >
+            <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={active ? 2.1 : 1.75} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               {@html iconPaths[item.icon]}
             </svg>
             {#if item.icon === 'list' && $pendingCaptures.length > 0}
-              <span class="absolute -right-2 -top-1.5 min-w-[16px] rounded-full bg-primary px-1 text-center text-[10px] font-semibold leading-4 text-white dark:text-gray-900" aria-label="{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review">{$pendingCaptures.length}</span>
+              <span class="absolute right-2.5 -top-1 min-w-[18px] rounded-full bg-danger px-1 text-center text-[11px] font-semibold leading-[18px] text-white ring-2 ring-white dark:ring-[#141518]" aria-label="{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review">{$pendingCaptures.length}</span>
             {/if}
             {#if item.icon === 'cog' && $attention}
-              <span class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-danger" role="img" aria-label="Sync needs attention"></span>
+              <span class="absolute right-4 top-0.5 h-2 w-2 rounded-full bg-danger ring-2 ring-white dark:ring-[#141518]" role="img" aria-label="Sync needs attention"></span>
             {/if}
           </span>
-          <span class="text-[11px] font-medium">{item.label}</span>
+          <span class="text-xs {active ? 'font-semibold text-gray-950 dark:text-white' : 'font-medium text-muted dark:text-muted-dark'}">{item.label}</span>
         </a>
       </li>
     {/each}
