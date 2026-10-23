@@ -2,7 +2,10 @@
 // GitHub release `android-latest`, titled "Android test build N", with the
 // APK as `bdgt.apk` (.github/workflows/android.yml).
 
-export const LATEST_RELEASE = 'https://api.github.com/repos/pranjalagg/bdgt/releases/tags/android-latest';
+// A preview build of a UI branch is a separate app ("bdgt preview") with its
+// own release, named at build time by VITE_UPDATE_RELEASE.
+const RELEASE_TAG: string = import.meta.env.VITE_UPDATE_RELEASE || 'android-latest';
+export const LATEST_RELEASE = `https://api.github.com/repos/pranjalagg/bdgt/releases/tags/${RELEASE_TAG}`;
 
 export interface Release {
   name?: string | null;

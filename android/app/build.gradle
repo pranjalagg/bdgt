@@ -5,6 +5,10 @@ apply plugin: 'kotlin-android'
 // which one they have and each one installs over the last.
 def buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
 
+// A preview of a UI branch (BDGT_PREVIEW=1) installs beside the real app,
+// not over it, as "bdgt preview".
+def preview = System.getenv("BDGT_PREVIEW") == "1"
+
 android {
     namespace = "io.github.pranjalagg.bdgt"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -14,6 +18,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode buildNumber
         versionName "0.1.${buildNumber}"
+        if (preview) applicationIdSuffix ".preview"
+        manifestPlaceholders = [appLabel: preview ? "bdgt preview" : "@string/app_name"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

@@ -1,10 +1,12 @@
 name: Android test build
 
-# Runs only for the Android branch (and by hand); the live site is deployed
-# separately and never from here.
+# Runs only for the Android branch and the UI preview branch (and by hand);
+# the live site is deployed separately and never from here. The UI branch
+# builds "bdgt preview", a separate app published as android-preview; only
+# the Android branch publishes android-latest.
 on:
   push:
-    branches: [claude/intelligent-davinci-7qblqz]
+    branches: [claude/intelligent-davinci-7qblqz, claude/native-ui]
   workflow_dispatch:
 
 permissions:
@@ -30,7 +32,9 @@ jobs:
   android:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # publishes the build as the release android-latest
+      contents: write # publishes the build as the release android-latest (or android-preview)
+    env:
+      PREVIEW: ${{ github.ref_name == 'claude/native-ui' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,12 +49,15 @@ jobs:
       - run: npm ci
       # The app is served from the root inside Android. Repository variables,
       # all public by design (never secrets): without them the app has no Sync
-      # section, as before.
+      # section, as before. The preview leaves them out: Google sign-in only
+      # works for the registered app id, and a broken sign-in is worse than
+      # none (import a backup instead).
       - run: BASE_PATH= npm run build
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.VITE_GOOGLE_WEB_CLIENT_ID }}
+          VITE_SUPABASE_URL: ${{ env.PREVIEW != '1' && vars.VITE_SUPABASE_URL || '' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.PREVIEW != '1' && vars.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ env.PREVIEW != '1' && vars.VITE_GOOGLE_WEB_CLIENT_ID || '' }}
+          VITE_UPDATE_RELEASE: ${{ env.PREVIEW == '1' && 'android-preview' || 'android-latest' }}
       # Development helpers (fake phone, sample payments) live behind
       # import.meta.env.DEV and must never ship.
       - name: No development helpers in the build
@@ -95,6 +102,7 @@ jobs:
         working-directory: android
         env:
           BDGT_DEBUG_KEYSTORE: /home/runner/bdgt-debug.keystore
+          BDGT_PREVIEW: ${{ env.PREVIEW }}
         run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
       - uses: actions/upload-artifact@v4
         with:
@@ -105,6 +113,7 @@ jobs:
       # the repository and the website); the app offers it when it is newer
       # than the installed one (src/lib/appUpdate.ts).
       - name: Publish as the latest Android build
+        if: github.ref_name == 'claude/intelligent-davinci-7qblqz'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -113,3 +122,15 @@ jobs:
           gh release create android-latest bdgt.apk -R "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
             --title "Android test build ${{ github.run_number }}" \
             --notes "Built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. On the phone: download bdgt.apk and open it; it installs over the earlier build and keeps your data."
+      # The UI branch's builds go to their own release, so the real app never
+      # sees them as an update.
+      - name: Publish as the latest preview build
+        if: github.ref_name == 'claude/native-ui'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk bdgt.apk
+          gh release delete android-preview -R "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create android-preview bdgt.apk -R "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
+            --title "Android test build ${{ github.run_number }} (UI preview)" \
+            --notes "bdgt preview, built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. Installs beside the real app (it does not replace it) and has no sync: export a backup from the real app (Settings, Export JSON) and import it here."

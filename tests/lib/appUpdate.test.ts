@@ -3,6 +3,12 @@ import { installedBuild, newerBuild, checkForUpdate, LATEST_RELEASE } from '$lib
 
 const release = (name: string, assets = [{ name: 'bdgt.apk', browser_download_url: 'https://github.com/x/bdgt.apk' }]) => ({ name, assets });
 
+describe('LATEST_RELEASE', () => {
+  it('is the android-latest release unless the build names another', () => {
+    expect(LATEST_RELEASE).toBe('https://api.github.com/repos/pranjalagg/bdgt/releases/tags/android-latest');
+  });
+});
+
 describe('installedBuild', () => {
   it('reads the build number from the app version', () => {
     expect(installedBuild('0.1.8')).toBe(8);
