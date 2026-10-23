@@ -29,6 +29,8 @@ jobs:
 
   android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # publishes the build as the release android-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -99,3 +101,15 @@ jobs:
           name: bdgt-test-build-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      # Phones download the newest build from this one release (public, like
+      # the repository and the website); the app offers it when it is newer
+      # than the installed one (src/lib/appUpdate.ts).
+      - name: Publish as the latest Android build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk bdgt.apk
+          gh release delete android-latest -R "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create android-latest bdgt.apk -R "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
+            --title "Android test build ${{ github.run_number }}" \
+            --notes "Built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. On the phone: download bdgt.apk and open it; it installs over the earlier build and keeps your data."

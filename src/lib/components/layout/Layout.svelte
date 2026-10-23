@@ -1,4 +1,5 @@
 <script lang="ts">
+  import UpdateBanner from './UpdateBanner.svelte';
   import Nav from './Nav.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import LogEntry from '$lib/components/shared/LogEntry.svelte';
@@ -37,6 +38,7 @@
 <div class="flex h-screen bg-background dark:bg-background-dark">
   <Nav />
   <main class="flex-1 overflow-auto pb-36 md:pb-24">
+    <UpdateBanner />
     <div class="mx-auto max-w-5xl p-6">
       <slot />
     </div>
