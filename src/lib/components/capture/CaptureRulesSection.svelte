@@ -15,10 +15,9 @@
 </script>
 
 {#if sorted.length > 0}
-  <div class="card">
-    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
-      <h2 class="section-title">Capture rules</h2>
-    </div>
+  <section>
+    <h2 class="settings-label">Capture rules</h2>
+    <div class="card">
     <div class="space-y-3 px-5 py-4">
       <p class="text-sm text-muted dark:text-muted-dark">
         Learned from the payments you approved or dismissed. The next payment to the same payee arrives with this suggestion.
@@ -47,4 +46,5 @@
       </ul>
     </div>
   </div>
+  </section>
 {/if}

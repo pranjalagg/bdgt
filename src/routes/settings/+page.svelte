@@ -87,10 +87,11 @@
     alert('All data has been reset.');
   }
 
-  function handleThemeChange(e: Event) {
-    const value = (e.target as HTMLSelectElement).value as ThemePreference;
-    setTheme(value);
-  }
+  const THEMES: [ThemePreference, string][] = [
+    ['system', 'System'],
+    ['light', 'Light'],
+    ['dark', 'Dark'],
+  ];
 </script>
 
 <div class="space-y-6">
@@ -98,34 +99,29 @@
 
   <h1 class="page-title">Settings</h1>
 
-  <div class="card">
-    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
-      <h2 class="section-title">Appearance</h2>
+  <section>
+    <h2 class="settings-label">Appearance</h2>
+    <div class="card">
+    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+      <span id="theme-label" class="text-[15px] font-medium text-gray-900 dark:text-gray-100">Theme</span>
+      <div id="theme" class="segmented !w-auto" role="group" aria-labelledby="theme-label">
+        {#each THEMES as [value, label]}
+          <button type="button" class="segment" aria-pressed={$themePreference === value} on:click={() => setTheme(value)}>{label}</button>
+        {/each}
+      </div>
     </div>
-    <div class="flex items-center gap-4 px-5 py-4">
-      <label for="theme" class="label">Theme</label>
-      <select
-        id="theme"
-        value={$themePreference}
-        on:change={handleThemeChange}
-        class="select-base max-w-[160px]"
-      >
-        <option value="system">System</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
-    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
-      <h2 class="section-title">Currency</h2>
-    </div>
+  <section>
+    <h2 class="settings-label">Currency</h2>
+    <div class="card">
     <div class="flex flex-wrap items-center gap-4 px-5 py-4">
       <CurrencyChip />
-      <p class="text-sm text-muted">Changing it only relabels amounts; it does not convert them.</p>
+      <p class="text-sm text-muted dark:text-muted-dark">Changing it only relabels amounts; it does not convert them.</p>
     </div>
-  </div>
+    </div>
+  </section>
 
   {#if syncEnabled}
     <SyncSection />
@@ -137,10 +133,9 @@
 
   <CaptureRulesSection />
 
-  <div class="card">
-    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
-      <h2 class="section-title">Export Data</h2>
-    </div>
+  <section>
+    <h2 class="settings-label">Export data</h2>
+    <div class="card">
     <div class="flex flex-wrap gap-3 px-5 py-4">
       <button
         class="btn-primary"
@@ -157,12 +152,12 @@
         Export CSV (Transactions)
       </button>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
-      <h2 class="section-title">Import Data</h2>
     </div>
+  </section>
+
+  <section>
+    <h2 class="settings-label">Import data</h2>
+    <div class="card">
     <div class="px-5 py-4">
       <input
         type="file"
@@ -178,19 +173,20 @@
       >
         {isImporting ? 'Importing...' : 'Import JSON Backup'}
       </button>
-      <p class="mt-2 text-sm text-muted">Import a previously exported JSON backup file.</p>
+      <p class="mt-2 text-sm text-muted dark:text-muted-dark">Import a previously exported JSON backup file.</p>
     </div>
-  </div>
+    </div>
+  </section>
 
-  <div class="card border-danger/20">
-    <div class="border-b border-danger/10 px-5 py-4">
-      <h2 class="text-lg font-semibold text-danger">Danger Zone</h2>
-    </div>
+  <section>
+    <h2 class="settings-label">Danger zone</h2>
+    <div class="card">
     <div class="px-5 py-4">
       <button class="btn-danger" on:click={handleReset}>
         Reset All Data
       </button>
-      <p class="mt-2 text-sm text-muted">Permanently delete all your data. This cannot be undone.</p>
+      <p class="mt-2 text-sm text-muted dark:text-muted-dark">Permanently delete all your data. This cannot be undone.</p>
     </div>
-  </div>
+    </div>
+  </section>
 </div>

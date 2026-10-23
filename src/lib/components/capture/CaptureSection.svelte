@@ -136,10 +136,9 @@
   });
 </script>
 
-<div class="card">
-  <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
-    <h2 class="section-title">Automatic capture</h2>
-  </div>
+<section>
+  <h2 class="settings-label">Automatic capture</h2>
+  <div class="card">
 
   <div class="space-y-4 px-5 py-4">
     <p class="text-sm text-gray-600 dark:text-gray-300">
@@ -251,3 +250,4 @@
     {#if error}<p class="text-sm text-danger dark:text-danger-light" role="alert">{error}</p>{/if}
   </div>
 </div>
+</section>

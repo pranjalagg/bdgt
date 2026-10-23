@@ -10,7 +10,7 @@
 </script>
 
 <div class="card">
-  <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+  <div class="px-5 pb-1 pt-5">
     <h2 class="section-title">Recent Activity</h2>
   </div>
 

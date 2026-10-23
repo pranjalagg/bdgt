@@ -3,13 +3,14 @@
   import { recurringTransactions, addRecurring, updateRecurring, deleteRecurring, toggleRecurring } from '$lib/stores/recurringStore';
   import { buckets } from '$lib/stores/budgetStore';
   import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, currencySymbol, symbolPadding } from '$lib/utils/currency';
-  import { formatDate, parseLocalDate } from '$lib/utils/dates';
+  import { parseLocalDate } from '$lib/utils/dates';
   import Modal from '$lib/components/shared/Modal.svelte';
   import SectionTabs from '$lib/components/shared/SectionTabs.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { RecurringTransaction } from '$lib/types';
 
   let editingId: string | null = null;
+  $: editing = editingId ? $recurringTransactions.find((r) => r.id === editingId) : undefined;
   let amount = '';
   let bucketId = '';
   let frequency: RecurringTransaction['frequency'] = 'monthly';
@@ -84,7 +85,28 @@
   async function handleDelete(id: string) {
     if (!confirm('Delete this recurring transaction?')) return;
     await deleteRecurring(id);
+    closeModal();
+    resetForm();
   }
+
+  async function handleToggle(id: string) {
+    await toggleRecurring(id);
+    closeModal();
+    resetForm();
+  }
+
+  const FREQUENCY: Record<RecurringTransaction['frequency'], string> = {
+    weekly: 'Weekly',
+    biweekly: 'Every 2 weeks',
+    monthly: 'Monthly',
+  };
+
+  function dueLabel(d: Date) {
+    const sameYear = d.getFullYear() === new Date().getFullYear();
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
+  }
+
+  const initial = (name: string | undefined) => (name ? Array.from(name)[0].toUpperCase() : '?');
 
   $: sortedRecurring = [...$recurringTransactions].sort(
     (a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime()
@@ -94,58 +116,50 @@
 <div class="space-y-6">
   <SectionTabs tabs={[{ href: '/buckets', label: 'Buckets' }, { href: '/recurring', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
 
-  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+  <div class="flex items-center justify-between gap-3">
     <h1 class="page-title">Recurring</h1>
-    <button class="btn-primary" on:click={handleAdd}>
-      + Add Recurring
+    <button class="btn-secondary !pl-4" on:click={handleAdd}>
+      <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+      Add
     </button>
   </div>
 
   {#if sortedRecurring.length === 0}
-    <div class="card py-12 text-center text-muted">No recurring transactions</div>
+    <div class="card px-5 py-12 text-center text-sm text-muted dark:text-muted-dark">No recurring transactions</div>
   {:else}
-    <div class="space-y-2">
-      {#each sortedRecurring as rec}
+    <!-- Tap an item to edit, pause or delete it. -->
+    <div class="card overflow-hidden">
+      {#each sortedRecurring as rec, i (rec.id)}
         {@const bucket = $buckets.find((b) => b.id === rec.bucketId)}
-        <div class="card flex items-center gap-4 p-4 transition-colors hover:border-gray-300 dark:hover:border-gray-600" class:opacity-50={!rec.isActive}>
-          <span
-            class="h-3.5 w-3.5 rounded-full ring-2 ring-white dark:ring-surface-dark"
-            style="background-color: {bucket?.color || '#ccc'}"
-          ></span>
-          <div class="flex-1 min-w-0">
-            <p class="money font-semibold dark:text-gray-100 amt">{formatCurrency(rec.amount)}</p>
-            <p class="text-sm text-muted">
-              {bucket?.name || 'Unknown'} &middot; {rec.frequency}
-              {#if rec.note} &middot; {rec.note}{/if}
-            </p>
-          </div>
-          <div class="text-right">
-            <p class="text-xs text-muted">Next due</p>
-            <p class="money text-sm font-medium dark:text-gray-200">{formatDate(new Date(rec.nextDueDate))}</p>
-          </div>
-          <div class="flex gap-1">
-            <button
-              class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors {rec.isActive ? 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700' : 'bg-primary/10 text-primary hover:bg-primary/20'}"
-              on:click={() => toggleRecurring(rec.id)}
-            >
-              {rec.isActive ? 'Pause' : 'Resume'}
-            </button>
-            <button
-              class="btn-icon !p-1.5"
-              on:click={() => handleEdit(rec)}
-              aria-label="Edit recurring"
-            >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-            </button>
-            <button
-              class="btn-icon !p-1.5 hover:!bg-red-50 hover:!text-danger dark:hover:!bg-red-900/30"
-              on:click={() => handleDelete(rec.id)}
-              aria-label="Delete recurring"
-            >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          data-row
+          on:click={() => handleEdit(rec)}
+          class="relative flex w-full items-center gap-3 px-4 py-3 text-left transition-colors
+                 hover:bg-black/[0.02] active:bg-black/[0.05] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary
+                 dark:hover:bg-white/[0.03] dark:active:bg-white/[0.06]"
+        >
+          {#if i > 0}
+            <span class="pointer-events-none absolute left-[4.25rem] right-0 top-0 h-px bg-border dark:bg-border-dark" aria-hidden="true"></span>
+          {/if}
+          <span class="relative flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-full" aria-hidden="true">
+            <span class="absolute inset-0 opacity-25 dark:opacity-35" style="background:{bucket?.color ?? '#cbd4c9'}"></span>
+            <span class="relative text-[15px] font-semibold text-gray-900 dark:text-white">{initial(rec.note || bucket?.name)}</span>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="flex min-w-0 items-center gap-1.5 text-[15px] font-medium leading-snug text-gray-950 dark:text-gray-50">
+              <span class="truncate">{rec.note || bucket?.name || 'Recurring'}</span>
+              {#if !rec.isActive}
+                <span class="flex-none rounded-full bg-raised px-1.5 py-px text-[10.5px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-raised-dark dark:text-gray-200">Paused</span>
+              {/if}
+            </span>
+            <span class="block truncate text-[13px] text-muted dark:text-muted-dark">{bucket?.name || 'Unknown'} · {FREQUENCY[rec.frequency] ?? rec.frequency}</span>
+          </span>
+          <span class="flex-none text-right">
+            <span class="money amt block text-[15px] font-semibold text-gray-950 dark:text-gray-50">{formatCurrency(rec.amount)}</span>
+            <span class="block text-[12px] text-muted dark:text-muted-dark">{rec.isActive ? 'Due' : 'Was due'} {dueLabel(new Date(rec.nextDueDate))}</span>
+          </span>
+        </button>
       {/each}
     </div>
   {/if}
@@ -207,5 +221,11 @@
     >
       {editingId ? 'Update' : 'Add'} Recurring
     </button>
+    {#if editing}
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" class="btn-secondary" on:click={() => editing && handleToggle(editing.id)}>{editing.isActive ? 'Pause' : 'Resume'}</button>
+        <button type="button" class="btn-danger" on:click={() => editing && handleDelete(editing.id)}>Delete</button>
+      </div>
+    {/if}
   </form>
 </Modal>

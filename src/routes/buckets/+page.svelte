@@ -9,7 +9,7 @@
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { AllocationType } from '$lib/types';
 
-  type BucketFormData = { id: string; name: string; color: string; allocationType: AllocationType; fixedAmount: number; percentageAmount: number; isSavings: boolean; isEveryday: boolean };
+  type BucketFormData = { id: string; name: string; color: string; allocationType: AllocationType; fixedAmount: number; percentageAmount: number; isSavings: boolean; isEveryday: boolean; isDefault?: boolean };
 
   let editingBucket: BucketFormData | null = null;
   let newBucketName = '';
@@ -88,6 +88,7 @@
     await deleteBucket(id);
     await loadRecurring();
     await loadGoals();
+    closeModal();
   }
 
   async function handleAllocationChange(bucketId: string, value: string, inputEl: HTMLInputElement) {
@@ -127,73 +128,62 @@
 <div class="space-y-6">
   <SectionTabs tabs={[{ href: '/buckets', label: 'Buckets' }, { href: '/recurring', label: 'Recurring' }, { href: '/settings', label: 'Settings' }]} />
 
-  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-    <h1 class="page-title">Buckets</h1>
-    <div class="flex items-center gap-3">
-      <MonthPicker />
-      <button class="btn-primary" on:click={handleAddBucket}>
-        + Add Bucket
+  <div class="space-y-3">
+    <div class="flex items-center justify-between gap-3">
+      <h1 class="page-title">Buckets</h1>
+      <button class="btn-secondary !pl-4" on:click={handleAddBucket}>
+        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        Add bucket
       </button>
     </div>
+    <MonthPicker />
   </div>
 
   {#if $totalPercentage > 100}
-    <div class="flex items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
-      <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div class="flex items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger dark:text-danger-light">
+      <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       Total percentage allocation is {$totalPercentage}% (exceeds 100%)
     </div>
   {/if}
 
-  <div class="space-y-2">
-    {#each $bucketStatuses.filter((s) => !s.bucket.isSystem) as status}
-      <div class="card flex items-center gap-4 p-4 transition-colors hover:border-gray-300 dark:hover:border-gray-600">
-        <span
-          class="h-4 w-4 rounded-full ring-2 ring-white dark:ring-surface-dark"
-          style="background-color: {status.bucket.color}"
-        ></span>
-        <div class="flex-1 min-w-0">
-          <h3 class="font-semibold text-gray-800 dark:text-gray-100">{status.bucket.name}</h3>
-          <p class="amt text-sm text-muted">
+  <!-- One grouped list, as a settings screen draws it. Delete lives in the
+       bucket's sheet. -->
+  <div class="card overflow-hidden">
+    {#each $bucketStatuses.filter((s) => !s.bucket.isSystem) as status, i (status.bucket.id)}
+      <div class="relative flex items-center gap-3 py-3 pl-4 pr-2">
+        {#if i > 0}
+          <span class="pointer-events-none absolute left-11 right-0 top-0 h-px bg-border dark:bg-border-dark" aria-hidden="true"></span>
+        {/if}
+        <span class="h-3 w-3 flex-none rounded-full" style="background-color: {status.bucket.color}" aria-hidden="true"></span>
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate text-[15px] font-semibold text-gray-950 dark:text-gray-50">{status.bucket.name}</h3>
+          <p class="amt text-[13px] leading-snug text-muted dark:text-muted-dark">
             {formatAllocationDisplay(status.bucket, $computedAllocations[status.bucket.id], status.allocated)}
           </p>
           {#if status.rollover !== 0}
-            <p class="text-xs text-muted">Rollover: <span class="amt">{formatCurrency(status.rollover)}</span></p>
+            <p class="text-[13px] leading-snug text-muted dark:text-muted-dark">Rollover <span class="money amt">{formatCurrency(status.rollover)}</span></p>
           {/if}
         </div>
         {#if status.bucket.allocationType === 'fixed'}
-          <div class="flex items-center gap-2">
-            <span class="text-muted">{currencySymbol()}</span>
+          <label class="relative flex-none">
+            <span class="sr-only">Assigned to {status.bucket.name} this month</span>
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted dark:text-muted-dark" aria-hidden="true">{currencySymbol()}</span>
             <input
               type="text"
               value={(status.allocated / 100).toFixed(2)}
               on:change={(e) => handleAllocationChange(status.bucket.id, e.currentTarget.value, e.currentTarget)}
-              class="money w-24 rounded-lg border border-border bg-white px-2 py-1.5 text-right text-sm transition-shadow focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-border-dark dark:bg-gray-800/50 dark:text-gray-100"
+              class="input-base money !w-[7.5rem] !py-2 pl-7 text-right"
               placeholder="0.00"
             />
-          </div>
+          </label>
         {:else}
-          <div class="money text-right text-muted amt">
+          <span class="money amt flex-none text-[15px] text-gray-700 dark:text-gray-200">
             {formatCurrency(status.allocated)}
-          </div>
+          </span>
         {/if}
-        <div class="flex gap-1">
-          <button
-            class="btn-icon !p-1.5"
-            on:click={() => handleEditBucket(status.bucket)}
-            aria-label="Edit bucket"
-          >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-          </button>
-          {#if !status.bucket.isDefault}
-            <button
-              class="btn-icon !p-1.5 hover:!bg-red-50 hover:!text-danger dark:hover:!bg-red-900/30"
-              on:click={() => handleDelete(status.bucket.id)}
-              aria-label="Delete bucket"
-            >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
-          {/if}
-        </div>
+        <button class="btn-icon flex-none" on:click={() => handleEditBucket(status.bucket)} aria-label="Edit {status.bucket.name}">
+          <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+        </button>
       </div>
     {/each}
   </div>
@@ -210,7 +200,7 @@
     </div>
     <div>
       <label for="color" class="label">Color</label>
-      <input id="color" type="color" bind:value={newBucketColor} class="mt-1.5 h-10 w-full cursor-pointer rounded-lg border border-gray-300 dark:border-border-dark" />
+      <input id="color" type="color" bind:value={newBucketColor} class="mt-1.5 h-11 w-full cursor-pointer rounded-[14px] border border-[#8f938f] bg-white px-1.5 dark:border-white/[0.36] dark:bg-white/[0.04]" />
     </div>
 
     <div>
@@ -280,5 +270,8 @@
     <button type="submit" class="w-full btn-primary">
       {editingBucket ? 'Update' : 'Add'} Bucket
     </button>
+    {#if editingBucket && !editingBucket.isDefault}
+      <button type="button" class="btn-danger w-full" on:click={() => editingBucket && handleDelete(editingBucket.id)}>Delete bucket</button>
+    {/if}
   </form>
 </Modal>

@@ -55,7 +55,7 @@
 </script>
 
 <div class="card">
-  <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+  <div class="flex items-center justify-between px-5 pb-1 pt-5">
     <h2 class="section-title">Holdings</h2>
     <button class="btn-primary text-sm" on:click={onAddPurchase}>
       + Add Purchase

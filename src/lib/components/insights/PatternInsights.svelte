@@ -26,7 +26,7 @@
 </script>
 
 <div class="card">
-  <div class="flex items-center gap-1.5 border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+  <div class="flex items-center gap-1.5 px-5 pb-1 pt-5">
     <h2 class="section-title">Patterns between buckets</h2>
     <InfoPopover label="How patterns are found">
       <p class="font-medium text-gray-900 dark:text-gray-50">How these are found</p>

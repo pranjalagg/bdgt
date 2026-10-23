@@ -73,10 +73,9 @@
   };
 </script>
 
-<div class="card">
-  <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
-    <h2 class="section-title">Sync</h2>
-  </div>
+<section>
+  <h2 class="settings-label">Sync</h2>
+  <div class="card">
 
   {#if !$account}
     <div class="space-y-3 px-5 py-4">
@@ -145,6 +144,7 @@
     </div>
   {/if}
 </div>
+</section>
 
 <Modal id="sync-signout" title="Sign out">
   <div class="space-y-4 pt-4">

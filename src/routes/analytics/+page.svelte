@@ -109,31 +109,32 @@
     <MonthPicker />
   </div>
 
-  <!-- Monthly Summary -->
-  <div class="grid gap-4 sm:grid-cols-3">
-    <div class="card p-5">
-      <p class="metric-label">Total Income</p>
-      <p class="metric-value amt" class:text-success={$currentMonthIncome > 0}>{formatCurrency($currentMonthIncome)}</p>
-      {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
-        <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
-          <span class="flex items-center gap-1">
-            <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
-            <span class="amt">{formatCurrency($currentMonthFixedIncome)}</span> fixed
-          </span>
-          <span class="flex items-center gap-1">
-            <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
-            <span class="amt">{formatCurrency($currentMonthIncome - $currentMonthFixedIncome)}</span> variable
-          </span>
-        </div>
-      {/if}
+  <!-- Monthly summary: a statement on phones (label left, figure right),
+       three figures side by side on wider screens. Income and spending are
+       ink; only the net takes a colour, green when positive, red when not. -->
+  <div class="card grid divide-y divide-border dark:divide-border-dark sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    <div class="flex items-baseline justify-between gap-3 px-5 py-3.5 sm:block sm:py-5">
+      <p class="metric-label">Income</p>
+      <div class="text-right sm:text-left">
+        <p class="money amt text-[17px] font-semibold text-gray-950 dark:text-white sm:display sm:text-2xl">{formatCurrency($currentMonthIncome)}</p>
+        {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
+          <p class="mt-0.5 text-xs text-muted dark:text-muted-dark">
+            <span class="money amt">{formatCurrency($currentMonthFixedIncome)}</span> fixed &middot;
+            <span class="money amt">{formatCurrency($currentMonthIncome - $currentMonthFixedIncome)}</span> variable
+          </p>
+        {/if}
+      </div>
     </div>
-    <div class="card p-5">
-      <p class="metric-label">Total Spent</p>
-      <p class="metric-value amt" class:text-danger={totalSpending > 0}>{formatCurrency(totalSpending)}</p>
+    <div class="flex items-baseline justify-between gap-3 px-5 py-3.5 sm:block sm:py-5">
+      <p class="metric-label">Spent</p>
+      <p class="money amt text-[17px] font-semibold text-gray-950 dark:text-white sm:display sm:text-2xl">{formatCurrency(totalSpending)}</p>
     </div>
-    <div class="card p-5">
+    <div class="flex items-baseline justify-between gap-3 px-5 py-3.5 sm:block sm:py-5">
       <p class="metric-label">Net</p>
-      <p class="metric-value amt" class:text-success={netIncome > 0} class:text-danger={netIncome < 0}>
+      <p
+        class="money amt text-[17px] font-semibold sm:display sm:text-2xl
+               {netIncome > 0 ? 'text-success dark:text-success-light' : netIncome < 0 ? 'text-danger dark:text-danger-light' : 'text-gray-950 dark:text-white'}"
+      >
         {formatCurrency(netIncome)}
       </p>
     </div>
@@ -142,18 +143,18 @@
   <!-- Spending Split -->
   {#if allSpendingByCategory.length > 0}
     <div class="card">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-5">
         <h2 class="section-title">Spending Breakdown</h2>
         <label class="flex items-center gap-2 text-sm text-muted">
           Threshold:
           <div class="relative">
-            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400">{currencySymbol()}</span>
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted dark:text-muted-dark">{currencySymbol()}</span>
             <input
               type="text"
               inputmode="decimal"
               bind:value={thresholdInput}
               style:padding-left={symbolPadding(1.5)}
-              class="w-24 rounded-lg border border-gray-300 bg-white py-1.5 pl-6 pr-2 text-sm transition-shadow focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-border-dark dark:bg-gray-800/50 dark:text-gray-100"
+              class="input-base money !w-28 !min-h-[2.5rem] !py-1.5 pl-6"
             />
           </div>
         </label>
@@ -164,15 +165,15 @@
         {#if totalSpending > 0}
           <div class="mb-6">
             <div class="mb-2 flex justify-between text-sm">
-              <span class="font-medium text-gray-700 dark:text-gray-200">Big: {bigPct}% (<span class="amt">{formatCurrency(bigTotal)}</span>)</span>
-              <span class="font-medium text-gray-700 dark:text-gray-200">Small: {smallPct}% (<span class="amt">{formatCurrency(smallTotal)}</span>)</span>
+              <span class="flex items-center gap-1.5 font-medium text-gray-700 dark:text-gray-200"><span class="h-2.5 w-2.5 flex-none rounded-full bg-primary" aria-hidden="true"></span><span>Big: {bigPct}% (<span class="amt">{formatCurrency(bigTotal)}</span>)</span></span>
+              <span class="flex items-center gap-1.5 font-medium text-gray-700 dark:text-gray-200"><span class="h-2.5 w-2.5 flex-none rounded-full bg-gray-400 dark:bg-gray-500" aria-hidden="true"></span><span>Small: {smallPct}% (<span class="amt">{formatCurrency(smallTotal)}</span>)</span></span>
             </div>
-            <div class="flex h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/50">
+            <div class="flex h-3 gap-0.5 overflow-hidden rounded-full bg-raised dark:bg-raised-dark">
               {#if bigTotal > 0}
-                <div class="bg-primary transition-all" style="width: {bigPct}%"></div>
+                <div class="bg-primary" style="width: {bigPct}%"></div>
               {/if}
               {#if smallTotal > 0}
-                <div class="bg-success transition-all" style="width: {smallPct}%"></div>
+                <div class="bg-gray-400 dark:bg-gray-500" style="width: {smallPct}%"></div>
               {/if}
             </div>
           </div>
@@ -181,7 +182,7 @@
         <!-- Two Donut Charts -->
         <div class="grid gap-6 sm:grid-cols-2">
           <div>
-            <h3 class="mb-3 text-center text-sm font-semibold text-primary">
+            <h3 class="mb-3 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
               Big Purchases (&ge; ${thresholdInput || '500'})
             </h3>
             {#if bigChartData.length > 0}
@@ -191,7 +192,7 @@
                   {@const pct = bigTotal > 0 ? ((cat.cents / bigTotal) * 100).toFixed(1) : '0.0'}
                   {@const incomePct = $currentMonthFixedIncome > 0 ? ((cat.cents / $currentMonthFixedIncome) * 100).toFixed(1) : null}
                   <button
-                    class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    class="flex min-h-[2.5rem] w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
                     class:opacity-40={hiddenBig[cat.bucketId]}
                     on:click={() => toggleBig(cat.bucketId, i)}
                   >
@@ -209,7 +210,7 @@
           </div>
 
           <div>
-            <h3 class="mb-3 text-center text-sm font-semibold text-success dark:text-success-light">
+            <h3 class="mb-3 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
               Small Purchases (&lt; ${thresholdInput || '500'})
             </h3>
             {#if smallChartData.length > 0}
@@ -219,7 +220,7 @@
                   {@const pct = smallTotal > 0 ? ((cat.cents / smallTotal) * 100).toFixed(1) : '0.0'}
                   {@const incomePct = $currentMonthFixedIncome > 0 ? ((cat.cents / $currentMonthFixedIncome) * 100).toFixed(1) : null}
                   <button
-                    class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    class="flex min-h-[2.5rem] w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
                     class:opacity-40={hiddenSmall[cat.bucketId]}
                     on:click={() => toggleSmall(cat.bucketId, i)}
                   >
@@ -240,7 +241,7 @@
     </div>
   {:else}
     <div class="card">
-      <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <div class="px-5 pb-1 pt-5">
         <h2 class="section-title">Spending Breakdown</h2>
       </div>
       <p class="py-12 text-center text-muted">No spending data</p>
@@ -249,7 +250,7 @@
 
   <div class="grid gap-6 lg:grid-cols-2">
     <div class="card">
-      <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <div class="px-5 pb-1 pt-5">
         <h2 class="section-title">Monthly Spending Trend</h2>
         <p class="mt-0.5 text-xs text-muted">Last 6 months</p>
       </div>
@@ -266,7 +267,7 @@
     </div>
 
     <div class="card">
-      <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <div class="px-5 pb-1 pt-5">
         <h2 class="section-title">Income vs Spending</h2>
         <p class="mt-0.5 text-xs text-muted">Last 6 months</p>
       </div>
@@ -288,7 +289,7 @@
 
   {#if bucketSpendSeries.length > 0}
     <div class="card">
-      <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+      <div class="px-5 pb-1 pt-5">
         <h2 class="section-title">Monthly Spend by Bucket</h2>
         <p class="mt-0.5 text-xs text-muted">Last 6 months &middot; click a legend item to hide it</p>
       </div>
@@ -299,7 +300,7 @@
   {/if}
 
   <div class="card">
-    <div class="border-b border-gray-100 px-5 py-4 dark:border-border-dark">
+    <div class="px-5 pb-1 pt-5">
       <h2 class="section-title">Savings Rate Trend</h2>
       <p class="mt-0.5 text-xs text-muted">Last 6 months</p>
     </div>

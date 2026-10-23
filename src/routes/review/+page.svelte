@@ -153,11 +153,14 @@
 <div class="space-y-5 pb-16">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div>
-      <a href="{base}/transactions" class="text-sm text-muted hover:text-gray-900 dark:text-muted-dark dark:hover:text-gray-100">&larr; Activity</a>
+      <a href="{base}/transactions" class="-ml-2 inline-flex min-h-[2.75rem] items-center gap-0.5 rounded-full pl-1 pr-3 text-[15px] font-medium text-gray-700 hover:bg-black/[0.04] dark:text-gray-200 dark:hover:bg-white/[0.06]">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+        Activity
+      </a>
       <h1 class="page-title">Review payments</h1>
     </div>
     {#if filter === 'pending' && $bulkApprovable.length > 0}
-      <button type="button" class="btn-primary" on:click={approveAll}>
+      <button type="button" class="btn-secondary" on:click={approveAll}>
         Approve all suggested ({$bulkApprovable.length})
       </button>
     {/if}
@@ -167,13 +170,13 @@
     Payments your phone noticed. They count toward safe to spend straight away, and reach a bucket once you approve them.
   </p>
 
-  <div class="flex gap-2" role="tablist">
+  <div class="segmented" role="tablist" aria-label="Payments">
     {#each [['pending', 'To review'], ['approved', 'Approved'], ['dismissed', 'Dismissed']] as [key, label]}
       <button
         type="button"
         role="tab"
         aria-selected={filter === key}
-        class="rounded-full px-3 py-1.5 text-sm font-medium {filter === key ? 'bg-primary text-white dark:text-gray-900' : 'bg-gray-100 text-gray-700 dark:bg-white/[0.06] dark:text-gray-200'}"
+        class="segment"
         on:click={() => (filter = key as Filter)}
       >{label}{key === 'pending' && $pendingCaptures.length ? ` (${$pendingCaptures.length})` : ''}</button>
     {/each}
@@ -190,7 +193,7 @@
       {filter === 'pending' ? 'Nothing to review. New payments from your phone show up here.' : 'Nothing here.'}
     </div>
   {:else}
-    <ul class="card divide-y divide-gray-100 dark:divide-border-dark">
+    <ul class="card divide-y divide-border overflow-hidden dark:divide-border-dark">
       {#each shown as c (c.id)}
         {@const suggestion = $suggestions.get(c.id)}
         {@const suggested = suggestion ? bucketById.get(suggestion.bucketId) : undefined}
@@ -210,7 +213,7 @@
           </div>
 
           {#if c.hint && c.status === 'pending'}
-            <p class="rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-gray-800 dark:text-gray-100">{HINT_TEXT[c.hint]}</p>
+            <p class="rounded-xl bg-warning/10 px-3 py-2 text-xs text-gray-800 dark:text-gray-100">{HINT_TEXT[c.hint]}</p>
           {/if}
 
           {#if c.status === 'pending'}
@@ -239,7 +242,7 @@
           {/if}
 
           {#each $duplicatesOf.get(c.id) ?? [] as d (d.id)}
-            <div class="flex items-center justify-between gap-3 rounded-md bg-gray-50 px-2.5 py-1.5 text-xs dark:bg-white/[0.04]">
+            <div class="flex items-center justify-between gap-3 rounded-xl bg-raised px-3 py-2 text-xs dark:bg-raised-dark">
               <span class="text-muted dark:text-muted-dark">Also seen: {d.sourceLabel} · {when(d)}</span>
               <button type="button" class="font-medium text-gray-900 underline dark:text-gray-100" on:click={() => attempt(() => notDuplicate(d.id))}>Not a duplicate</button>
             </div>
@@ -250,14 +253,16 @@
   {/if}
 </div>
 
-{#if lastAction}
-  <div class="fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 md:bottom-6">
-    <div class="flex items-center gap-4 rounded-lg bg-gray-900 px-4 py-2.5 text-sm text-white shadow-lg dark:bg-gray-100 dark:text-gray-900">
+<!-- Above the Log button on phones, as a snackbar sits above a FAB. The
+     live region stays mounted so the message is announced when it lands. -->
+<div class="pointer-events-none fixed inset-x-0 bottom-[calc(9rem+var(--safe-bottom))] z-40 flex justify-center px-4 md:bottom-6" role="status">
+  {#if lastAction}
+    <div class="pointer-events-auto flex min-h-[3rem] items-center gap-4 rounded-2xl bg-gray-900 py-1.5 pl-4 pr-1.5 text-sm text-white dark:bg-gray-100 dark:text-gray-900" style="box-shadow: var(--shadow-float)">
       <span>{lastAction.text}</span>
-      <button type="button" class="font-semibold underline" on:click={undo}>Undo</button>
+      <button type="button" class="min-h-[2.5rem] rounded-full px-3 font-semibold underline-offset-2 hover:underline" on:click={undo}>Undo</button>
     </div>
-  </div>
-{/if}
+  {/if}
+</div>
 
 <Modal id="review-edit" title="Edit and approve">
   {#if editing}
