@@ -6,6 +6,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import Layout from '$lib/components/layout/Layout.svelte';
 	import { onMount } from 'svelte';
+	import { installMotion } from '$lib/ui/motion';
 	import { loadData, isLoading } from '$lib/stores/budgetStore';
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
 	import { loadGoals } from '$lib/stores/goalsStore';
@@ -26,8 +27,17 @@
 			void import('$lib/capture/devPhone').then((m) => m.installDevPhone());
 		}
 		const stopClock = startClock();
+		// Spring curves for every transition; redone if reduced motion is
+		// turned on or off while the app is open.
+		const motion = matchMedia('(prefers-reduced-motion: reduce)');
+		const applyMotion = () => installMotion(document.documentElement);
+		applyMotion();
+		motion.addEventListener('change', applyMotion);
 		void init();
-		return stopClock;
+		return () => {
+			stopClock();
+			motion.removeEventListener('change', applyMotion);
+		};
 	});
 
 	async function init() {
