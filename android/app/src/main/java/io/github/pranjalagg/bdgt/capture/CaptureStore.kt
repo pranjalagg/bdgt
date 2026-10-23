@@ -8,10 +8,15 @@ import android.database.sqlite.SQLiteOpenHelper
 import org.json.JSONObject
 
 // Kept notifications. The app brings each one into the review queue once
-// (acked_at marks it done) and they stay as the capture log until cleared.
-// The listener writes and the plugin reads, in the same process.
+// (acked_at marks it done, owner the account whose queue got it) and they
+// stay as the capture log until cleared. The listener writes and the plugin
+// reads, in the same process.
 class CaptureStore private constructor(context: Context) :
-    SQLiteOpenHelper(context, "capture.db", null, 2) {
+    SQLiteOpenHelper(context, "capture.db", null, 3) {
+
+    // Which items someone sees. `all`: every item (a build without sync).
+    // Otherwise items no account has taken yet, plus `owner`'s when signed in.
+    data class Scope(val all: Boolean, val owner: String?)
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -26,7 +31,8 @@ class CaptureStore private constructor(context: Context) :
               title TEXT,
               text TEXT NOT NULL,
               extras TEXT NOT NULL,
-              acked_at INTEGER
+              acked_at INTEGER,
+              owner TEXT
             )
             """.trimIndent(),
         )
@@ -39,6 +45,11 @@ class CaptureStore private constructor(context: Context) :
             // payments to review: they count as already brought in.
             db.execSQL("ALTER TABLE items ADD COLUMN acked_at INTEGER")
             db.execSQL("UPDATE items SET acked_at = posted_at")
+        }
+        if (oldVersion < 3) {
+            // Items brought in before owners existed are claimed by the
+            // account that is signed in next (see claim).
+            db.execSQL("ALTER TABLE items ADD COLUMN owner TEXT")
         }
     }
 
@@ -62,15 +73,21 @@ class CaptureStore private constructor(context: Context) :
         query("package = ? AND notification_key = ?", arrayOf(packageName, key), 1).firstOrNull()
 
     // Newest first.
-    fun list(limit: Int): List<KeptItem> = query(null, null, limit)
+    fun list(limit: Int, scope: Scope): List<KeptItem> {
+        val (where, args) = filter(scope)
+        return query(where, args, limit)
+    }
 
     // Not yet brought into the review queue, oldest first.
     fun pending(limit: Int): List<KeptItem> = query("acked_at IS NULL", null, limit, "posted_at ASC")
 
-    fun ack(ids: List<String>) {
+    fun ack(ids: List<String>, owner: String?) {
         if (ids.isEmpty()) return
         val db = writableDatabase
-        val done = ContentValues().apply { put("acked_at", System.currentTimeMillis()) }
+        val done = ContentValues().apply {
+            put("acked_at", System.currentTimeMillis())
+            if (owner != null) put("owner", owner)
+        }
         db.beginTransaction()
         try {
             ids.forEach { db.update("items", done, "id = ? AND acked_at IS NULL", arrayOf(it)) }
@@ -80,12 +97,28 @@ class CaptureStore private constructor(context: Context) :
         }
     }
 
-    fun count(): Long = DatabaseUtils.queryNumEntries(readableDatabase, "items")
+    // Items brought in before owners existed belong to the signed-in account.
+    fun claim(owner: String) {
+        val values = ContentValues().apply { put("owner", owner) }
+        writableDatabase.update("items", values, "owner IS NULL AND acked_at IS NOT NULL", null)
+    }
+
+    fun count(scope: Scope): Long {
+        val (where, args) = filter(scope)
+        return DatabaseUtils.queryNumEntries(readableDatabase, "items", where, args)
+    }
 
     fun waiting(): Long = DatabaseUtils.queryNumEntries(readableDatabase, "items", "acked_at IS NULL")
 
-    fun clear() {
-        writableDatabase.delete("items", null, null)
+    fun clear(scope: Scope) {
+        val (where, args) = filter(scope)
+        writableDatabase.delete("items", where, args)
+    }
+
+    private fun filter(scope: Scope): Pair<String?, Array<String>?> = when {
+        scope.all -> null to null
+        scope.owner == null -> "owner IS NULL" to null
+        else -> "(owner IS NULL OR owner = ?)" to arrayOf(scope.owner)
     }
 
     private fun query(where: String?, args: Array<String>?, limit: Int, order: String = "posted_at DESC"): List<KeptItem> {

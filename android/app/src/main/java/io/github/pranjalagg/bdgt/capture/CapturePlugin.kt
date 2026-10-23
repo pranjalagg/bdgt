@@ -42,7 +42,7 @@ class CapturePlugin : Plugin() {
                 put("listenerConnected", settings.listenerConnected)
                 put("enabled", settings.enabled)
                 put("lastKeptAt", settings.lastKeptAt)
-                put("count", CaptureStore.get(context).count())
+                put("count", CaptureStore.get(context).count(scopeOf(call)))
                 put("waiting", CaptureStore.get(context).waiting())
                 put("sms", settings.sms)
                 settings.packages?.let { put("packages", JSArray(it.toList())) }
@@ -117,13 +117,20 @@ class CapturePlugin : Plugin() {
     @PluginMethod
     fun list(call: PluginCall) {
         val items = JSArray()
-        CaptureStore.get(context).list(call.getInt("limit") ?: 200).forEach { items.put(toJs(it)) }
+        CaptureStore.get(context).list(call.getInt("limit") ?: 200, scopeOf(call)).forEach { items.put(toJs(it)) }
         call.resolve(JSObject().apply { put("items", items) })
     }
 
     @PluginMethod
     fun clear(call: PluginCall) {
-        CaptureStore.get(context).clear()
+        CaptureStore.get(context).clear(scopeOf(call))
+        call.resolve()
+    }
+
+    @PluginMethod
+    fun claim(call: PluginCall) {
+        val owner = call.getString("owner") ?: return call.reject("owner is required")
+        CaptureStore.get(context).claim(owner)
         call.resolve()
     }
 
@@ -137,7 +144,7 @@ class CapturePlugin : Plugin() {
 
     @PluginMethod
     fun ack(call: PluginCall) {
-        CaptureStore.get(context).ack(call.getArray("ids")?.toList<String>().orEmpty())
+        CaptureStore.get(context).ack(call.getArray("ids")?.toList<String>().orEmpty(), call.getString("owner"))
         call.resolve()
     }
 
@@ -158,6 +165,14 @@ class CapturePlugin : Plugin() {
         send.clipData = ClipData.newRawUri(file.name, uri)
         startActivity(Intent.createChooser(send, file.name), null)
         call.resolve()
+    }
+
+    // `visibleTo` absent: every item; null: items no account has taken yet;
+    // an account id: those plus the account's own.
+    private fun scopeOf(call: PluginCall): CaptureStore.Scope = when {
+        !call.data.has("visibleTo") -> CaptureStore.Scope(all = true, owner = null)
+        call.data.isNull("visibleTo") -> CaptureStore.Scope(all = false, owner = null)
+        else -> CaptureStore.Scope(all = false, owner = call.getString("visibleTo"))
     }
 
     private fun listenerComponent() = ComponentName(context, PaymentListenerService::class.java)

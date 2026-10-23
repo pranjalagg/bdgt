@@ -4,7 +4,7 @@ import { baseCurrency } from '$lib/stores/currencyStore';
 import { syncEnabled } from '$lib/sync/browser';
 import { getState, LINKED_ACCOUNT } from '$lib/sync/state';
 import { describeItem } from './describe';
-import type { CapturePlugin, CaptureStatus, KeptItem } from './native';
+import type { CapturePlugin, CaptureStatus, KeptItem, LogScope } from './native';
 import { isBusinessSender } from './parse';
 import { bringInSoon, startCapture } from './runner';
 
@@ -71,12 +71,15 @@ let phone: { plugin: CapturePlugin; push(item: KeptItem): void } | null = null;
 function fakePlugin() {
   const items: KeptItem[] = [];
   const acked = new Set<string>();
+  const owners = new Map<string, string>(); // like CaptureStore's owner column
+  const visible = (scope: LogScope = {}) =>
+    items.filter((i) => !('visibleTo' in scope) || !owners.has(i.id) || owners.get(i.id) === scope.visibleTo);
   const listeners: ((item: KeptItem) => void)[] = [];
   const status: Omit<CaptureStatus, 'count' | 'waiting'> = {
     available: true, accessGranted: true, listenerConnected: true, enabled: true, lastKeptAt: 0, sms: true, appVersion: 'dev',
   };
   const plugin: CapturePlugin = {
-    getStatus: async () => ({ ...status, count: items.length, waiting: items.filter((i) => !acked.has(i.id)).length }),
+    getStatus: async (scope) => ({ ...status, count: visible(scope).length, waiting: items.filter((i) => !acked.has(i.id)).length }),
     setConfig: async (o) => void Object.assign(status, o),
     installedSources: async () => ({
       sources: [
@@ -90,12 +93,20 @@ function fakePlugin() {
     openAccessSettings: async () => {},
     openBatterySettings: async () => {},
     requestRebind: async () => {},
-    list: async ({ limit = 200 } = {}) => ({ items: [...items].sort((a, b) => b.postedAt - a.postedAt).slice(0, limit) }),
-    clear: async () => void items.splice(0),
+    list: async ({ limit = 200, ...scope } = {}) => ({ items: visible(scope).sort((a, b) => b.postedAt - a.postedAt).slice(0, limit) }),
+    clear: async (scope) => {
+      const gone = new Set(visible(scope));
+      items.splice(0, items.length, ...items.filter((i) => !gone.has(i)));
+    },
     takePending: async ({ limit = 500 } = {}) => ({
       items: items.filter((i) => !acked.has(i.id)).sort((a, b) => a.postedAt - b.postedAt).slice(0, limit),
     }),
-    ack: async ({ ids }) => ids.forEach((id) => acked.add(id)),
+    ack: async ({ ids, owner }) =>
+      ids.forEach((id) => {
+        acked.add(id);
+        if (owner) owners.set(id, owner);
+      }),
+    claim: async ({ owner }) => items.forEach((i) => acked.has(i.id) && !owners.has(i.id) && owners.set(i.id, owner)),
     share: async ({ text }) => console.log(text),
     addListener: async (_event, listener) => {
       listeners.push(listener);
@@ -115,7 +126,7 @@ function fakePlugin() {
 async function fakePhone(options: { allowSync?: boolean } = {}): Promise<string> {
   if (phone) return 'The fake phone is already on.';
   if (syncEnabled && (await getState<string>(db, LINKED_ACCOUNT)) !== undefined && !options.allowSync) {
-    return 'Refused: this browser is signed in, so fake payments would sync to your account. Sign out, use a private window, or run `VITE_SUPABASE_URL= npm run dev`. (__bdgtFakePhone({ allowSync: true }) overrides.)';
+    return 'Refused: this browser is signed in, so fake payments would sync to your account. Sign out, use a private window, or start the dev server from the terminal with `VITE_SUPABASE_URL= npm run dev` (a command, not a line for .env). (__bdgtFakePhone({ allowSync: true }) overrides.)';
   }
   phone = fakePlugin();
   (window as unknown as { __bdgtCapture: CapturePlugin }).__bdgtCapture = phone.plugin;

@@ -5,6 +5,7 @@
   import { describeItem } from '$lib/capture/describe';
   import { baseCurrency } from '$lib/stores/currencyStore';
   import { getSyncApp, syncEnabled } from '$lib/sync/browser';
+  import { logScope } from '$lib/capture/runner';
 
   // Android app only. Reads payment notifications on this phone and sends
   // each payment to Review. On a build with sync, payments wait on the phone
@@ -12,6 +13,8 @@
 
   const { linked } = getSyncApp();
   $: queueing = !syncEnabled || $linked;
+  // Signing in or out changes whose recordings are shown.
+  $: void $linked, refresh();
 
   let plugin: CapturePlugin | null = null;
   let status: CaptureStatus | null = null;
@@ -31,7 +34,8 @@
   async function refresh() {
     if (!plugin) return;
     try {
-      const [s, found, log] = await Promise.all([plugin.getStatus(), plugin.installedSources(), plugin.list({ limit: 200 })]);
+      const scope = await logScope();
+      const [s, found, log] = await Promise.all([plugin.getStatus(scope), plugin.installedSources(), plugin.list({ limit: 200, ...scope })]);
       status = s;
       sources = found.sources;
       items = log.items;
@@ -84,7 +88,7 @@
     if (!plugin || !status) return;
     sharing = true;
     try {
-      const { items: all } = await plugin.list({ limit: 10_000 });
+      const { items: all } = await plugin.list({ limit: 10_000, ...(await logScope()) });
       const file = buildLogFile(all, status.appVersion, new Date(), describe);
       await plugin.share({ filename: logFilename(), text: JSON.stringify(file, null, 2), mimeType: 'application/json' });
     } catch (e) {
@@ -96,8 +100,8 @@
 
   function clearLog() {
     const p = plugin;
-    if (!p || !confirm('Delete every recorded notification from this phone? Payments already in Review stay there.')) return;
-    void run(() => p.clear());
+    if (!p || !confirm('Delete these recorded notifications from this phone? Payments already in Review stay there.')) return;
+    void run(async () => p.clear(await logScope()));
   }
 
   function message(e: unknown): string {
@@ -238,7 +242,7 @@
             <button type="button" class="btn-danger" disabled={status.count === 0} on:click={clearLog}>Clear log</button>
           </div>
           <p class="text-sm text-muted">
-            If a payment was read wrongly or missed, share the log and say which one. Long numbers are masked; names are not, so look through the file first.
+            If a payment was read wrongly or missed, share the log and say which one. Long numbers are masked; names are not, so look through the file first.{#if syncEnabled} Only this account's recordings are shown: they are hidden while signed out and come back when you sign in.{/if}
           </p>
         </div>
       </details>

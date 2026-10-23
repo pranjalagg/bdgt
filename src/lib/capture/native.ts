@@ -37,17 +37,25 @@ export interface InstalledSource {
   kind: CaptureKind;
 }
 
+// Which log items to show or clear: absent, every item (a build without
+// sync); null, items no account has taken yet (signed out); an account id,
+// those plus the account's own. One person never sees another's log.
+export interface LogScope {
+  visibleTo?: string | null;
+}
+
 export interface CapturePlugin {
-  getStatus(): Promise<CaptureStatus>;
+  getStatus(options?: LogScope): Promise<CaptureStatus>; // `count` is within the scope
   setConfig(options: { enabled?: boolean; packages?: string[]; sms?: boolean }): Promise<void>;
   installedSources(): Promise<{ sources: InstalledSource[] }>;
   openAccessSettings(): Promise<void>;
   openBatterySettings(): Promise<void>;
   requestRebind(): Promise<void>;
-  list(options?: { limit?: number }): Promise<{ items: KeptItem[] }>;
-  clear(): Promise<void>; // empties the log
+  list(options?: { limit?: number } & LogScope): Promise<{ items: KeptItem[] }>;
+  clear(options?: LogScope): Promise<void>; // empties the log within the scope
   takePending(options?: { limit?: number }): Promise<{ items: KeptItem[] }>; // oldest first, kept until ack
-  ack(options: { ids: string[] }): Promise<void>;
+  ack(options: { ids: string[]; owner?: string }): Promise<void>; // owner: the account whose queue got them
+  claim(options: { owner: string }): Promise<void>; // items brought in before owners existed
   share(options: { filename: string; text: string; mimeType: string }): Promise<void>;
   addListener(event: 'itemKept', listener: (item: KeptItem) => void): Promise<PluginListenerHandle>;
 }
