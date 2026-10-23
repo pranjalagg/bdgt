@@ -80,7 +80,7 @@
   </div>
 
   <div>
-    <label for="{id}-bucket" class="label">Bucket</label>
+    <label for="{id}-bucket" class="label">Envelope</label>
     <select id="{id}-bucket" bind:value={bucketId} class="mt-1 select-base" required>
       <option value="">Select a bucket</option>
       {#each $buckets.filter((b) => !b.isSystem || b.id === keepBucketId) as bucket}

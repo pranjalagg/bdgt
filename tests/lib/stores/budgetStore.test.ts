@@ -28,6 +28,7 @@ vi.mock('$lib/db', () => ({
       update: vi.fn().mockResolvedValue(1),
       delete: vi.fn().mockResolvedValue(undefined),
       add: vi.fn().mockResolvedValue(undefined),
+      put: vi.fn().mockResolvedValue(undefined),
       toArray: vi.fn().mockResolvedValue([]),
     },
     recurringTransactions: { where: recChain.where },
@@ -46,7 +47,7 @@ vi.mock('$lib/db', () => ({
   },
 }));
 
-import { updateTransaction, deleteTransaction, buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, getCarryForwardAllocations, updateBucketAllocation, safeToSpendPerDay, addMonthNote, updateMonthNote, deleteMonthNote } from '$lib/stores/budgetStore';
+import { updateTransaction, deleteTransaction, restoreTransaction, buckets, transactions, incomes, monthSnapshots, bucketStatuses, monthlyLedger, deleteBucket, addTransaction, addIncome, loadData, addBucket, setAllocation, setAllocations, carryForwardAllocations, getCarryForwardAllocations, updateBucketAllocation, safeToSpendPerDay, addMonthNote, updateMonthNote, deleteMonthNote } from '$lib/stores/budgetStore';
 import { db } from '$lib/db';
 import { currentMonthKey, today } from '$lib/stores/uiStore';
 
@@ -127,6 +128,23 @@ describe('Unsorted lifecycle', () => {
     await updateTransaction('t1', { bucketId: 'b1' });
     await updateTransaction('t2', { bucketId: 'b1' });
     expect(get(buckets).map((b) => b.id)).toEqual(['b1']);
+  });
+
+  it('comes back when a deleted transaction is restored into it', async () => {
+    const t1 = get(transactions)[0];
+    await deleteTransaction('t1');
+    await deleteTransaction('t2');
+    await restoreTransaction(t1);
+    expect(get(buckets).map((b) => b.id)).toContain('unsorted');
+    expect(get(transactions).map((t) => t.id)).toEqual(['t1']);
+    expect(db.transactions.put).toHaveBeenCalledWith(t1);
+  });
+
+  it('comes back when a transaction is moved back into it', async () => {
+    await updateTransaction('t1', { bucketId: 'b1' });
+    await updateTransaction('t2', { bucketId: 'b1' });
+    await updateTransaction('t1', { bucketId: 'unsorted' });
+    expect(get(buckets).map((b) => b.id)).toContain('unsorted');
   });
 
   it('is kept while a recurring rule or goal still points at it', async () => {

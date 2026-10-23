@@ -288,6 +288,7 @@
     left: var(--row-inset, 64px);
     height: 0.5px;
     background: rgb(var(--c-sep) / var(--sep-alpha));
+    z-index: 1; /* above a row's own background (swipe rows) */
   }
 
   .card {

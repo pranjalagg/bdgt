@@ -4,8 +4,7 @@
   import { goto } from '$app/navigation';
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
-  import Modal from '$lib/components/shared/Modal.svelte';
-  import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
+  import TransactionSheet from '$lib/components/activity/TransactionSheet.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import EnvelopeRing from '$lib/components/budget/EnvelopeRing.svelte';
   import EnvelopeSheet from '$lib/components/budget/EnvelopeSheet.svelte';
@@ -104,9 +103,5 @@
   <EnvelopeSheet envelope={status.bucket} />
   <AssignSheet focusEnvelopeId={status.bucket.id} />
   <RecurringSheet item={editingRec} defaultBucketId={status.bucket.id} />
-  <Modal id="edit-transaction" title="Edit expense">
-    {#if editingTx}
-      {#key editingTx.id}<EditTransaction transaction={editingTx} />{/key}
-    {/if}
-  </Modal>
+  <TransactionSheet transaction={editingTx} />
 {/if}

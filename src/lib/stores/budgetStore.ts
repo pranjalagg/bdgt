@@ -374,6 +374,8 @@ export async function addTransaction(transaction: Omit<Transaction, 'id'>): Prom
 
 export async function updateTransaction(id: string, updates: Partial<Transaction>): Promise<void> {
   if (updates.amount !== undefined) assertCents(updates.amount);
+  // Undoing a move can put something back into Unsorted after it went away.
+  if (updates.bucketId === UNSORTED_BUCKET_ID) await ensureUnsortedBucket();
   await db.transactions.update(id, updates);
   transactions.update((t) => t.map((tx) => (tx.id === id ? { ...tx, ...updates } : tx)));
   if (updates.bucketId !== undefined) await pruneUnsortedBucket();
@@ -383,6 +385,14 @@ export async function deleteTransaction(id: string): Promise<void> {
   await db.transactions.delete(id);
   transactions.update((t) => t.filter((tx) => tx.id !== id));
   await pruneUnsortedBucket();
+}
+
+// Undo for a delete: the same record, same id, so a payment's link to
+// Review and the synced copy both carry on.
+export async function restoreTransaction(transaction: Transaction): Promise<void> {
+  if (transaction.bucketId === UNSORTED_BUCKET_ID) await ensureUnsortedBucket();
+  await db.transactions.put(transaction);
+  transactions.update((t) => [...t.filter((tx) => tx.id !== transaction.id), transaction]);
 }
 
 export async function addIncome(income: Omit<Income, 'id'>): Promise<string> {

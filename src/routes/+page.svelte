@@ -5,8 +5,7 @@
   import AvatarButton from '$lib/components/layout/AvatarButton.svelte';
   import PrivacyToggle from '$lib/components/shared/PrivacyToggle.svelte';
   import InfoPopover from '$lib/components/shared/InfoPopover.svelte';
-  import Modal from '$lib/components/shared/Modal.svelte';
-  import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
+  import TransactionSheet from '$lib/components/activity/TransactionSheet.svelte';
   import HomeHero from '$lib/components/home/HomeHero.svelte';
   import PaceChart from '$lib/components/home/PaceChart.svelte';
   import EditHomeSheet from '$lib/components/home/EditHomeSheet.svelte';
@@ -177,10 +176,4 @@
 
 <EditHomeSheet />
 
-<Modal id="edit-transaction" title="Edit Transaction">
-  {#if editing}
-    {#key editing.id}
-      <EditTransaction transaction={editing} />
-    {/key}
-  {/if}
-</Modal>
+<TransactionSheet transaction={editing} />

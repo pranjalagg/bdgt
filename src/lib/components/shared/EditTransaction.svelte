@@ -33,20 +33,20 @@
       date: v.date,
       note: v.note,
     });
-    closeModal();
+    closeModal('edit-transaction');
     onComplete?.();
   }
 
   // Delete lives here, not on the row: a row is one tap target that opens
   // this sheet, and a destructive action stays a deliberate second step.
   async function remove() {
-    if (!confirm(`Delete this ${formatCurrency(transaction.amount)} transaction?`)) return;
+    if (!confirm(`Delete this ${formatCurrency(transaction.amount)} expense?`)) return;
     await deleteTransaction(transaction.id);
-    closeModal();
+    closeModal('edit-transaction');
     onComplete?.();
   }
 </script>
 
 <TransactionForm id="edit" {initial} keepBucketId={transaction.bucketId} submitLabel="Save Changes" busyLabel="Saving..." onSubmit={save} />
 
-<button type="button" class="btn-danger mt-2 w-full" on:click={remove}>Delete transaction</button>
+<button type="button" class="btn-danger mt-2 w-full" on:click={remove}>Delete expense</button>

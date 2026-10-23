@@ -79,11 +79,11 @@ async function shots(browser, errors) {
 async function chipStep(page) {
   await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
   const all = await page.locator('[data-row]').count();
-  await page.getByRole('group', { name: 'Filter by bucket' }).getByRole('button', { name: /Grocery/ }).click();
+  await page.getByRole('group', { name: 'Filter' }).getByRole('button', { name: /Grocery/ }).click();
   await page.waitForTimeout(200);
   const some = await page.locator('[data-row]').count();
   if (!(some > 0 && some < all)) throw new Error('rows ' + all + ' -> ' + some);
-  await page.getByRole('group', { name: 'Filter by bucket' }).getByRole('button', { name: 'All', exact: true }).click();
+  await page.getByRole('group', { name: 'Filter' }).getByRole('button', { name: 'All', exact: true }).click();
   await page.waitForTimeout(200);
   if (await page.locator('[data-row]').count() !== all) throw new Error('All did not restore');
 }
@@ -105,6 +105,20 @@ async function assertAmountsHidden(page) {
     return out;
   });
   if (offenders.length) throw new Error('amounts not hidden: ' + offenders.slice(0, 6).join(' | '));
+}
+
+// Drag a list row sideways by a fraction of its width, slowly enough that
+// it counts as a drag and not a flick.
+async function swipeRow(page, row, fraction) {
+  await row.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(250);
+  const b = await row.boundingBox();
+  const y = b.y + b.height / 2;
+  const x0 = fraction < 0 ? b.x + b.width - 24 : b.x + 40;
+  const dx = fraction * b.width;
+  await page.mouse.move(x0, y); await page.mouse.down();
+  for (let i = 1; i <= 12; i++) { await page.mouse.move(x0 + (dx * i) / 12, y); await page.waitForTimeout(16); }
+  await page.waitForTimeout(150); await page.mouse.move(x0 + dx, y + 1); await page.mouse.up();
 }
 
 async function step(results, name, fn) {
@@ -281,17 +295,70 @@ async function smoke(browser, errors) {
     } finally { await page.getByRole('button', { name: 'Hide amounts' }).first().click(); }
     await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
   });
-  await step(results, 'edit it', async () => {
+  await step(results, 'tap opens the sheet; edit amount to 15, saved', async () => {
     await page.locator('[data-row]').filter({ hasText: 'Smoke test' }).first().click();
     await page.locator('#edit-amount').fill('15');
     await page.getByRole('button', { name: 'Save Changes' }).click();
     await page.waitForTimeout(400);
     await page.locator('[data-row]').filter({ hasText: 'Smoke test' }).filter({ hasText: '15.00' }).first().waitFor({ timeout: 3000 });
   });
-  await step(results, 'activity chips filter', () => chipStep(page));
+  await step(results, 'chips filter and All restores', () => chipStep(page));
+  await step(results, 'search narrows to Trader Joe’s', async () => {
+    const all = await page.locator('[data-row]').count();
+    await page.getByRole('searchbox', { name: 'Search expenses' }).fill('trader');
+    await page.waitForTimeout(200);
+    const rows = await page.locator('[data-row]').allTextContents();
+    if (!rows.length || rows.length >= all || rows.some((r) => !/Trader/.test(r))) throw new Error('rows ' + rows.length + ' of ' + all);
+    await page.getByRole('searchbox', { name: 'Search expenses' }).fill('');
+  });
+  const swipe = (row, fraction) => swipeRow(page, row, fraction);
+  const rowOf = (name) => page.locator('[data-row]').filter({ hasText: name }).first();
+  await step(results, 'swipe left fully deletes, Undo restores', async () => {
+    await swipe(rowOf('Haircut tip'), -0.7);
+    await text('Deleted $15.00').waitFor({ timeout: 2000 });
+    await page.waitForTimeout(400);
+    if (await page.locator('[data-row]').filter({ hasText: 'Haircut tip' }).count()) throw new Error('row still there');
+    await page.getByRole('button', { name: 'Undo' }).click(); await page.waitForTimeout(400);
+    await rowOf('Haircut tip').waitFor({ timeout: 2000 });
+  });
+  await step(results, 'a short swipe rests open and a tap closes it', async () => {
+    await swipe(rowOf('Haircut tip'), -0.3);
+    await page.waitForTimeout(350);
+    const open = await rowOf('Haircut tip').evaluate((el) => el.parentElement.style.transform);
+    if (!/translateX\(-88px\)/.test(open)) throw new Error('rests at ' + open);
+    await rowOf('Haircut tip').click(); await page.waitForTimeout(350);
+    if (await page.getByRole('dialog').count()) throw new Error('tap on an open row opened the sheet');
+    const closed = await rowOf('Haircut tip').evaluate((el) => el.parentElement.style.transform);
+    if (closed) throw new Error('still open: ' + closed);
+  });
+  await step(results, 'swipe right moves to Misc, Undo restores', async () => {
+    await swipe(rowOf('Starbucks'), 0.6);
+    const sheet = page.getByRole('dialog', { name: 'Move to' });
+    await sheet.waitFor({ timeout: 2000 }); await page.waitForTimeout(350);
+    await sheet.getByRole('button', { name: /^Misc/ }).click();
+    await text('Moved to Misc').waitFor({ timeout: 2000 });
+    await rowOf('Starbucks').filter({ hasText: 'Misc' }).waitFor({ timeout: 2000 });
+    await page.getByRole('button', { name: 'Undo' }).click(); await page.waitForTimeout(400);
+    await rowOf('Starbucks').filter({ hasText: 'Dining Out' }).waitFor({ timeout: 2000 });
+  });
+  await step(results, 'Activity and its sheet hide every amount with the eye on', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Hide amounts' }).first().click();
+    try {
+      await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(300);
+      await assertAmountsHidden(page);
+      await page.locator('[data-row]').first().click(); await page.waitForTimeout(500);
+      await assertAmountsHidden(page);
+      await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    } finally {
+      await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+      await page.getByRole('button', { name: 'Hide amounts' }).first().click();
+      await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
+    }
+  });
   await step(results, 'delete it', async () => {
     await page.locator('[data-row]').filter({ hasText: 'Smoke test' }).first().click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Delete transaction' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete expense' }).click();
     await page.waitForTimeout(400);
     if (await text('Smoke test').count()) throw new Error('still there');
   });
@@ -444,6 +511,9 @@ async function smoke(browser, errors) {
     await page.goto(BASE + '/transactions?bucket=unsorted'); await page.waitForLoadState('networkidle');
     const u = new URL(page.url());
     if (u.pathname !== '/activity' || u.searchParams.get('bucket') !== 'unsorted') throw new Error('landed on ' + u.pathname + u.search);
+    // The unsorted link shows the Unsorted chip selected.
+    const pressed = await page.getByRole('group', { name: 'Filter' }).locator('[aria-pressed="true"]').allTextContents();
+    if (pressed.map((t) => t.trim()).join() !== 'Unsorted') throw new Error('chip ' + pressed.join());
     await page.goto(BASE + '/recurring'); await page.waitForLoadState('networkidle');
     if (new URL(page.url()).pathname !== '/budget/bills') throw new Error('landed on ' + new URL(page.url()).pathname);
   });
@@ -528,6 +598,9 @@ async function a11y(browser, errors) {
     await page.goto(BASE + ROUTES[1]); await page.waitForLoadState('networkidle');
     await page.locator('[data-row]').first().click(); await page.waitForTimeout(500);
     await run(page, `${theme} edit-sheet`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await swipeRow(page, page.locator('[data-row]').first(), 0.6); await page.waitForTimeout(500);
+    await run(page, `${theme} move-sheet`);
     await page.context().close();
   }
   const page = await newPage(browser, { ...CONFIGS[0], name: 'narrow', viewport: { width: 320, height: 800 } }, errors);
