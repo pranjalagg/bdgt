@@ -1,203 +1,214 @@
 <script lang="ts">
-  // Entry is amount-first: today you pick a bucket, then say how much --
-  // backwards, since you always know the amount first (you're holding a
-  // receipt). Type it here, and every bucket answers the question you
-  // actually came to ask: does this fit? Tapping a bucket commits in one
-  // motion, replacing the old amount -> dropdown -> submit sequence.
-  import { bucketStatuses, addTransaction } from '$lib/stores/budgetStore';
-  import { currentMonthKey } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, formatCurrency, formatMoney, symbolPadding } from '$lib/utils/currency';
+  // Logging is amount-first, on a keypad: type what you paid (sums work:
+  // 12 + 8.5), pick the envelope, and each envelope says whether it fits
+  // before you save. A physical keyboard types into the keypad, arrows move
+  // between envelopes and Enter saves.
+  import { get } from 'svelte/store';
+  import { bucketStatuses, transactions, addTransaction, deleteTransaction } from '$lib/stores/budgetStore';
+  import { currentMonthKey, activeModal, openModal, closeModal } from '$lib/stores/uiStore';
+  import { showToast } from '$lib/stores/toastStore';
+  import { parseCurrency, isValidCurrency, isExpression, formatCurrency, formatMoney } from '$lib/utils/currency';
   import { defaultEntryDate } from '$lib/utils/dates';
-  import { calculateBucketFit, type BucketFitStatus } from '$lib/utils/calculations';
-  import ForeignCurrencyField from './ForeignCurrencyField.svelte';
+  import { calculateBucketFit } from '$lib/utils/calculations';
   import { baseCurrency } from '$lib/stores/currencyStore';
   import { currencyInfo, type CurrencyCode } from '$lib/currency/currencies';
-  import { parseRate } from '$lib/currency/conversion';
+  import { parseRate, convertToBase } from '$lib/currency/conversion';
+  import { applyKey, keyFromKeyboard, type KeypadKey } from '$lib/ui/keypad';
+  import { orderByUse } from '$lib/log/envelopeOrder';
+  import { haptic } from '$lib/ui/haptics';
+  import Keypad from '$lib/components/log/Keypad.svelte';
+  import EnvelopeChips from '$lib/components/log/EnvelopeChips.svelte';
+  import Modal from './Modal.svelte';
+  import ForeignCurrencyField from './ForeignCurrencyField.svelte';
+  import Icon from '$lib/components/ui/Icon.svelte';
 
   export let preselectedBucketId: string | undefined = undefined;
   export let onComplete: (() => void) | undefined = undefined;
+  // Bound to the date chip in the sheet's header. A new sheet starts on
+  // today, or on the first of the month being viewed.
+  export let date: Date = defaultEntryDate(get(currentMonthKey));
+  date = defaultEntryDate(get(currentMonthKey));
 
-  let amount = '';
+  let expr = '';
   let note = '';
-  let isSubmitting = false;
-  let amountTouched = false;
-  let amountInput: HTMLInputElement | undefined;
-  let foreignCurrency: CurrencyCode = $baseCurrency;
+  let selected: string | null = preselectedBucketId ?? null;
+  let saving = false;
+  let currency: CurrencyCode = $baseCurrency;
   let rate = '';
-  let baseCents = 0;
-  let rateValid = true;
+  let chipsRef: EnvelopeChips;
 
-  $: amountError = amountTouched && amount && !isValidCurrency(amount)
-    ? 'Please enter a valid amount (e.g. 12.50, -5, 10 + 5.25, or 12.50 * 3)'
-    : '';
+  // A trailing operator or point does not count yet: "12+" reads as 12.
+  $: settled = expr.replace(/[+\-*/.]$/, '');
+  $: typedMinor = isValidCurrency(settled) ? parseCurrency(settled) : 0;
+  $: isForeign = currency !== $baseCurrency;
+  $: parsedRate = isForeign ? parseRate(rate) : null;
+  $: baseCents = !isForeign ? typedMinor : parsedRate !== null ? convertToBase(typedMinor, parsedRate) : 0;
+  $: rateValid = !isForeign || parsedRate !== null;
 
-  $: showPreview = isExpression(amount) && isValidCurrency(amount);
-  $: previewValue = showPreview ? evaluateExpression(amount) : null;
+  $: statuses = $bucketStatuses.filter((s) => !s.bucket.isSystem);
+  $: order = orderByUse(statuses.map((s) => s.bucket.id), $transactions);
+  $: chips = order
+    .map((id) => statuses.find((s) => s.bucket.id === id)!)
+    .map((s) => {
+      const fit = calculateBucketFit(baseCents, s.remaining, s.allocated);
+      if (fit === 'fits') return { bucket: s.bucket, text: `${formatCurrency(s.remaining - baseCents)} left after`, tone: 'good' as const };
+      if (fit === 'tight') return { bucket: s.bucket, text: `${formatCurrency(baseCents - s.remaining)} over`, tone: 'bad' as const };
+      if (fit === 'unfunded') return { bucket: s.bucket, text: 'Nothing assigned', tone: baseCents ? ('bad' as const) : ('plain' as const) };
+      return { bucket: s.bucket, text: `${formatCurrency(s.remaining)} left`, tone: 'plain' as const };
+    });
+  $: chosen = statuses.find((s) => s.bucket.id === selected)?.bucket ?? null;
+  $: canSave = typedMinor !== 0 && rateValid && !!chosen && !saving;
 
-  // What was typed, in minor units of the chosen currency, and what it is
-  // worth in the base currency (the bucket fit figures use the latter).
-  $: typedMinor = isValidCurrency(amount) ? parseCurrency(amount) : 0;
-  $: amountCents = baseCents;
+  // What the big figure shows: what was typed, grouped, or the sum when
+  // there is an operator (the sum written out above it).
+  const OPS: Record<string, string> = { '+': ' + ', '-': ' − ', '*': ' × ', '/': ' ÷ ' };
+  $: symbol = currencyInfo(currency).symbol;
+  $: hasOp = isExpression(settled) || /[+\-*/]/.test(expr);
+  $: expressionLine = hasOp ? expr.replace(/[+\-*/]/g, (o) => OPS[o]) : '';
+  $: figure = !expr ? `${symbol}0` : hasOp ? formatMoney(typedMinor, currency) : symbol + groupWhole(expr);
+  $: figureSize = figure.length <= 7 ? 'text-[56px]' : figure.length <= 10 ? 'text-[44px]' : 'text-[34px]';
 
-  $: rows = $bucketStatuses
-    .filter((s) => !s.bucket.isSystem)
-    .filter((s) => !preselectedBucketId || s.bucket.id === preselectedBucketId)
-    .map((s) => ({
-      status: s,
-      fit: calculateBucketFit(amountCents, s.remaining, s.allocated) as BucketFitStatus,
-    }));
-
-  const fitLabel = (row: (typeof rows)[number]): string => {
-    const { status, fit } = row;
-    if (fit === 'unfunded') return 'not assigned';
-    if (fit === 'neutral') return formatCurrency(status.remaining) + ' left';
-    if (fit === 'fits') return formatCurrency(status.remaining - amountCents) + ' after';
-    return formatCurrency(amountCents - status.remaining) + ' over';
-  };
-
-  function handleAmountInput() {
-    amountTouched = true;
+  function groupWhole(s: string) {
+    const [whole, rest] = s.split('.');
+    return Number(whole).toLocaleString('en-US') + (rest !== undefined ? '.' + rest : '');
   }
 
-  let list: HTMLDivElement | undefined;
-
-  // Enter is the keyboard "submit": with one candidate bucket (opened from
-  // an envelope) it logs straight away; otherwise it hops to the first
-  // bucket so a second Enter commits, and arrows walk the list.
-  function handleEnter(e: KeyboardEvent) {
-    if (e.key !== 'Enter' || e.isComposing) return;
-    e.preventDefault();
-    if (!amount || !isValidCurrency(amount)) {
-      amountTouched = true;
-      amountInput?.focus();
+  // A refused key shakes the figure and flashes it red (only the red under
+  // reduced motion).
+  let shaking = false;
+  let shakeTimer: ReturnType<typeof setTimeout> | undefined;
+  function press(key: KeypadKey) {
+    const next = applyKey(expr, key);
+    if (next.rejected) {
+      haptic('warning');
+      shaking = true;
+      clearTimeout(shakeTimer);
+      shakeTimer = setTimeout(() => (shaking = false), 400);
       return;
     }
-    if (rows.length === 1) commit(rows[0].status.bucket.id);
-    else list?.querySelector<HTMLButtonElement>('button')?.focus();
+    expr = next.expr;
   }
 
-  function handleListKeydown(e: KeyboardEvent) {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    const items = [...(list?.querySelectorAll<HTMLButtonElement>('button') ?? [])];
-    const i = items.indexOf(document.activeElement as HTMLButtonElement);
-    if (i < 0) return;
-    e.preventDefault();
-    items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
-  }
-
-  async function commit(bucketId: string) {
-    // Inputs stay enabled during the write, so Enter can fire again.
-    if (isSubmitting) return;
-    amountTouched = true;
-    if (!amount || amountError || !isValidCurrency(amount)) {
-      amountInput?.focus();
+  // Typing on a keyboard. The note and date fields keep their own keys;
+  // a focused button that is not part of the keypad or envelopes keeps
+  // Enter (so Cancel and Paid in still work from the keyboard).
+  function onWindowKeydown(e: KeyboardEvent) {
+    if ($activeModal !== 'log' || e.isComposing) return;
+    const target = e.target as HTMLElement;
+    const inField = target.closest('input, select, textarea');
+    if (e.key === 'Enter') {
+      if (inField && target.id !== 'log-note') return;
+      if (!inField && target.closest('button') && !target.closest('.keypad, [role=radiogroup], [data-save]')) return;
+      e.preventDefault();
+      save();
       return;
     }
-    if (!rateValid) return;
-    isSubmitting = true;
+    if (inField) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      chipsRef?.move(e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+    const key = keyFromKeyboard(e);
+    if (!key) return;
+    e.preventDefault();
+    press(key);
+  }
+
+  async function save() {
+    if (!canSave || !chosen) {
+      if (!saving) haptic('warning');
+      return;
+    }
+    saving = true;
+    const bucket = chosen;
+    const amount = baseCents;
     try {
-      const foreign =
-        foreignCurrency === $baseCurrency
-          ? undefined
-          : { amount: typedMinor, currency: foreignCurrency, rate: parseRate(rate)!, base: $baseCurrency };
-      await addTransaction({
-        amount: baseCents,
+      const foreign = isForeign ? { amount: typedMinor, currency, rate: parsedRate!, base: $baseCurrency } : undefined;
+      const id = await addTransaction({
+        amount,
         ...(foreign ? { foreign } : {}),
-        bucketId,
-        date: defaultEntryDate($currentMonthKey),
-        note: note || undefined,
+        bucketId: bucket.id,
+        date,
+        note: note.trim() || undefined,
       });
-      amount = '';
-      note = '';
-      amountTouched = false;
+      haptic('success');
+      showToast({
+        message: `Added ${formatCurrency(amount)} to ${bucket.name}`,
+        envelopeId: bucket.id,
+        action: { label: 'Undo', run: () => deleteTransaction(id) },
+      });
       onComplete?.();
     } finally {
-      isSubmitting = false;
+      saving = false;
     }
   }
 </script>
 
-<div class="space-y-4">
-  <div>
-    <label for="log-amount" class="label">Amount</label>
-    <div class="relative mt-1.5">
-      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-muted dark:text-muted-dark">{currencyInfo(foreignCurrency).symbol}</span>
-      <!-- svelte-ignore a11y_autofocus -->
-      <input
-        id="log-amount"
-        type="text"
-        inputmode="decimal"
-        autofocus
-        bind:this={amountInput}
-        bind:value={amount}
-        on:input={handleAmountInput}
-        on:keydown={handleEnter}
-        placeholder="0.00"
-        style:padding-left={symbolPadding(2.25, currencyInfo(foreignCurrency).symbol)}
-        class="input-base money !py-3 pl-9 !text-3xl font-medium tracking-tight
-               {amountError ? '!border-danger focus:!ring-danger/20 dark:!border-danger-light' : ''}"
-      />
-    </div>
-    {#if amountError}
-      <p class="mt-1.5 text-sm text-danger dark:text-danger-light">{amountError}</p>
-    {:else if showPreview && previewValue !== null}
-      <p class="mt-1.5 text-sm text-muted dark:text-muted-dark">= <span class="amt">{formatMoney(dollarsToCents(previewValue), foreignCurrency)}</span></p>
-    {:else}
-      <p class="mt-1.5 text-[12.5px] text-muted dark:text-muted-dark">
-        {preselectedBucketId ? 'Confirm the amount, then log it' : 'Then tap where it goes, or press Enter and pick with arrows — green fits, red breaks it'}
-      </p>
-    {/if}
-    <ForeignCurrencyField
-      id="log"
-      bind:currency={foreignCurrency}
-      bind:rate
-      foreignMinor={typedMinor}
-      bind:baseCents
-      bind:rateValid
-    />
-  </div>
+<svelte:window on:keydown={onWindowKeydown} />
 
-  <div>
-    <label for="log-note" class="label">Note (optional)</label>
-    <input id="log-note" type="text" bind:value={note} on:keydown={handleEnter} placeholder="Add a note…" class="mt-1.5 input-base" />
-  </div>
-
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    bind:this={list}
-    on:keydown={handleListKeydown}
-    role="group"
-    aria-label="Buckets"
-    class="-mx-1 max-h-[42vh] space-y-1.5 overflow-y-auto overscroll-contain px-1 py-0.5"
+<div class="flex min-h-full flex-col gap-3 pb-2">
+  <output
+    class="amt flex min-h-[112px] flex-col items-center justify-end rounded-xl text-center focus:outline-none"
+    tabindex="-1"
+    data-autofocus
+    aria-live="polite"
+    aria-label="Amount {figure}"
   >
-    {#each rows as row (row.status.bucket.id)}
-      <button
-        type="button"
-        on:click={() => commit(row.status.bucket.id)}
-        disabled={isSubmitting || !rateValid}
-        class="pressable flex min-h-[3rem] w-full items-center gap-3 rounded-[14px] border px-4 py-2.5 text-left
-               focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60
-               {row.fit === 'fits'
-          ? 'border-success/40 bg-success/[0.06] hover:bg-success/10 dark:border-success-light/30'
-          : row.fit === 'tight' || row.fit === 'unfunded'
-            ? 'border-danger/40 bg-danger/[0.06] hover:bg-danger/10 dark:border-danger-light/30'
-            : 'border-border bg-white hover:border-rule dark:border-border-dark dark:bg-surface-dark dark:hover:border-white/20'}"
-      >
-        <span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{row.status.bucket.color}" aria-hidden="true"></span>
-        <span class="flex-1 truncate text-[15px] font-medium text-gray-900 dark:text-gray-100">
-          {row.status.bucket.name}
-        </span>
-        <span
-          class="money amt flex-none text-[13px] font-medium
-                 {row.fit === 'fits'
-            ? 'text-success dark:text-success-light'
-            : row.fit === 'tight' || row.fit === 'unfunded'
-              ? 'text-danger dark:text-danger-light'
-              : 'text-muted dark:text-muted-dark'}"
-        >
-          {fitLabel(row)}
-        </span>
-      </button>
-    {/each}
+    <span class="money h-6 text-[17px] text-label-2">{expressionLine}</span>
+    <span class="figure money {figureSize} leading-[1.1] {shaking ? 'text-danger' : expr ? 'text-label' : 'text-label-2'}" class:shake={shaking}>{figure}</span>
+    {#if isForeign && typedMinor}
+      <span class="money mt-1 text-[15px] text-label-2">{rateValid ? `≈ ${formatCurrency(baseCents)}` : 'Add a rate to convert'}</span>
+    {/if}
+  </output>
+
+  <EnvelopeChips bind:this={chipsRef} {chips} bind:selected />
+
+  <div class="flex items-center gap-2">
+    <label for="log-note" class="sr-only">Note</label>
+    <input id="log-note" type="text" bind:value={note} placeholder="Add a note" autocomplete="off" class="h-11 min-w-0 flex-1 rounded-[12px] bg-fill px-3.5 text-[16px] text-label placeholder:text-label-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" />
+    <button type="button" class="flex h-11 flex-none items-center gap-1 rounded-full bg-fill px-3.5 text-[15px] font-semibold text-label focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => openModal('paid-in')}>
+      Paid in {currency}<Icon name="chevron-right" size={14} strokeWidth={2.4} />
+    </button>
+  </div>
+
+  <div class="mt-auto grid gap-3">
+    <Keypad on:key={(e) => press(e.detail)} />
+    <button type="button" data-save class="btn-primary h-[52px] w-full rounded-full text-[17px]" disabled={!canSave} on:click={save}>
+      {#if !typedMinor}
+        Enter an amount
+      {:else if !rateValid}
+        Add a rate for {currency}
+      {:else if !chosen}
+        Choose an envelope
+      {:else}
+        <span class="truncate">Add <span class="amt">{formatCurrency(baseCents)}</span> to {chosen.name}</span>
+      {/if}
+    </button>
   </div>
 </div>
+
+<Modal id="paid-in" title="Paid in">
+  <p class="pb-1 text-[15px] text-label-2">For a payment in another currency: the amount you type is in this currency, and saved in {$baseCurrency} at the rate below.</p>
+  <ForeignCurrencyField id="log" bind:currency bind:rate foreignMinor={typedMinor} />
+  <button type="button" class="btn-primary mt-4 w-full" disabled={!rateValid} on:click={() => closeModal('paid-in')}>Done</button>
+</Modal>
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    .shake {
+      animation: shake 360ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+  }
+
+  @keyframes shake {
+    20%,
+    60% {
+      transform: translateX(-7px);
+    }
+    40%,
+    80% {
+      transform: translateX(7px);
+    }
+  }
+</style>

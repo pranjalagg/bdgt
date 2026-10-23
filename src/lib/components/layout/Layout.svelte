@@ -3,11 +3,12 @@
   import Nav from './Nav.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import LogEntry from '$lib/components/shared/LogEntry.svelte';
+  import DateChip from '$lib/components/log/DateChip.svelte';
   import CurrencyModal from '$lib/components/shared/CurrencyModal.svelte';
   import SyncChoiceModal from '$lib/components/sync/SyncChoiceModal.svelte';
   import { syncEnabled } from '$lib/sync/browser';
   import { currencyConfirmed, takeCurrencyPrompt, currencyAnsweredElsewhere } from '$lib/stores/currencyStore';
-  import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId, scaledBack } from '$lib/stores/uiStore';
+  import { openLog, openModal, closeModal, activeModal, modalStack, logPreselectedBucketId, scaledBack } from '$lib/stores/uiStore';
   import Toast from '$lib/components/ui/Toast.svelte';
   import TabBar from './TabBar.svelte';
   import LogButton from './LogButton.svelte';
@@ -76,8 +77,12 @@
     main?.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
 
+  // The Log sheet's date lives here so the chip in its header and the form
+  // share it; the form resets it each time the sheet opens.
+  let logDate = new Date();
+
   function handleLogComplete() {
-    closeModal();
+    closeModal('log');
     logPreselectedBucketId.set(undefined);
   }
 
@@ -98,7 +103,8 @@
   <title>{title}</title>
 </svelte:head>
 
-<div id="stage" class:scaled={$scaledBack} class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
+<!-- While a sheet is open the app behind it is inert: no focus, no reading. -->
+<div id="stage" inert={$modalStack.length > 0} class:scaled={$scaledBack} class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
   <Nav />
   <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path)} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
     <!-- The app draws under the status bar; this strip keeps content that
@@ -121,8 +127,10 @@
 
 <Toast />
 
-<Modal id="log" title="Add Transaction">
-  <LogEntry preselectedBucketId={$logPreselectedBucketId} onComplete={handleLogComplete} />
+<Modal id="log" title="New expense" size="large" scaleBack surface="plain">
+  <button slot="leading" type="button" class="h-10 rounded-full px-1 text-[17px] text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={handleLogComplete}>Cancel</button>
+  <DateChip slot="trailing" bind:value={logDate} />
+  <LogEntry preselectedBucketId={$logPreselectedBucketId} onComplete={handleLogComplete} bind:date={logDate} />
 </Modal>
 
 <CurrencyModal />

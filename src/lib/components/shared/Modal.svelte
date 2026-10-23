@@ -100,10 +100,13 @@
     focusFirst();
   }
 
-  function onClose() {
+  async function onClose() {
     if ($modalStack.length === 0) document.body.style.overflow = '';
-    previouslyFocused?.focus?.();
+    // After the update that lifts `inert` from the app behind.
+    const back = previouslyFocused;
     previouslyFocused = null;
+    await tick();
+    back?.focus?.();
   }
 
   function focusable(): HTMLElement[] {
@@ -115,9 +118,11 @@
     );
   }
 
+  // A sheet can name where focus starts with data-autofocus (Log starts on
+  // its amount, so typing and Enter work at once).
   function focusFirst() {
     const items = focusable();
-    (items.find((el) => !el.hasAttribute('aria-label')) ?? items[0] ?? panel)?.focus();
+    (panel?.querySelector<HTMLElement>('[data-autofocus]') ?? items.find((el) => !el.hasAttribute('aria-label')) ?? items[0] ?? panel)?.focus();
   }
 
   function handleKeydown(e: KeyboardEvent) {

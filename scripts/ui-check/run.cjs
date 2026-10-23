@@ -203,7 +203,7 @@ async function smoke(browser, errors) {
   await step(results, 'sheet closes by button, Escape and dragging down', async () => {
     const open = async () => { await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.getByRole('dialog').waitFor({ timeout: 3000 }); await page.waitForTimeout(400); };
     const gone = async (how) => { await page.waitForTimeout(450); if (await page.getByRole('dialog').count()) throw new Error('still open after ' + how); };
-    await open(); await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click(); await gone('close button');
+    await open(); await page.getByRole('dialog').getByRole('button', { name: /^(Close|Cancel)$/ }).click(); await gone('close button');
     await open(); await page.keyboard.press('Escape'); await gone('Escape');
     await open();
     const box = await page.getByRole('dialog').locator('h2').boundingBox();
@@ -211,14 +211,75 @@ async function smoke(browser, errors) {
     for (let i = 1; i <= 8; i++) await page.mouse.move(box.x - 8, box.y + 4 + i * 25);
     await page.mouse.up(); await gone('drag');
   });
-  await step(results, 'log an expense', async () => {
-    await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click();
-    await page.locator('#log-amount').fill('12.34');
-    await page.locator('#log-note').fill('Smoke test');
-    await page.getByRole('group', { name: 'Buckets' }).getByRole('button', { name: /Grocery/ }).click();
-    await page.waitForTimeout(400);
+  const openLog = async () => { await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.getByRole('dialog', { name: 'New expense' }).waitFor({ timeout: 3000 }); await page.waitForTimeout(400); };
+  const keys = async (list) => { for (const k of list) await page.locator(`.keypad [data-key="${k}"]`).click(); };
+  const saveButton = () => page.locator('[data-save]');
+  await step(results, 'keypad: 12 + 8.5, pick Dining Out, button reads Add $20.50 to Dining Out, save, toast, Activity lists it', async () => {
     await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
-    await text('Smoke test').waitFor({ timeout: 3000 });
+    await openLog();
+    await keys(['1', '2', '+', '8', '.', '5']);
+    await page.getByRole('radio', { name: /Dining Out/ }).click();
+    const label = (await saveButton().textContent()).replace(/\s+/g, ' ').trim();
+    if (label !== 'Add $20.50 to Dining Out') throw new Error('button reads ' + label);
+    await page.locator('#log-note').fill('Keypad smoke');
+    await saveButton().click();
+    await text('Added $20.50 to Dining Out').waitFor({ timeout: 2000 });
+    await page.waitForTimeout(400);
+    if (await page.getByRole('dialog').count()) throw new Error('sheet still open');
+    await page.locator('[data-row]').filter({ hasText: 'Keypad smoke' }).filter({ hasText: '20.50' }).first().waitFor({ timeout: 3000 });
+  });
+  await step(results, 'Undo removes it', async () => {
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await page.waitForTimeout(500);
+    if (await page.getByText('Keypad smoke').count()) throw new Error('still listed');
+  });
+  await step(results, 'keyboard: type 7, press Enter with an envelope chosen', async () => {
+    await openLog();
+    await page.locator('#log-note').fill('Smoke test');
+    await page.locator('output[data-autofocus]').focus();
+    await page.keyboard.type('7');
+    await page.keyboard.press('ArrowRight');
+    if (!(await page.getByRole('radio', { checked: true }).count())) throw new Error('no envelope chosen by arrow');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(500);
+    if (await page.getByRole('dialog').count()) throw new Error('Enter did not save');
+    await page.locator('[data-row]').filter({ hasText: 'Smoke test' }).filter({ hasText: '7.00' }).first().waitFor({ timeout: 3000 });
+  });
+  await step(results, 'Escape closes only the top sheet', async () => {
+    await openLog();
+    await page.getByRole('button', { name: /^Paid in/ }).click();
+    await page.getByRole('dialog', { name: 'Paid in' }).waitFor({ timeout: 3000 }); await page.waitForTimeout(400);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(450);
+    if (await page.getByRole('dialog', { name: 'Paid in' }).count()) throw new Error('Paid in still open');
+    if (!(await page.getByRole('dialog', { name: 'New expense' }).count())) throw new Error('Log closed too');
+  });
+  await step(results, 'Paid in: switch to EUR with a rate, saved amount is converted', async () => {
+    await keys(['1', '0']);
+    await page.getByRole('button', { name: /^Paid in/ }).click();
+    const sheet = page.getByRole('dialog', { name: 'Paid in' });
+    await sheet.waitFor({ timeout: 3000 }); await page.waitForTimeout(300);
+    await sheet.locator('#log-select').selectOption('EUR');
+    await sheet.locator('#log-rate').fill('0.5');
+    await sheet.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(400);
+    await page.getByRole('radio', { name: /Grocery/ }).click();
+    const label = (await saveButton().textContent()).replace(/\s+/g, ' ').trim();
+    if (label !== 'Add $20.00 to Grocery') throw new Error('button reads ' + label);
+    await page.locator('#log-note').fill('Euro smoke');
+    await saveButton().click(); await page.waitForTimeout(500);
+    await page.locator('[data-row]').filter({ hasText: 'Euro smoke' }).filter({ hasText: '20.00' }).first().waitFor({ timeout: 3000 });
+    await page.getByRole('button', { name: 'Undo' }).click(); await page.waitForTimeout(400);
+  });
+  await step(results, 'Log sheet hides every amount with the eye on', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Hide amounts' }).first().click();
+    try {
+      await openLog();
+      await keys(['1', '2']);
+      await page.getByRole('radio', { name: /Grocery/ }).click();
+      await assertAmountsHidden(page);
+      await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+    } finally { await page.getByRole('button', { name: 'Hide amounts' }).first().click(); }
+    await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
   });
   await step(results, 'edit it', async () => {
     await page.locator('[data-row]').filter({ hasText: 'Smoke test' }).first().click();
@@ -452,6 +513,13 @@ async function a11y(browser, errors) {
     await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.waitForTimeout(500);
     await run(page, `${theme} log-sheet`);
+    await page.getByRole('button', { name: /^Paid in/ }).click(); await page.waitForTimeout(500);
+    await page.locator('#log-select').selectOption('EUR'); await page.waitForTimeout(200);
+    await run(page, `${theme} paid-in-sheet`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.getByRole('button', { name: /^Date/ }).click(); await page.waitForTimeout(300);
+    await run(page, `${theme} date-menu`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(200);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.getByRole('button', { name: 'Edit Home' }).click(); await page.waitForTimeout(500);
     await page.getByRole('button', { name: 'Move Envelopes' }).click(); await page.waitForTimeout(200);
