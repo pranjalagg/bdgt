@@ -8,6 +8,9 @@
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import MonthNotes from '$lib/components/shared/MonthNotes.svelte';
   import InfoPopover from '$lib/components/shared/InfoPopover.svelte';
+  import SafeToSpendRing from '$lib/components/dashboard/SafeToSpendRing.svelte';
+  import Tile from '$lib/components/dashboard/Tile.svelte';
+  import { upcomingRecurring } from '$lib/stores/recurringStore';
   import { unsortedTransactions, savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate } from '$lib/stores/budgetStore';
   import { safeToSpendWithPending as safeToSpendPerDay, pendingCaptures, pendingTotal, pendingEverydaySpend } from '$lib/stores/captureStore';
   import type { Income, IncomeType } from '$lib/types';
@@ -24,6 +27,19 @@
   $: everydayLeft = everydayStatuses.reduce((sum, s) => sum + s.remaining, 0) - $pendingEverydaySpend;
 
   $: daysLeftInMonth = getDaysInMonth($currentMonthKey) - $today.getDate() + 1;
+  // The ring's whole: this month's everyday money, carry-over included.
+  $: everydayPool = everydayStatuses.reduce((sum, s) => sum + s.allocated + s.rollover, 0);
+
+  // Tiles: bills due in the next 7 days, and the first savings goal (or, with
+  // no goal, what went into savings buckets this month).
+  $: billsTotal = $upcomingRecurring.reduce((sum, r) => sum + r.amount, 0);
+  $: firstGoal = $goalStatuses[0];
+  $: setAsideThisMonth = $bucketStatuses.reduce((sum, s) => (s.bucket.isSavings ? sum + s.spent : sum), 0);
+
+  function showGoals() {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById('goals')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
 
   let incomeAmount = '';
   let incomeNote = '';
@@ -145,58 +161,62 @@
   {#if $safeToSpendPerDay !== null}
     <!-- The number this app exists to answer: what's actually free to
          spend today, once fixed obligations and savings are set aside. -->
-    <div class="card relative p-5">
-      <p class="flex items-center gap-1.5">
-        <span class="eyebrow">Safe to spend</span>
-        <InfoPopover label="How safe to spend is calculated">
-          <p class="font-medium text-gray-900 dark:text-gray-50">How this is worked out</p>
-          <p>What is left in your everyday envelopes, spread over the days remaining this month (today included). Payments waiting for review already count.</p>
-          <p class="money rounded bg-background px-2 py-1 text-[12px] dark:bg-white/[0.05] amt">
-            {formatCurrency(everydayLeft)} left &divide; {daysLeftInMonth} day{daysLeftInMonth === 1 ? '' : 's'} = {formatCurrency($safeToSpendPerDay)}/day
-          </p>
-          <p>
-            <span class="font-medium text-gray-900 dark:text-gray-50">Counted:</span>
-            {everydayStatuses.length > 0 ? everydayStatuses.map((s) => s.bucket.name).join(', ') : 'none'}.
-            Each one's balance includes what carried over from earlier months.
-          </p>
-          <p>
-            <span class="font-medium text-gray-900 dark:text-gray-50">Not counted:</span>
-            {notCountedStatuses.length > 0 ? notCountedStatuses.map((s) => s.bucket.name).join(', ') : 'none'}.
-            Those are committed money or savings.
-          </p>
-          <p class="text-muted dark:text-muted-dark">
-            Change this per bucket under Setup &rarr; Buckets &rarr; Edit &rarr; &ldquo;Everyday spending&rdquo;.
-          </p>
-        </InfoPopover>
-      </p>
-      <p class="mt-1 flex items-baseline gap-1.5">
-        <span
-          class="money amt text-[34px] font-medium leading-none tracking-tight
-                 {$safeToSpendPerDay < 0 ? 'text-danger dark:text-danger-light' : 'text-gray-900 dark:text-gray-50'}"
-        >
-          {formatCurrency($safeToSpendPerDay)}
-        </span>
-        <span class="text-sm text-muted dark:text-muted-dark">/day</span>
-      </p>
-      <p class="mt-1 text-[12.5px] text-muted dark:text-muted-dark">
-        across everyday envelopes, {daysLeftInMonth} day{daysLeftInMonth === 1 ? '' : 's'} left
-      </p>
-      {#if $pendingEverydaySpend > 0}
-        <p class="mt-1 text-[12.5px] text-muted dark:text-muted-dark">
-          includes <span class="money amt">{formatCurrency($pendingEverydaySpend)}</span> waiting for review
+    <SafeToSpendRing perDay={$safeToSpendPerDay} left={everydayLeft} pool={everydayPool} daysLeft={daysLeftInMonth} pending={$pendingEverydaySpend}>
+      <InfoPopover slot="info" label="How safe to spend is calculated">
+        <p class="font-medium text-gray-900 dark:text-gray-50">How this is worked out</p>
+        <p>What is left in your everyday envelopes, spread over the days remaining this month (today included). Payments waiting for review already count. The ring shows how much of this month's everyday money is left.</p>
+        <p class="money rounded bg-background px-2 py-1 text-[12px] dark:bg-white/[0.05] amt">
+          {formatCurrency(everydayLeft)} left &divide; {daysLeftInMonth} day{daysLeftInMonth === 1 ? '' : 's'} = {formatCurrency($safeToSpendPerDay)}/day
         </p>
-      {/if}
+        <p>
+          <span class="font-medium text-gray-900 dark:text-gray-50">Counted:</span>
+          {everydayStatuses.length > 0 ? everydayStatuses.map((s) => s.bucket.name).join(', ') : 'none'}.
+          Each one's balance includes what carried over from earlier months.
+        </p>
+        <p>
+          <span class="font-medium text-gray-900 dark:text-gray-50">Not counted:</span>
+          {notCountedStatuses.length > 0 ? notCountedStatuses.map((s) => s.bucket.name).join(', ') : 'none'}.
+          Those are committed money or savings.
+        </p>
+        <p class="text-muted dark:text-muted-dark">
+          Change this per bucket under Setup &rarr; Buckets &rarr; Edit &rarr; &ldquo;Everyday spending&rdquo;.
+        </p>
+      </InfoPopover>
+    </SafeToSpendRing>
+
+    <div class="grid grid-cols-2 gap-3">
+      <Tile
+        tone="bills"
+        title="Upcoming bills"
+        caption={$upcomingRecurring.length === 0 ? 'Nothing due in 7 days' : `${$upcomingRecurring.length} due in 7 days`}
+        amount={billsTotal}
+        href="{base}/recurring"
+      >
+        <svg slot="icon" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+      </Tile>
+      <Tile
+        tone="saved"
+        title={firstGoal ? firstGoal.goal.name : 'Set aside'}
+        caption={firstGoal ? `${Math.round(Math.min(Math.max(firstGoal.progress, 0), 1) * 100)}% of goal` : 'this month'}
+        amount={firstGoal ? firstGoal.currentAmount : setAsideThisMonth}
+        onClick={showGoals}
+      >
+        <svg slot="icon" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></svg>
+      </Tile>
     </div>
   {/if}
 
   {#if $pendingCaptures.length > 0}
-    <div class="card flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-sm text-gray-700 dark:text-gray-200">
-        <span class="font-medium text-gray-900 dark:text-gray-50">{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review</span>
-        · <span class="money amt">{formatCurrency($pendingTotal)}</span>
-      </p>
-      <a href="{base}/review" class="btn-primary flex-none">Review</a>
-    </div>
+    <a href="{base}/review" class="card pressable flex items-center gap-3.5 p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+      <span class="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-gray-950 text-white dark:bg-white dark:text-gray-950" aria-hidden="true">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-[15px] font-semibold text-gray-950 dark:text-white">{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review</span>
+        <span class="block text-[13px] text-muted dark:text-muted-dark"><span class="money amt">{formatCurrency($pendingTotal)}</span> noticed on your phone</span>
+      </span>
+      <svg class="h-5 w-5 flex-none text-muted dark:text-muted-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+    </a>
   {/if}
 
   <!-- The thesis: one line, the whole month. -->
@@ -293,7 +313,7 @@
         Add transaction
       </button>
     </div>
-    <div class="grid gap-1.5 lg:grid-cols-2">
+    <div class="grid gap-px overflow-hidden rounded-xl bg-border shadow-[var(--shadow-card)] dark:bg-border-dark lg:grid-cols-2 lg:[&>:last-child:nth-child(odd)]:col-span-2">
       {#each $bucketStatuses.filter((s) => !s.bucket.isSystem) as status (status.bucket.id)}
         <EnvelopeRow {status} onClick={() => openLog(status.bucket.id)} />
       {/each}
@@ -301,7 +321,7 @@
   </div>
 
   <!-- Goals Section -->
-  <div>
+  <div id="goals" class="scroll-mt-[calc(var(--safe-top)+1rem)]">
     <div class="mb-2.5 flex items-center justify-between">
       <h2 class="eyebrow">Savings goals</h2>
       {#if $goalStatuses.length > 0}

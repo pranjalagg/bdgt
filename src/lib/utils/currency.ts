@@ -41,6 +41,13 @@ export function formatMoney(cents: number, code: CurrencyCode): string {
   return cents < 0 ? `-${formatted}` : formatted;
 }
 
+// "$1,280.29" as ["$1,280", ".29"], for hero figures that set the cents
+// smaller. Every supported locale writes a decimal point.
+export function splitFraction(formatted: string): [string, string] {
+  const i = formatted.lastIndexOf('.');
+  return i === -1 ? [formatted, ''] : [formatted.slice(0, i), formatted.slice(i)];
+}
+
 export function formatCurrency(cents: number): string {
   return formatMoney(cents, activeCurrency);
 }

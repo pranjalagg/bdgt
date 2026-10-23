@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { formatMoney, formatCurrency, parseCurrency, centsToDollars, dollarsToCents, isValidCurrency, evaluateExpression, isExpression, setActiveCurrency, getActiveCurrency, currencySymbol, symbolPadding } from '$lib/utils/currency';
+import { formatMoney, formatCurrency, parseCurrency, centsToDollars, dollarsToCents, isValidCurrency, evaluateExpression, isExpression, setActiveCurrency, getActiveCurrency, currencySymbol, symbolPadding, splitFraction } from '$lib/utils/currency';
 
 describe('currency utils', () => {
   describe('centsToDollars', () => {
@@ -408,5 +408,13 @@ describe('decimal commas are not grouping commas', () => {
     expect(parseCurrency('12,34,567.89')).toBe(123456789);
     expect(parseCurrency('$1,000 + 5')).toBe(100500);
     expect(parseCurrency('-1,000')).toBe(-100000);
+  });
+});
+
+describe('splitFraction', () => {
+  it('splits a formatted amount at its decimal point', () => {
+    expect(splitFraction('$1,280.29')).toEqual(['$1,280', '.29']);
+    expect(splitFraction('-₹12,34,567.00')).toEqual(['-₹12,34,567', '.00']);
+    expect(splitFraction('AED 35')).toEqual(['AED 35', '']);
   });
 });

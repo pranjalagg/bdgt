@@ -25,9 +25,9 @@
 <button
   type="button"
   on:click={onClick}
-  class="group relative w-full overflow-hidden rounded border border-border bg-white px-3.5 py-2.5
-         text-left transition-colors hover:border-rule focus:outline-none focus-visible:ring-2
-         focus-visible:ring-primary dark:border-border-dark dark:bg-surface-dark dark:hover:border-white/20"
+  class="group relative w-full overflow-hidden bg-white px-4 py-3
+         text-left transition-colors hover:bg-black/[0.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset
+         focus-visible:ring-primary dark:bg-surface-dark dark:hover:bg-white/[0.03]"
 >
   <!-- Fades out at the leading edge so the meter reads as a level, not as
        a second block of color with a hard seam down the middle. -->
@@ -40,8 +40,8 @@
   ></span>
 
   <span class="relative grid grid-cols-[1fr_auto_2.6rem] items-center gap-x-3 gap-y-0.5">
-    <span class="flex items-center gap-2.5 text-[13.5px] font-medium text-gray-900 dark:text-gray-100">
-      <span class="h-4 w-[3px] flex-none rounded-sm" style="background:{bucket.color}"></span>
+    <span class="flex items-center gap-2.5 text-[15px] font-medium text-gray-900 dark:text-gray-100">
+      <span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{bucket.color}"></span>
       {bucket.name}
     </span>
 
@@ -49,7 +49,7 @@
          column; baking " left" into the string breaks the alignment mono
          is here to provide. -->
     <span
-      class="money amt text-right text-[13px] font-medium
+      class="money amt text-right text-[15px] font-semibold
              {isOver ? 'text-danger dark:text-danger-light' : 'text-gray-900 dark:text-gray-100'}"
     >
       {#if unfunded}
@@ -69,7 +69,7 @@
       {/if}
     </span>
 
-    <span class="text-[11.5px] text-muted dark:text-muted-dark">
+    <span class="pl-5 text-[12.5px] text-muted dark:text-muted-dark">
       {#if unfunded}
         Nothing assigned yet
       {:else if spent === 0}
