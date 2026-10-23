@@ -8,10 +8,10 @@ import type { CurrencyCode } from '$lib/currency/currencies';
 import { calculateSafeToSpendPerDay } from '$lib/utils/calculations';
 import { getDaysInMonth, getMonthKey, isCurrentMonth, reviveDateFields } from '$lib/utils/dates';
 import {
-  suggestBucket, rulesByKey, baseAmount, pendingEverydayCents, canApproveInBulk, buildApproval,
-  learnedRule, reopened, transactionIdFor, ruleId, type ApprovalChoice, type Suggestion,
+  suggestBucket, rulesByKey, baseAmount, pendingEverydayCents, canApproveInBulk, buildApproval, approvedWith,
+  learnedRule, reopened, transactionIdFor, ruleId, type ApprovalChoice, type ApprovedValues, type Suggestion,
 } from '$lib/capture/queue';
-import type { Capture, CaptureRule } from '$lib/types';
+import type { Capture, CaptureRule, Transaction } from '$lib/types';
 
 // The review queue: captured payments and the payee rules learned from them.
 // Writes go to Dexie first, then the stores, like the rest of the app.
@@ -98,8 +98,18 @@ export async function approveCapture(id: string, choice: Partial<ApprovalChoice>
   if (!bucketId) throw new Error('Choose a bucket first');
   const base = get(baseCurrency);
   const rate = choice.rate ?? (capture.currency === base ? undefined : rateFor(capture.currency) ?? undefined);
-  const { transaction, capture: approved } = buildApproval(capture, { ...choice, bucketId, rate }, base, Date.now());
-  const rule = learnedRule(capture, bucketId, capture.payeeKey ? get(ruleMap).get(capture.payeeKey) : undefined);
+  await saveApproval(capture, buildApproval(capture, { ...choice, bucketId, rate }, base, Date.now()));
+}
+
+// Approves with exactly what the edit form shows (amount, currency and rate,
+// bucket, date, note).
+export async function approveCaptureAs(id: string, values: ApprovedValues): Promise<void> {
+  const capture = find(id);
+  await saveApproval(capture, approvedWith(capture, values, Date.now()));
+}
+
+async function saveApproval(capture: Capture, { transaction, capture: approved }: { transaction: Transaction; capture: Capture }): Promise<void> {
+  const rule = learnedRule(capture, transaction.bucketId, capture.payeeKey ? get(ruleMap).get(capture.payeeKey) : undefined);
   await db.transaction('rw', writeTables(), async () => {
     await db.transactions.put(transaction);
     await db.captures.put(approved);

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   suggestBucket, rulesByKey, isIgnored, baseAmount, pendingEverydayCents, canApproveInBulk,
-  buildApproval, learnedRule, reopened, transactionIdFor,
+  buildApproval, approvedWith, learnedRule, reopened, transactionIdFor,
 } from '$lib/capture/queue';
 import type { Bucket, Capture, CaptureRule } from '$lib/types';
 
@@ -110,6 +110,15 @@ describe('buildApproval', () => {
     const { transaction } = buildApproval(capture({ currency: 'USD', amount: 650 }), { bucketId: 'dining', rate: 0.012 }, 'INR', 1);
     expect(transaction).toMatchObject({ amount: 54167, foreign: { amount: 650, currency: 'USD', rate: 0.012, base: 'INR' } });
     expect(() => buildApproval(capture({ currency: 'USD' }), { bucketId: 'dining' }, 'INR', 1)).toThrow();
+  });
+});
+
+describe('approvedWith', () => {
+  it('saves exactly the edited values, foreign details included, and drops an empty note', () => {
+    const foreign = { amount: 27500, currency: 'INR' as const, rate: 84, base: 'USD' as const };
+    const { transaction, capture: approved } = approvedWith(capture(), { amount: 327, foreign, bucketId: 'dining', date: new Date(2026, 9, 20), note: '  ' }, 9);
+    expect(transaction).toEqual({ id: 'capture:sms:1', amount: 327, foreign, bucketId: 'dining', date: new Date(2026, 9, 20), createdAt: 9 });
+    expect(approved).toMatchObject({ status: 'approved', transactionId: 'capture:sms:1', resolvedAt: 9, amount: 25000 });
   });
 });
 

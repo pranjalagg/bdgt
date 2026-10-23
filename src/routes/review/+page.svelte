@@ -4,15 +4,14 @@
   import { buckets, transactions } from '$lib/stores/budgetStore';
   import { baseCurrency } from '$lib/stores/currencyStore';
   import { openModal, closeModal } from '$lib/stores/uiStore';
+  import TransactionForm from '$lib/components/shared/TransactionForm.svelte';
+  import type { TransactionValues } from '$lib/components/shared/transactionValues';
   import {
     captures, pendingCaptures, duplicatesOf, suggestions, bulkApprovable, rateFor,
-    approveCapture, dismissCapture, undoCapture, notDuplicate, approveAllSuggested,
+    approveCapture, approveCaptureAs, dismissCapture, undoCapture, notDuplicate, approveAllSuggested,
   } from '$lib/stores/captureStore';
   import { HINT_TEXT, baseAmount } from '$lib/capture/queue';
-  import { fetchRate } from '$lib/currency/fetchRate';
-  import { parseRate } from '$lib/currency/conversion';
-  import { formatCurrency, formatMoney, parseCurrency } from '$lib/utils/currency';
-  import { getLocalDateKey, parseLocalDate } from '$lib/utils/dates';
+  import { formatCurrency, formatMoney } from '$lib/utils/currency';
   import type { Capture } from '$lib/types';
 
   // Payments noticed on the phone, waiting to be approved, changed or
@@ -96,49 +95,31 @@
     });
   }
 
-  // Edit, then approve.
+  // Edit, then approve: the same form as editing a transaction in Activity.
   let editing: Capture | null = null;
-  let editAmount = '';
-  let editBucket = '';
-  let editDate = '';
-  let editNote = '';
-  let editRate = '';
-  let fetchingRate = false;
-  $: editForeign = !!editing && editing.currency !== $baseCurrency;
 
   function startEdit(c: Capture) {
     editing = c;
-    editAmount = (c.amount / 100).toFixed(2);
-    editBucket = $suggestions.get(c.id)?.bucketId ?? '';
-    editDate = getLocalDateKey(new Date(c.date));
-    editNote = c.merchant;
-    editRate = c.currency === $baseCurrency ? '' : String(rateFor(c.currency) ?? '');
     error = '';
     openModal('review-edit');
   }
 
-  async function getRate() {
-    if (!editing) return;
-    fetchingRate = true;
-    try {
-      editRate = String(await fetchRate($baseCurrency, editing.currency));
-    } catch {
-      error = 'Could not fetch a rate; type it instead.';
-    } finally {
-      fetchingRate = false;
-    }
+  function editInitial(c: Capture) {
+    return {
+      amount: c.amount,
+      currency: c.currency,
+      rate: c.currency === $baseCurrency ? undefined : rateFor(c.currency) ?? undefined,
+      bucketId: $suggestions.get(c.id)?.bucketId ?? '',
+      date: new Date(c.date),
+      note: c.merchant,
+    };
   }
 
-  async function saveEdit() {
+  async function saveEdit(v: TransactionValues) {
     if (!editing) return;
-    const amount = parseCurrency(editAmount);
-    if (!Number.isFinite(amount) || amount <= 0) return void (error = 'Enter the amount paid.');
-    if (!editBucket) return void (error = 'Choose a bucket.');
-    const rate = editForeign ? parseRate(editRate) : undefined;
-    if (editForeign && !rate) return void (error = 'Enter a rate to convert.');
     const c = editing;
     await attempt(async () => {
-      await approveCapture(c.id, { bucketId: editBucket, amount, date: parseLocalDate(editDate), note: editNote, rate: rate ?? undefined });
+      await approveCaptureAs(c.id, { amount: v.baseCents, foreign: v.foreign, bucketId: v.bucketId, date: v.date, note: v.note });
       closeModal();
       editing = null;
       offerUndo(c.id, `Approved ${c.merchant}`);
@@ -276,41 +257,13 @@
 
 <Modal id="review-edit" title="Edit and approve">
   {#if editing}
-    <form class="space-y-4 pt-4" on:submit|preventDefault={saveEdit}>
-      <div>
-        <label for="review-amount" class="label">Amount paid ({editing.currency})</label>
-        <input id="review-amount" class="input-base money" inputmode="decimal" bind:value={editAmount} />
+    {#key editing.id}
+      <div class="pt-4">
+        <TransactionForm id="review" initial={editInitial(editing)} submitLabel="Approve" busyLabel="Approving…" onSubmit={saveEdit}>
+          {#if error}<p class="text-sm text-danger dark:text-danger-light" role="alert">{error}</p>{/if}
+        </TransactionForm>
       </div>
-      {#if editForeign}
-        <div>
-          <label for="review-rate" class="label">{editing.currency} per 1 {$baseCurrency}</label>
-          <div class="flex gap-2">
-            <input id="review-rate" class="input-base" inputmode="decimal" bind:value={editRate} />
-            <button type="button" class="btn-secondary flex-none" disabled={fetchingRate} on:click={getRate}>{fetchingRate ? 'Fetching…' : 'Fetch rate'}</button>
-          </div>
-        </div>
-      {/if}
-      <div>
-        <label for="review-bucket" class="label">Bucket</label>
-        <select id="review-bucket" class="select-base" bind:value={editBucket}>
-          <option value="">Choose a bucket</option>
-          {#each assignable as b (b.id)}<option value={b.id}>{b.name}</option>{/each}
-        </select>
-      </div>
-      <div>
-        <label for="review-date" class="label">Date</label>
-        <input id="review-date" type="date" class="input-base" bind:value={editDate} />
-      </div>
-      <div>
-        <label for="review-note" class="label">Note</label>
-        <input id="review-note" class="input-base" bind:value={editNote} />
-      </div>
-      {#if error}<p class="text-sm text-danger dark:text-danger-light" role="alert">{error}</p>{/if}
-      <div class="flex gap-3">
-        <button type="submit" class="btn-primary">Approve</button>
-        <button type="button" class="btn-secondary" on:click={closeModal}>Cancel</button>
-      </div>
-    </form>
+    {/key}
   {/if}
 </Modal>
 

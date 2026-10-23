@@ -6,7 +6,7 @@ import { buckets, transactions } from '$lib/stores/budgetStore';
 import { baseCurrency } from '$lib/stores/currencyStore';
 import { today, currentMonthKey } from '$lib/stores/uiStore';
 import {
-  captures, captureRules, loadCaptures, pendingCaptures, suggestions, approveCapture, dismissCapture, undoCapture,
+  captures, captureRules, loadCaptures, pendingCaptures, suggestions, approveCapture, approveCaptureAs, dismissCapture, undoCapture,
   notDuplicate, approveAllSuggested, bulkApprovable, pendingEverydaySpend, safeToSpendWithPending, duplicatesOf,
   setRuleBucket, setRuleIgnore, deleteRule,
 } from '$lib/stores/captureStore';
@@ -53,6 +53,14 @@ describe('approving', () => {
     await approveCapture('a', { bucketId: 'grocery', amount: 30000, note: 'Instamart' });
     expect(await db.transactions.get('capture:a')).toMatchObject({ amount: 30000, bucketId: 'grocery', note: 'Instamart' });
     expect(get(suggestions).get('b')).toEqual({ bucketId: 'grocery', reason: 'rule' });
+  });
+
+  it('approves with what the edit form shows and learns its bucket', async () => {
+    await seed([capture('a', { payeeKey: 'k', kind: 'dining' })]);
+    await approveCaptureAs('a', { amount: 31500, bucketId: 'grocery', date: new Date(2026, 9, 20), note: 'Instamart, with tip' });
+    expect(await db.transactions.get('capture:a')).toMatchObject({ amount: 31500, bucketId: 'grocery', note: 'Instamart, with tip' });
+    expect(await db.captureRules.get('payee:k')).toMatchObject({ bucketId: 'grocery' });
+    expect(get(pendingCaptures)).toEqual([]);
   });
 
   it('refuses without a bucket, and converts a foreign payment with the last rate', async () => {

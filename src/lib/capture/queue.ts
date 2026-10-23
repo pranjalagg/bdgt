@@ -1,7 +1,7 @@
 import { convertToBase } from '$lib/currency/conversion';
 import type { CurrencyCode } from '$lib/currency/currencies';
 import { getMonthKey } from '$lib/utils/dates';
-import type { Bucket, Capture, CaptureHint, CaptureRule, MerchantKind, Transaction } from '$lib/types';
+import type { Bucket, Capture, CaptureHint, CaptureRule, ForeignAmount, MerchantKind, Transaction } from '$lib/types';
 
 // What the review queue decides, as plain functions: which bucket to suggest,
 // what a capture is worth in the base currency, how much pending spending
@@ -107,24 +107,44 @@ export interface ApprovalChoice {
   rate?: number; // for a foreign payment
 }
 
-// The transaction an approval creates, and the capture as approved.
-export function buildApproval(capture: Capture, choice: ApprovalChoice, base: CurrencyCode, now: number): { transaction: Transaction; capture: Capture } {
-  const paid = choice.amount ?? capture.amount;
-  const foreign = capture.currency !== base;
-  if (foreign && !choice.rate) throw new Error('A rate is needed for a payment in another currency');
-  const transaction: Transaction = {
-    id: transactionIdFor(capture.id),
-    amount: foreign ? convertToBase(paid, choice.rate!) : paid,
-    bucketId: choice.bucketId,
-    date: choice.date ?? new Date(capture.date),
-    note: (choice.note ?? capture.merchant).trim() || undefined,
-    createdAt: now,
-  };
-  if (foreign) transaction.foreign = { amount: paid, currency: capture.currency, rate: choice.rate!, base };
+// What an approval saves, as the edit form or a one-tap approval worked it out.
+export interface ApprovedValues {
+  amount: number; // base cents
+  foreign?: ForeignAmount;
+  bucketId: string;
+  date: Date;
+  note?: string;
+}
+
+// The transaction capture:<id> holding exactly these values, and the capture as approved.
+export function approvedWith(capture: Capture, values: ApprovedValues, now: number): { transaction: Transaction; capture: Capture } {
+  const transaction: Transaction = { id: transactionIdFor(capture.id), amount: values.amount, bucketId: values.bucketId, date: values.date, createdAt: now };
+  const note = values.note?.trim();
+  if (note) transaction.note = note;
+  if (values.foreign) transaction.foreign = values.foreign;
   return {
     transaction,
     capture: { ...capture, status: 'approved', transactionId: transaction.id, resolvedAt: now },
   };
+}
+
+// One-tap approval: the captured amount (converted with `rate` when foreign),
+// the capture's day, and the merchant as the note.
+export function buildApproval(capture: Capture, choice: ApprovalChoice, base: CurrencyCode, now: number): { transaction: Transaction; capture: Capture } {
+  const paid = choice.amount ?? capture.amount;
+  const foreign = capture.currency !== base;
+  if (foreign && !choice.rate) throw new Error('A rate is needed for a payment in another currency');
+  return approvedWith(
+    capture,
+    {
+      amount: foreign ? convertToBase(paid, choice.rate!) : paid,
+      foreign: foreign ? { amount: paid, currency: capture.currency, rate: choice.rate!, base } : undefined,
+      bucketId: choice.bucketId,
+      date: choice.date ?? new Date(capture.date),
+      note: choice.note ?? capture.merchant,
+    },
+    now
+  );
 }
 
 // The rule an approval teaches, or null when it already says the same.

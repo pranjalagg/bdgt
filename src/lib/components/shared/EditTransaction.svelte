@@ -1,13 +1,11 @@
 <script lang="ts">
-  import { buckets, updateTransaction } from '$lib/stores/budgetStore';
+  import { updateTransaction } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
-  import { parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, formatMoney, centsToDollars, symbolPadding } from '$lib/utils/currency';
-  import { parseLocalDate } from '$lib/utils/dates';
-  import type { Transaction } from '$lib/types';
-  import ForeignCurrencyField from './ForeignCurrencyField.svelte';
   import { baseCurrency } from '$lib/stores/currencyStore';
-  import { currencyInfo, type CurrencyCode } from '$lib/currency/currencies';
-  import { parseRate, baseAmountForSave } from '$lib/currency/conversion';
+  import { baseAmountForSave } from '$lib/currency/conversion';
+  import type { Transaction } from '$lib/types';
+  import TransactionForm from './TransactionForm.svelte';
+  import type { TransactionValues } from './transactionValues';
 
   export let transaction: Transaction;
   export let onComplete: (() => void) | undefined = undefined;
@@ -17,131 +15,26 @@
   // saving clears its stale foreign details.
   const foreignShown = transaction.foreign && transaction.foreign.base === $baseCurrency ? transaction.foreign : undefined;
 
-  let currency: CurrencyCode = foreignShown?.currency ?? $baseCurrency;
-  let rate = foreignShown ? String(foreignShown.rate) : '';
-  let baseCents = transaction.amount;
-  let rateValid = true;
-  let amount = centsToDollars(foreignShown?.amount ?? transaction.amount).toString();
-  let bucketId = transaction.bucketId;
-  let note = transaction.note || '';
-  const d = new Date(transaction.date);
-  let date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  let isSubmitting = false;
-  let amountTouched = false;
+  const initial = {
+    amount: foreignShown?.amount ?? transaction.amount,
+    currency: foreignShown?.currency ?? $baseCurrency,
+    rate: foreignShown?.rate,
+    bucketId: transaction.bucketId,
+    date: new Date(transaction.date),
+    note: transaction.note,
+  };
 
-  $: amountError = amountTouched && amount && !isValidCurrency(amount)
-    ? 'Please enter a valid amount (e.g. 12.50, -5, 10 + 5.25, or 12.50 * 3)'
-    : '';
-
-  $: canSubmit = !!amount && !!bucketId && !!date && !amountError && isValidCurrency(amount) && rateValid;
-
-  $: showPreview = isExpression(amount) && isValidCurrency(amount);
-  $: previewValue = showPreview ? evaluateExpression(amount) : null;
-  $: typedMinor = isValidCurrency(amount) ? parseCurrency(amount) : 0;
-
-  function handleAmountInput() {
-    amountTouched = true;
-  }
-
-  async function handleSubmit() {
-    amountTouched = true;
-    if (!canSubmit) return;
-
-    isSubmitting = true;
-    try {
-      const foreign =
-        currency === $baseCurrency
-          ? undefined
-          : { amount: typedMinor, currency, rate: parseRate(rate)!, base: $baseCurrency };
-      await updateTransaction(transaction.id, {
-        amount: baseAmountForSave({ amount: transaction.amount, foreign: foreignShown }, typedMinor, foreign, baseCents),
-        foreign, // undefined removes it from the stored record
-        bucketId,
-        date: parseLocalDate(date),
-        note: note || undefined,
-      });
-      closeModal();
-      onComplete?.();
-    } finally {
-      isSubmitting = false;
-    }
+  async function save(v: TransactionValues) {
+    await updateTransaction(transaction.id, {
+      amount: baseAmountForSave({ amount: transaction.amount, foreign: foreignShown }, v.typedMinor, v.foreign, v.baseCents),
+      foreign: v.foreign, // undefined removes it from the stored record
+      bucketId: v.bucketId,
+      date: v.date,
+      note: v.note,
+    });
+    closeModal();
+    onComplete?.();
   }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="space-y-3">
-  <div>
-    <label for="edit-amount" class="label">Amount</label>
-    <div class="relative mt-1">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{currencyInfo(currency).symbol}</span>
-      <input
-        id="edit-amount"
-        type="text"
-        inputmode="decimal"
-        bind:value={amount}
-        on:input={handleAmountInput}
-        placeholder="0.00"
-        style:padding-left={symbolPadding(1.75, currencyInfo(currency).symbol)}
-        class="input-base pl-7 {amountError ? '!border-danger focus:!border-danger focus:!ring-danger' : ''}"
-        required
-      />
-    </div>
-    {#if amountError}
-      <p class="mt-1 text-sm text-danger">{amountError}</p>
-    {:else if showPreview && previewValue !== null}
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= <span class="amt">{formatMoney(dollarsToCents(previewValue), currency)}</span></p>
-    {/if}
-    <ForeignCurrencyField
-      id="edit"
-      bind:currency
-      bind:rate
-      foreignMinor={typedMinor}
-      bind:baseCents
-      bind:rateValid
-    />
-  </div>
-
-  <div>
-    <label for="edit-bucket" class="label">Bucket</label>
-    <select
-      id="edit-bucket"
-      bind:value={bucketId}
-      class="mt-1 select-base"
-      required
-    >
-      <option value="">Select a bucket</option>
-      {#each $buckets.filter((b) => !b.isSystem || b.id === transaction.bucketId) as bucket}
-        <option value={bucket.id}>{bucket.name}</option>
-      {/each}
-    </select>
-  </div>
-
-  <div>
-    <label for="edit-date" class="label">Date</label>
-    <input
-      id="edit-date"
-      type="date"
-      bind:value={date}
-      class="mt-1 input-base"
-      required
-    />
-  </div>
-
-  <div>
-    <label for="edit-note" class="label">Note (optional)</label>
-    <input
-      id="edit-note"
-      type="text"
-      bind:value={note}
-      placeholder="Add a note..."
-      class="mt-1 input-base"
-    />
-  </div>
-
-  <button
-    type="submit"
-    disabled={isSubmitting || !canSubmit}
-    class="w-full btn-primary"
-  >
-    {isSubmitting ? 'Saving...' : 'Save Changes'}
-  </button>
-</form>
+<TransactionForm id="edit" {initial} keepBucketId={transaction.bucketId} submitLabel="Save Changes" busyLabel="Saving..." onSubmit={save} />
