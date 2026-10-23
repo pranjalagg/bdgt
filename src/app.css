@@ -3,22 +3,36 @@
 @tailwind utilities;
 
 :root {
-  /* "primary" is ink, not a brand hue: near-black so it reads as the
-     interface's own voice, not an eleventh-plus-one color competing with
-     the buckets. Space-separated so Tailwind's <alpha-value> (bg-primary/30
-     etc.) keeps working. */
-  --color-ctl: 23 24 26;
-  --color-ctl-hover: 42 44 47;
-  /* Secondary text: 6.2:1 on white, 5.6:1 on the page; dark 6.8:1 on a card. */
-  --color-muted: 93 98 95;
-  /* Status text, at least 4.5:1 on white, the page and raised surfaces. */
-  --color-success: 43 122 82; /* #2b7a52 */
+  /* iOS system surfaces and labels, as space-separated RGB for Tailwind's
+     <alpha-value>. Light: grouped grey page, white cards. */
+  --c-page: 242 242 247; /* #f2f2f7 */
+  --c-surface: 255 255 255;
+  --c-raised: 233 233 238; /* #e9e9ee */
+  --c-fill: 118 118 128;
+  --fill-alpha: 0.12;
+  --c-label: 0 0 0;
+  --c-label-2: 94 94 100; /* #5e5e64: 6.4:1 on a card, 5.3:1 on raised */
+  --c-sep: 60 60 67;
+  --sep-alpha: 0.16;
+  /* The action colour: indigo. White on it 5.65:1; as text 4.67:1 on raised. */
+  --c-tint: 88 86 214; /* #5856d6 */
+  --c-tint-text: 88 86 214;
+  --c-glass: 250 250 252;
+  --glass-alpha: 0.72;
+  --glass-edge: rgba(255, 255, 255, 0.75);
+
+  /* Older names, now pointing at the values above. */
+  --color-ctl: 88 86 214;
+  --color-ctl-hover: 75 73 201; /* #4b49c9 */
+  --color-muted: 94 94 100;
+  /* Status text, at least 4.5:1 on the page, cards and raised surfaces. */
+  --color-success: 39 116 77; /* #27744d */
   --color-warning: 143 95 28; /* #8f5f1c */
   --color-danger: 184 58 38; /* #b83a26 */
 
   /* Depth comes from a 1px ring plus soft lift, not from borders. */
-  --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 2px 6px 0 rgba(0, 0, 0, 0.04);
-  --shadow-float: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 10px 24px -6px rgba(0, 0, 0, 0.22), 0 2px 6px -2px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
 
   /* Room for the status bar, notch and gesture bar when the app draws edge
      to edge (viewport-fit=cover). Capacitor's Android bridge also sets the
@@ -28,16 +42,30 @@
 }
 
 :root.dark {
-  /* Near-white on dark grounds -- the same ink relationship, inverted. */
-  --color-ctl: 236 237 234;
-  --color-ctl-hover: 213 214 210;
-  --color-muted: 157 162 160;
+  /* True black page, #1c1c1e cards, #2c2c2e raised. */
+  --c-page: 0 0 0;
+  --c-surface: 28 28 30;
+  --c-raised: 44 44 46;
+  --fill-alpha: 0.24;
+  --c-label: 255 255 255;
+  --c-label-2: 161 161 168; /* #a1a1a8: 6.6:1 on a card */
+  --c-sep: 84 84 88;
+  --sep-alpha: 0.55;
+  --c-tint: 94 92 230; /* #5e5ce6: white on it 5.06:1 */
+  --c-tint-text: 155 153 255; /* #9b99ff: 6.8:1 on a card */
+  --c-glass: 36 36 40;
+  --glass-alpha: 0.62;
+  --glass-edge: rgba(255, 255, 255, 0.12);
+
+  --color-ctl: 94 92 230;
+  --color-ctl-hover: 84 82 220; /* #5452dc */
+  --color-muted: 161 161 168;
   --color-success: 99 197 146; /* #63c592 */
   --color-warning: 219 164 90; /* #dba45a */
   --color-danger: 240 131 108; /* #f0836c */
 
-  /* Shadows vanish on near-black: one faint white ring instead. */
-  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  /* Shadows vanish on black: one faint white ring instead. */
+  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px -8px rgba(0, 0, 0, 0.7);
 }
 
@@ -48,7 +76,7 @@
   }
 
   body {
-    @apply bg-background text-gray-800 antialiased;
+    @apply bg-page text-label antialiased;
     overscroll-behavior-y: none;
   }
 
@@ -143,9 +171,6 @@
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
-:root.dark body {
-  @apply bg-background-dark text-gray-100;
-}
 
 @layer components {
   /* Amounts use tabular figures, so they share a decimal column and a
@@ -154,14 +179,44 @@
     @apply tabular-nums tracking-tight;
   }
 
-  /* Wide display type for large titles and hero figures. */
+  /* Large figures: bold, tabular, set tight. */
+  .figure {
+    @apply font-bold tabular-nums;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  /* Older name for .figure, kept while screens move over. */
   .display {
-    @apply font-display tabular-nums;
-    font-stretch: 125%;
+    @apply tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* iOS large title. */
+  .ltitle {
+    @apply text-label;
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.1;
+  }
+
+  /* Translucent blurred surface: bars, menus, toasts. */
+  .glass {
+    background-color: rgb(var(--c-glass) / var(--glass-alpha));
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    box-shadow: inset 0 0 0 0.5px var(--glass-edge), var(--shadow-float);
+  }
+
+  /* Inset grouped list: rows separated by hairlines inside one card. */
+  .group {
+    @apply overflow-hidden rounded-card border border-transparent bg-surface;
+    box-shadow: var(--shadow-card);
   }
 
   .card {
-    @apply rounded-xl border border-transparent bg-white dark:bg-surface-dark;
+    @apply rounded-card border border-transparent bg-surface;
     /* The transparent border still draws an edge in forced-colors mode,
        which removes box-shadow. */
     box-shadow: var(--shadow-card);
@@ -197,7 +252,7 @@
            hover:bg-primary-hover
            focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background
            disabled:cursor-not-allowed disabled:opacity-50
-           dark:text-gray-900 dark:focus-visible:ring-offset-background-dark;
+           dark:focus-visible:ring-offset-background-dark;
   }
 
   .btn-secondary {
@@ -238,7 +293,7 @@
   }
 
   .chip[aria-pressed='true'] {
-    @apply bg-primary text-white hover:bg-primary-hover dark:text-gray-900;
+    @apply bg-label text-page;
   }
 
   /* Segmented control: a few views of one thing (sub-pages of a section,

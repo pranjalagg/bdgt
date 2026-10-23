@@ -8,56 +8,61 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Chrome stays near-neutral on purpose: every bucket already carries
-        // a user-chosen color, and those are the only saturated things on
-        // screen. A brand accent here would be a twelfth color competing
-        // with eleven that mean something -- so controls are ink, not a hue:
-        // near-black on light, near-white on dark. primary/primary-hover
-        // read from CSS custom properties (see app.css) so every existing
-        // bg-primary/text-primary/border-primary/ring-primary usage flips
-        // correctly in both themes from one definition, instead of each
-        // call site needing its own dark: patch.
-        surface: '#ffffff',
-        'surface-dark': '#18191c',
-        background: '#f3f4f1',
-        'background-dark': '#0e0f11',
-        // A step above a card: inputs, chips, the safe-to-spend ring's track.
-        raised: '#ecedea',
-        'raised-dark': '#232428',
+        // iOS system surfaces and labels. Both themes' values live in
+        // app.css as space-separated RGB, so one class works in light and
+        // dark and <alpha-value> (bg-tint/10) keeps working.
+        page: 'rgb(var(--c-page) / <alpha-value>)',
+        surface: 'rgb(var(--c-surface) / <alpha-value>)',
+        raised: 'rgb(var(--c-raised) / <alpha-value>)',
+        fill: 'rgb(var(--c-fill) / var(--fill-alpha))',
+        label: 'rgb(var(--c-label) / <alpha-value>)',
+        'label-2': 'rgb(var(--c-label-2) / <alpha-value>)',
+        sep: 'rgb(var(--c-sep) / var(--sep-alpha))',
+        // The one colour for actions. Text in it uses textColor.tint below,
+        // lighter in dark mode so it stays legible on dark cards.
+        tint: 'rgb(var(--c-tint) / <alpha-value>)',
+        // Meanings: green fits, set aside, kept; amber warns; red is over.
+        good: 'rgb(var(--color-success) / <alpha-value>)',
+        warn: 'rgb(var(--color-warning) / <alpha-value>)',
+        bad: 'rgb(var(--color-danger) / <alpha-value>)',
+
+        // Older names, kept while screens move over (removed in the cleanup).
+        background: 'rgb(var(--c-page) / <alpha-value>)',
+        'background-dark': '#000000',
+        'surface-dark': '#1c1c1e',
+        'raised-dark': '#2c2c2e',
         primary: 'rgb(var(--color-ctl) / <alpha-value>)',
         'primary-hover': 'rgb(var(--color-ctl-hover) / <alpha-value>)',
-        // Status colours follow the theme (app.css), so text set in them
-        // stays legible on dark cards without a dark: variant. The -light
-        // names are the dark-theme values, kept for existing dark: variants.
-        success: 'rgb(var(--color-success) / <alpha-value>)', // money set aside -- the one job green has
+        success: 'rgb(var(--color-success) / <alpha-value>)',
         'success-light': '#63c592',
         warning: 'rgb(var(--color-warning) / <alpha-value>)',
-        danger: 'rgb(var(--color-danger) / <alpha-value>)', // envelope empty or overspent -- the one job red has
+        danger: 'rgb(var(--color-danger) / <alpha-value>)',
         'danger-light': '#f0836c',
-        // Follows the theme (app.css), so a bare text-muted stays legible in
-        // dark mode; muted-dark is the same dark value, kept for existing
-        // dark: variants.
         muted: 'rgb(var(--color-muted) / <alpha-value>)',
-        'muted-dark': '#9da2a0',
-        border: '#e3e5e1',
-        'border-dark': 'rgba(255,255,255,0.08)',
-        rule: '#cdcfcc',
-        // The dashboard's two tiles, always with dark text: bills that are
-        // due (committed money) and money set aside (the same meaning green
-        // has everywhere, in a tile-sized tint).
+        'muted-dark': '#a1a1a8',
+        border: '#dedee3',
+        'border-dark': '#38383a',
+        rule: '#c7c7cc',
         'tile-bills': '#8d91f7',
         'tile-saved': '#7cd462',
         'tile-ink': '#0e0f11',
       },
+      textColor: {
+        tint: 'rgb(var(--c-tint-text) / <alpha-value>)',
+        // Older screens set text in "primary": same legible text variant.
+        primary: 'rgb(var(--c-tint-text) / <alpha-value>)',
+      },
       fontFamily: {
-        sans: ['"IBM Plex Sans Variable"', '"IBM Plex Sans"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        // Large titles and hero figures, set wide (font-stretch 125%).
-        display: ['"Archivo Variable"', '"IBM Plex Sans Variable"', 'system-ui', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        // San Francisco on Apple devices, Inter everywhere else.
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Inter Variable"', 'Inter', 'system-ui', '"Segoe UI"', 'sans-serif'],
+        display: ['-apple-system', 'BlinkMacSystemFont', '"Inter Variable"', 'Inter', 'system-ui', '"Segoe UI"', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       borderRadius: {
         'xl': '1.25rem', // cards
         '2xl': '1.75rem', // sheets, dialogs, tiles
+        card: '22px', // cards and grouped lists
+        sheet: '30px', // sheet top corners
       },
     },
   },

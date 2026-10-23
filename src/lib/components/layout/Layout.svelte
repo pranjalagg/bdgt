@@ -113,7 +113,7 @@
       <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
     </svg>
     Log
-    <kbd class="hidden rounded border border-white/25 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white/80 dark:border-gray-900/25 dark:text-gray-900/70 md:inline-block">
+    <kbd class="hidden rounded border border-white/25 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white/80 md:inline-block">
       ⌘K
     </kbd>
   </button>

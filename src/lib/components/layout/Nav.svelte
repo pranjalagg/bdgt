@@ -43,7 +43,7 @@
 <!-- Desktop sidebar -->
 <nav class="hidden h-full w-56 flex-shrink-0 flex-col border-r [view-transition-name:sidebar] border-border bg-white dark:border-border-dark dark:bg-surface-dark md:flex">
   <div class="flex items-center gap-2.5 px-5 py-5">
-    <div class="flex h-8 w-8 items-center justify-center rounded-[9px] bg-primary text-white dark:text-gray-900">
+    <div class="flex h-8 w-8 items-center justify-center rounded-[9px] bg-primary text-white">
       <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 17L12 22L22 17" /><path d="M2 12L12 17L22 12" /><path d="M12 2L2 7L12 12L22 7L12 2Z" />
       </svg>
@@ -68,7 +68,7 @@
           </svg>
           <span>{item.label}</span>
           {#if item.icon === 'list' && $pendingCaptures.length > 0}
-            <span class="ml-auto rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-5 text-white dark:text-gray-900" aria-label="{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review">{$pendingCaptures.length}</span>
+            <span class="ml-auto rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-5 text-white" aria-label="{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review">{$pendingCaptures.length}</span>
           {/if}
         </a>
       </li>
