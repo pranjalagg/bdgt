@@ -68,7 +68,7 @@
     '/settings': 'Settings',
   };
   $: path = $page.url.pathname.slice(base.length).replace(/(.)\/$/, '$1') || '/';
-  $: title = TITLES[path] ? `${TITLES[path]} · bdgt` : 'bdgt';
+  $: title = TITLES[path] ? `${TITLES[path]} · bdgt` : path.startsWith('/budget/') ? 'Envelope · bdgt' : 'bdgt';
 
   // Tapping the tab you are on goes back to its first page, then to the top.
   function reselect(tab: string) {

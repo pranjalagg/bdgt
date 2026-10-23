@@ -194,27 +194,38 @@ async function smoke(browser, errors) {
   await step(results, 'Budget lists envelopes in three groups', async () => {
     await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle');
     for (const [group, name] of [['Everyday', 'Grocery'], ['Bills', 'Utilities'], ['Savings', 'Emergency Fund']]) {
-      await page.getByRole('region', { name: group }).getByRole('button', { name: new RegExp(name) }).waitFor({ timeout: 3000 });
+      await page.getByRole('region', { name: group }).getByRole('link', { name: new RegExp(name) }).waitFor({ timeout: 3000 });
     }
   });
-  await step(results, 'envelope sheet opens from its row; defaults have no Delete', async () => {
-    await page.getByRole('region', { name: 'Everyday' }).getByRole('button', { name: /^Grocery/ }).click();
+  await step(results, 'envelope page: ring, this month, and its Edit sheet', async () => {
+    await page.getByRole('region', { name: 'Everyday' }).getByRole('link', { name: /^Grocery/ }).click();
+    await page.waitForURL('**/budget/groc', { timeout: 3000 });
+    await page.getByRole('region', { name: 'This month' }).getByText('Trader Joe’s').first().waitFor({ timeout: 3000 });
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     const dlg = page.getByRole('dialog');
-    if (await dlg.locator('#name').inputValue() !== 'Grocery') throw new Error('sheet shows wrong bucket');
-    if (await dlg.getByRole('button', { name: 'Delete bucket' }).count()) throw new Error('default bucket offers delete');
+    if (await dlg.locator('#name').inputValue() !== 'Grocery') throw new Error('sheet shows wrong envelope');
+    if (await dlg.getByRole('button', { name: 'Delete envelope' }).count()) throw new Error('default envelope offers delete');
     await page.keyboard.press('Escape'); await page.waitForTimeout(400);
   });
-  await step(results, 'buckets: add one, then delete it from its sheet', async () => {
-    await page.getByRole('button', { name: 'Add bucket' }).click();
+  await step(results, 'swiping from the left edge goes back to Budget', async () => {
+    await page.mouse.move(4, 400); await page.mouse.down();
+    await page.mouse.move(60, 402, { steps: 4 }); await page.mouse.move(260, 404, { steps: 8 }); await page.mouse.up();
+    await page.waitForURL((u) => new URL(u).pathname === '/budget', { timeout: 3000 });
+  });
+  await step(results, 'add an envelope, then delete it from its page', async () => {
+    await page.getByRole('button', { name: 'New envelope' }).first().click();
     await page.locator('#name').fill('Smoke bucket');
-    await page.getByRole('dialog').getByRole('button', { name: 'Add Bucket' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Add envelope' }).click();
     await page.waitForTimeout(400);
-    const row = page.getByRole('button', { name: /^Smoke bucket/ });
-    await row.click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Delete bucket' }).click();
-    await page.waitForTimeout(500);
-    if (await row.count()) throw new Error('still there');
-    if (await page.getByRole('dialog').count()) throw new Error('sheet still open');
+    await page.getByRole('link', { name: /^Smoke bucket/ }).click();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete envelope' }).click();
+    await page.waitForURL((u) => new URL(u).pathname === '/budget', { timeout: 3000 });
+    if (await page.getByRole('link', { name: /^Smoke bucket/ }).count()) throw new Error('still listed');
+  });
+  await step(results, 'a link to a missing envelope lands on Budget', async () => {
+    await page.goto(BASE + '/budget/does-not-exist'); await page.waitForLoadState('networkidle');
+    await page.waitForURL((u) => new URL(u).pathname === '/budget', { timeout: 4000 });
   });
   await step(results, 'income sheet adds and deletes an income', async () => {
     await page.getByRole('button', { name: /^Income this month/ }).click();
