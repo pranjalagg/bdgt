@@ -156,6 +156,14 @@ async function smoke(browser, errors) {
     const after = await page.getByRole('button', { name: 'Approve', exact: true }).count();
     if (after !== before - 1) throw new Error('approve buttons ' + before + ' -> ' + after);
   });
+  await step(results, 'review: the toast offers Undo, and Undo brings it back', async () => {
+    const before = await page.getByRole('button', { name: 'Approve', exact: true }).count();
+    await page.getByRole('button', { name: 'Approve', exact: true }).first().click();
+    await page.getByRole('status').getByRole('button', { name: 'Undo' }).click({ timeout: 3000 });
+    await page.waitForTimeout(600);
+    const after = await page.getByRole('button', { name: 'Approve', exact: true }).count();
+    if (after !== before) throw new Error('approve buttons ' + before + ' -> ' + after);
+  });
   await step(results, 'review: dismiss with the sheet', async () => {
     await page.getByRole('button', { name: 'Dismiss', exact: true }).first().click();
     await page.getByRole('dialog').getByRole('button', { name: 'Dismiss', exact: true }).click();

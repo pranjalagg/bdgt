@@ -7,6 +7,12 @@
 	import Layout from '$lib/components/layout/Layout.svelte';
 	import { onMount } from 'svelte';
 	import { installMotion } from '$lib/ui/motion';
+	import { installBackButton } from '$lib/ui/backButton';
+	import { isTabRoot, tabRootOf } from '$lib/ui/routes';
+	import { afterNavigate, goto } from '$app/navigation';
+	import { base } from '$app/paths';
+	import { get } from 'svelte/store';
+	import { modalStack, closeModal } from '$lib/stores/uiStore';
 	import { loadData, isLoading } from '$lib/stores/budgetStore';
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
 	import { loadGoals } from '$lib/stores/goalsStore';
@@ -18,6 +24,15 @@
 	import '$lib/stores/themeStore';
 
 	let { children } = $props();
+
+	// How many pages back this app can go (Android back from a page opened
+	// directly has nowhere to go back to, so it returns to the tab instead).
+	let historyDepth = 0;
+	afterNavigate(({ type }) => {
+		if (type === 'link' || type === 'goto') historyDepth += 1;
+		else if (type === 'popstate') historyDepth = Math.max(0, historyDepth - 1);
+	});
+	const appPath = () => location.pathname.slice(base.length) || '/';
 
 	onMount(() => {
 		// Development only: Vite sets import.meta.env.DEV to false in every build
@@ -33,9 +48,16 @@
 		const applyMotion = () => installMotion(document.documentElement);
 		applyMotion();
 		motion.addEventListener('change', applyMotion);
+		const stopBack = installBackButton({
+			state: () => ({ openSheets: get(modalStack).length, atTabRoot: isTabRoot(appPath()), canGoBack: historyDepth > 0 }),
+			closeSheet: () => closeModal(),
+			back: () => history.back(),
+			toRoot: () => void goto(base + tabRootOf(appPath()), { replaceState: true }),
+		});
 		void init();
 		return () => {
 			stopClock();
+			stopBack();
 			motion.removeEventListener('change', applyMotion);
 		};
 	});

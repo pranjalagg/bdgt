@@ -93,6 +93,30 @@
   }
 }
 
+/* A large sheet pushes the app back behind it, as iOS does: the app
+   shrinks a little and rounds its corners over a black ground. */
+@media (max-width: 767px) {
+  #stage {
+    transform-origin: 50% 0;
+    transition: transform var(--ms-smooth, 400ms) var(--ease-smooth, ease-out), border-radius var(--ms-smooth, 400ms) var(--ease-smooth, ease-out);
+  }
+
+  #stage.scaled {
+    transform: translateY(14px) scale(0.92);
+    border-radius: 26px;
+    overflow: hidden;
+  }
+
+  :root.rm #stage.scaled {
+    transform: none;
+    border-radius: 0;
+  }
+
+  :root:has(#stage.scaled) body {
+    background: #000;
+  }
+}
+
 /* Page changes fade through: the old page fades out quickly, then the new
    one fades in (Material's pattern for moving between top-level places).
    Opacity only, so reduced motion keeps it; the browser's default is a
@@ -265,12 +289,14 @@
   }
 
   .btn-danger {
-    @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-transparent bg-danger/10 px-5
+    /* iOS destructive button: red text on a plain cell, legible on any
+       ground (a red tint failed 4.5:1 on grey). */
+    @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-transparent bg-surface px-5
            text-[15px] font-semibold text-danger
-           hover:bg-danger/15
+           hover:bg-danger/[0.06]
            focus:outline-none focus-visible:ring-2 focus-visible:ring-danger/40
            disabled:cursor-not-allowed disabled:opacity-50
-           dark:bg-danger-light/10 dark:text-danger-light dark:hover:bg-danger-light/15;
+           dark:bg-raised;
   }
 
   .btn-icon {

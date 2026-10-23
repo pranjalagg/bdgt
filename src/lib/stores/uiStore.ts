@@ -44,14 +44,30 @@ export function startClock(): () => void {
   };
 }
 
-export const activeModal = writable<string | null>(null);
+// Sheets stack: opening one over another keeps the lower one, and closing
+// takes off the top (or a named one). activeModal is the top, as before.
+export const modalStack = writable<string[]>([]);
+export const activeModal = derived(modalStack, ($stack) => $stack[$stack.length - 1] ?? null);
 
 export function openModal(modalId: string) {
-  activeModal.set(modalId);
+  modalStack.update((stack) => (stack.includes(modalId) ? stack : [...stack, modalId]));
 }
 
-export function closeModal() {
-  activeModal.set(null);
+export function closeModal(modalId?: string) {
+  modalStack.update((stack) => (modalId === undefined ? stack.slice(0, -1) : stack.filter((id) => id !== modalId)));
+}
+
+// Large sheets push the app back behind them; Modal registers which ids do.
+const scaleBackIds = writable<Set<string>>(new Set());
+export const scaledBack = derived([modalStack, scaleBackIds], ([$stack, $ids]) => $stack.some((id) => $ids.has(id)));
+
+export function setScaleBack(modalId: string, on: boolean) {
+  scaleBackIds.update((ids) => {
+    const next = new Set(ids);
+    if (on) next.add(modalId);
+    else next.delete(modalId);
+    return next;
+  });
 }
 
 // Logging a transaction is a persistent action available from any page

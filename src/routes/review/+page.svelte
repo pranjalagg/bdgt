@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { showToast } from '$lib/stores/toastStore';
   import { segmentedPill } from '$lib/actions/segmentedPill';
   import { base } from '$app/paths';
   import Modal from '$lib/components/shared/Modal.svelte';
@@ -59,13 +60,9 @@
     return s.reason === 'rule' ? `Last filed under ${name}` : `Usually ${name}`;
   }
 
-  // The bar at the bottom offering to undo the last action.
-  let lastAction: { id: string; text: string } | null = null;
-  let undoTimer: ReturnType<typeof setTimeout> | undefined;
+  // Offers to undo the last decision for 8 seconds.
   function offerUndo(id: string, text: string) {
-    lastAction = { id, text };
-    clearTimeout(undoTimer);
-    undoTimer = setTimeout(() => (lastAction = null), 8000);
+    showToast({ message: text, action: { label: 'Undo', run: () => void attempt(() => undoCapture(id)) }, ms: 8000 });
   }
 
   async function attempt(action: () => Promise<void>) {
@@ -83,13 +80,6 @@
       await approveCapture(c.id);
       offerUndo(c.id, `Approved ${c.merchant}`);
     });
-  }
-
-  async function undo() {
-    if (!lastAction) return;
-    const { id } = lastAction;
-    lastAction = null;
-    await attempt(() => undoCapture(id));
   }
 
   async function approveAll() {
@@ -254,16 +244,6 @@
   {/if}
 </div>
 
-<!-- Above the Log button on phones, as a snackbar sits above a FAB. The
-     live region stays mounted so the message is announced when it lands. -->
-<div class="pointer-events-none fixed inset-x-0 bottom-[calc(9rem+var(--safe-bottom))] z-40 flex justify-center px-4 md:bottom-6" role="status">
-  {#if lastAction}
-    <div class="pointer-events-auto flex min-h-[3rem] items-center gap-4 rounded-2xl bg-gray-900 py-1.5 pl-4 pr-1.5 text-sm text-white dark:bg-gray-100 dark:text-gray-900" style="box-shadow: var(--shadow-float)">
-      <span>{lastAction.text}</span>
-      <button type="button" class="min-h-[2.5rem] rounded-full px-3 font-semibold underline-offset-2 hover:underline" on:click={undo}>Undo</button>
-    </div>
-  {/if}
-</div>
 
 <Modal id="review-edit" title="Edit and approve">
   {#if editing}
@@ -291,7 +271,7 @@
       {/if}
       <div class="flex gap-3">
         <button type="button" class="btn-primary" on:click={confirmDismiss}>Dismiss</button>
-        <button type="button" class="btn-secondary" on:click={closeModal}>Cancel</button>
+        <button type="button" class="btn-secondary" on:click={() => closeModal()}>Cancel</button>
       </div>
     </div>
   {/if}

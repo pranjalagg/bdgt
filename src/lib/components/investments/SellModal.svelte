@@ -128,7 +128,7 @@
       </div>
 
       <div class="flex justify-end gap-3 pt-2">
-        <button type="button" class="btn-secondary" on:click={closeModal}>
+        <button type="button" class="btn-secondary" on:click={() => closeModal()}>
           Cancel
         </button>
         <button type="submit" class="btn-primary" disabled={!isValid || isSubmitting}>

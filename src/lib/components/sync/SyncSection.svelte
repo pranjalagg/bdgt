@@ -156,7 +156,7 @@
       </p>
       <div class="flex flex-col gap-2">
         <button type="button" class="btn-primary" disabled={$busy} on:click={() => confirmSignOut(false)}>Sign out</button>
-        <button type="button" class="btn-secondary" on:click={closeModal}>Cancel</button>
+        <button type="button" class="btn-secondary" on:click={() => closeModal()}>Cancel</button>
       </div>
     {:else if pending > 0}
       <p class="text-sm text-gray-700 dark:text-gray-200">
@@ -164,7 +164,7 @@
       </p>
       <div class="flex flex-col gap-2">
         <button type="button" class="btn-primary" disabled={$busy} on:click={() => confirmSignOut(true)}>Download backup and sign out</button>
-        <button type="button" class="btn-secondary" on:click={closeModal}>Stay signed in</button>
+        <button type="button" class="btn-secondary" on:click={() => closeModal()}>Stay signed in</button>
       </div>
     {:else}
       <p class="text-sm text-gray-700 dark:text-gray-200">
@@ -172,7 +172,7 @@
       </p>
       <div class="flex flex-col gap-2">
         <button type="button" class="btn-primary" disabled={$busy} on:click={() => confirmSignOut(false)}>Sign out</button>
-        <button type="button" class="btn-secondary" on:click={closeModal}>Cancel</button>
+        <button type="button" class="btn-secondary" on:click={() => closeModal()}>Cancel</button>
       </div>
     {/if}
   </div>

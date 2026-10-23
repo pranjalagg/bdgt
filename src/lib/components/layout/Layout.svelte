@@ -7,7 +7,8 @@
   import SyncChoiceModal from '$lib/components/sync/SyncChoiceModal.svelte';
   import { syncEnabled } from '$lib/sync/browser';
   import { currencyConfirmed, takeCurrencyPrompt, currencyAnsweredElsewhere } from '$lib/stores/currencyStore';
-  import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId } from '$lib/stores/uiStore';
+  import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId, scaledBack } from '$lib/stores/uiStore';
+  import Toast from '$lib/components/ui/Toast.svelte';
   import { onNavigate, beforeNavigate, afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
@@ -81,7 +82,7 @@
   <title>{title}</title>
 </svelte:head>
 
-<div class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
+<div id="stage" class:scaled={$scaledBack} class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
   <Nav />
   <main bind:this={main} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
     <!-- The app draws under the status bar; this strip keeps content that
@@ -118,6 +119,8 @@
     </kbd>
   </button>
 </div>
+
+<Toast />
 
 <Modal id="log" title="Add Transaction">
   <LogEntry preselectedBucketId={$logPreselectedBucketId} onComplete={handleLogComplete} />
