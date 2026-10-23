@@ -7,9 +7,12 @@ The Android app is the normal budget app plus two things:
 
 ## Getting the app
 
-1. On GitHub, open **Actions → Android test build**, pick the latest green run, and download the artifact `bdgt-test-build-N` (a zip holding `app-debug.apk`).
-2. Send the APK to the phone and open it. Android asks to allow installing from that app (Files, Drive, a browser); allow it.
-3. Later builds install over the earlier one, keeping your data. If Android ever refuses the update ("package conflicts"), export a backup in Settings, uninstall, install the new build and import the backup.
+1. On the phone, open <https://github.com/pranjalagg/bdgt/releases/tag/android-latest> and download `bdgt.apk` (no GitHub account needed). Every green build of the branch replaces this release, so the link always gives the newest build.
+2. Open the downloaded file. Android asks to allow installing from that app (the browser or Files); allow it.
+3. When a newer build is out, the app shows **Build N of the app is ready** at the top: **Download**, then open the file. It installs over the earlier one, keeping your data. **Later** hides the offer until the next build.
+4. If Android ever refuses the update ("package conflicts"), the signing key changed: export a backup in Settings, uninstall, install the new build and import the backup.
+
+(Each build is also attached to its run under **Actions → Android test build** as `bdgt-test-build-N`.)
 
 The app keeps its own budget data, separate from the website, until you sign in to the same account on both.
 
@@ -101,13 +104,13 @@ When the same payment shows up twice (the bank's SMS and the UPI app), the secon
 
 ## When a payment is read wrongly or missed
 
-Open **Recorded notifications** at the bottom of the section: under each notification it says what the app made of it (**Payment: …** or **Skipped: …**). Tap **Share log**, send the file, and say which one is wrong. Reference, account and phone numbers are masked to their last two digits; amounts and dates are kept. Names are not masked, so look through the file first. **Clear log** deletes the recordings from the phone; payments already in Review stay. Signing out leaves capture on and keeps the log; payments that arrive while signed out wait on the phone and go to Review when you sign in again.
+Open **Recorded notifications** at the bottom of the section (only the signed-in account's recordings, plus any recorded while signed out, are shown): under each notification it says what the app made of it (**Payment: …** or **Skipped: …**). Tap **Share log**, send the file, and say which one is wrong. Reference, account and phone numbers are masked to their last two digits; amounts and dates are kept. Names are not masked, so look through the file first. **Clear log** deletes the recordings from the phone; payments already in Review stay. Signing out leaves capture on and keeps the log; payments that arrive while signed out wait on the phone and go to Review when you sign in again.
 
 ## Checking real messages without paying (development only)
 
 Copy a notification or SMS word for word and see what the app makes of it, in a browser on your Mac. These helpers exist only under `npm run dev`: the website and the Android app are built without them, and CI fails the build if one ever appears in it.
 
-1. Start the app with sync off, so nothing reaches your account: `VITE_SUPABASE_URL= npm run dev`. (Signed in, the fake phone refuses to start.)
+1. Start the app with sync off, so nothing reaches your account. In the terminal, run `VITE_SUPABASE_URL= npm run dev`: the empty value overrides `.env` for that run only. Do not put it in `.env` (there, `VITE_SUPABASE_URL` must stay your project's address). Signed in, the fake phone refuses to start.
 2. Open it in the browser and open the developer console (⌥⌘J in Chrome).
 3. Ask the parser, which changes nothing:
    ```js

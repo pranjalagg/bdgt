@@ -87,6 +87,7 @@ The person chooses sources in Settings; only installed apps are offered. The tes
 - The Supabase URL and publishable key are built in, as for GitHub Pages.
 - Application id `io.github.pranjalagg.bdgt` (it cannot change after the first Play upload).
 - Downloads (backups, the CSV, the capture log) go through the Android share sheet: a WebView cannot save a file from a link.
+- Each CI build is published as the GitHub release `android-latest` (`bdgt.apk`); the app checks it on start and when it comes back to the foreground (at most every 6 hours) and offers a newer build in a banner. Live updates of the web part without an APK (Capgo's updater) were considered and left for later.
 
 ### Capture plugin (Kotlin)
 
