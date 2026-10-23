@@ -1,0 +1,677 @@
+{
+  "version": 1,
+  "exportedAt": "2026-10-23T08:00:00.000Z",
+  "data": {
+    "buckets": [
+      {
+        "id": "rent",
+        "name": "Rent/Mortgage",
+        "color": "#6366f1",
+        "order": 0,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 180000,
+        "percentageAmount": 0,
+        "isSavings": false,
+        "isEveryday": false,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "util",
+        "name": "Utilities",
+        "color": "#8b5cf6",
+        "order": 1,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 15000,
+        "percentageAmount": 0,
+        "isSavings": false,
+        "isEveryday": false,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "groc",
+        "name": "Grocery",
+        "color": "#10b981",
+        "order": 2,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 50000,
+        "percentageAmount": 0,
+        "isSavings": false,
+        "isEveryday": true,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "trans",
+        "name": "Transportation",
+        "color": "#f59e0b",
+        "order": 3,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 20000,
+        "percentageAmount": 0,
+        "isSavings": false,
+        "isEveryday": true,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "dine",
+        "name": "Dining Out",
+        "color": "#ef4444",
+        "order": 4,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 30000,
+        "percentageAmount": 0,
+        "isSavings": false,
+        "isEveryday": true,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "ent",
+        "name": "Entertainment",
+        "color": "#ec4899",
+        "order": 5,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 15000,
+        "percentageAmount": 0,
+        "isSavings": false,
+        "isEveryday": true,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "subs",
+        "name": "Subscriptions",
+        "color": "#06b6d4",
+        "order": 6,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 6000,
+        "percentageAmount": 0,
+        "isSavings": false,
+        "isEveryday": false,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "save",
+        "name": "Savings",
+        "color": "#22c55e",
+        "order": 7,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 40000,
+        "percentageAmount": 0,
+        "isSavings": true,
+        "isEveryday": false,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "inv",
+        "name": "Investments",
+        "color": "#3b82f6",
+        "order": 8,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 30000,
+        "percentageAmount": 0,
+        "isSavings": true,
+        "isEveryday": false,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "emer",
+        "name": "Emergency Fund",
+        "color": "#f97316",
+        "order": 9,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 20000,
+        "percentageAmount": 0,
+        "isSavings": true,
+        "isEveryday": false,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      },
+      {
+        "id": "misc",
+        "name": "Misc",
+        "color": "#6b7280",
+        "order": 10,
+        "isDefault": true,
+        "allocationType": "fixed",
+        "fixedAmount": 10000,
+        "percentageAmount": 0,
+        "isSavings": false,
+        "isEveryday": true,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      }
+    ],
+    "transactions": [
+      {
+        "id": "t1",
+        "amount": 187200,
+        "bucketId": "rent",
+        "date": "2026-09-01T12:00:00.000Z",
+        "note": "Rent",
+        "createdAt": 1788264060000
+      },
+      {
+        "id": "t2",
+        "amount": 6677,
+        "bucketId": "util",
+        "date": "2026-09-03T12:00:00.000Z",
+        "note": "PG&E",
+        "createdAt": 1788436920000
+      },
+      {
+        "id": "t3",
+        "amount": 5720,
+        "bucketId": "util",
+        "date": "2026-09-09T12:00:00.000Z",
+        "note": "Comcast",
+        "createdAt": 1788955380000
+      },
+      {
+        "id": "t4",
+        "amount": 8979,
+        "bucketId": "groc",
+        "date": "2026-09-02T12:00:00.000Z",
+        "note": "Trader Joe’s",
+        "createdAt": 1788350640000
+      },
+      {
+        "id": "t5",
+        "amount": 12906,
+        "bucketId": "groc",
+        "date": "2026-09-08T12:00:00.000Z",
+        "note": "Whole Foods",
+        "createdAt": 1788869100000
+      },
+      {
+        "id": "t6",
+        "amount": 6580,
+        "bucketId": "groc",
+        "date": "2026-09-14T12:00:00.000Z",
+        "note": "Safeway",
+        "createdAt": 1789387560000
+      },
+      {
+        "id": "t7",
+        "amount": 9469,
+        "bucketId": "groc",
+        "date": "2026-09-20T12:00:00.000Z",
+        "note": "Trader Joe’s",
+        "createdAt": 1789906020000
+      },
+      {
+        "id": "t8",
+        "amount": 4680,
+        "bucketId": "trans",
+        "date": "2026-09-04T12:00:00.000Z",
+        "note": "Clipper card",
+        "createdAt": 1788523680000
+      },
+      {
+        "id": "t9",
+        "amount": 2411,
+        "bucketId": "trans",
+        "date": "2026-09-11T12:00:00.000Z",
+        "note": "Uber",
+        "createdAt": 1789128540000
+      },
+      {
+        "id": "t10",
+        "amount": 5418,
+        "bucketId": "trans",
+        "date": "2026-09-18T12:00:00.000Z",
+        "note": "Shell",
+        "createdAt": 1789733400000
+      },
+      {
+        "id": "t11",
+        "amount": 1919,
+        "bucketId": "dine",
+        "date": "2026-09-05T12:00:00.000Z",
+        "note": "Blue Bottle Coffee",
+        "createdAt": 1788610260000
+      },
+      {
+        "id": "t12",
+        "amount": 6490,
+        "bucketId": "dine",
+        "date": "2026-09-07T12:00:00.000Z",
+        "note": "Nopa",
+        "createdAt": 1788783120000
+      },
+      {
+        "id": "t13",
+        "amount": 2366,
+        "bucketId": "dine",
+        "date": "2026-09-12T12:00:00.000Z",
+        "note": "Tartine",
+        "createdAt": 1789215180000
+      },
+      {
+        "id": "t14",
+        "amount": 5086,
+        "bucketId": "dine",
+        "date": "2026-09-16T12:00:00.000Z",
+        "note": "Burma Superstar",
+        "createdAt": 1789560840000
+      },
+      {
+        "id": "t15",
+        "amount": 671,
+        "bucketId": "dine",
+        "date": "2026-09-21T12:00:00.000Z",
+        "note": "Starbucks",
+        "createdAt": 1789992900000
+      },
+      {
+        "id": "t16",
+        "amount": 3328,
+        "bucketId": "ent",
+        "date": "2026-09-06T12:00:00.000Z",
+        "note": "AMC Metreon",
+        "createdAt": 1788696960000
+      },
+      {
+        "id": "t17",
+        "amount": 6239,
+        "bucketId": "ent",
+        "date": "2026-09-17T12:00:00.000Z",
+        "note": "Steam",
+        "createdAt": 1789647420000
+      },
+      {
+        "id": "t18",
+        "amount": 1611,
+        "bucketId": "subs",
+        "date": "2026-09-15T12:00:00.000Z",
+        "note": "Netflix",
+        "createdAt": 1789474680000
+      },
+      {
+        "id": "t19",
+        "amount": 1247,
+        "bucketId": "subs",
+        "date": "2026-09-15T12:00:00.000Z",
+        "note": "Spotify",
+        "createdAt": 1789474740000
+      },
+      {
+        "id": "t20",
+        "amount": 41600,
+        "bucketId": "save",
+        "date": "2026-09-01T12:00:00.000Z",
+        "note": "Monthly transfer",
+        "createdAt": 1788265200000
+      },
+      {
+        "id": "t21",
+        "amount": 31200,
+        "bucketId": "inv",
+        "date": "2026-09-01T12:00:00.000Z",
+        "note": "VTI buy",
+        "createdAt": 1788265260000
+      },
+      {
+        "id": "t22",
+        "amount": 20800,
+        "bucketId": "emer",
+        "date": "2026-09-01T12:00:00.000Z",
+        "note": "Top-up",
+        "createdAt": 1788265320000
+      },
+      {
+        "id": "t23",
+        "amount": 3015,
+        "bucketId": "misc",
+        "date": "2026-09-10T12:00:00.000Z",
+        "note": "Target",
+        "createdAt": 1789042980000
+      },
+      {
+        "id": "t24",
+        "amount": 1560,
+        "bucketId": "misc",
+        "date": "2026-09-19T12:00:00.000Z",
+        "note": "Haircut tip",
+        "createdAt": 1789820640000
+      },
+      {
+        "id": "t25",
+        "amount": 180000,
+        "bucketId": "rent",
+        "date": "2026-10-01T12:00:00.000Z",
+        "note": "Rent",
+        "createdAt": 1790857500000
+      },
+      {
+        "id": "t26",
+        "amount": 6420,
+        "bucketId": "util",
+        "date": "2026-10-03T12:00:00.000Z",
+        "note": "PG&E",
+        "createdAt": 1791030360000
+      },
+      {
+        "id": "t27",
+        "amount": 5500,
+        "bucketId": "util",
+        "date": "2026-10-09T12:00:00.000Z",
+        "note": "Comcast",
+        "createdAt": 1791548820000
+      },
+      {
+        "id": "t28",
+        "amount": 8634,
+        "bucketId": "groc",
+        "date": "2026-10-02T12:00:00.000Z",
+        "note": "Trader Joe’s",
+        "createdAt": 1790944080000
+      },
+      {
+        "id": "t29",
+        "amount": 12410,
+        "bucketId": "groc",
+        "date": "2026-10-08T12:00:00.000Z",
+        "note": "Whole Foods",
+        "createdAt": 1791462540000
+      },
+      {
+        "id": "t30",
+        "amount": 6327,
+        "bucketId": "groc",
+        "date": "2026-10-14T12:00:00.000Z",
+        "note": "Safeway",
+        "createdAt": 1791981000000
+      },
+      {
+        "id": "t31",
+        "amount": 9105,
+        "bucketId": "groc",
+        "date": "2026-10-20T12:00:00.000Z",
+        "note": "Trader Joe’s",
+        "createdAt": 1792499460000
+      },
+      {
+        "id": "t32",
+        "amount": 4500,
+        "bucketId": "trans",
+        "date": "2026-10-04T12:00:00.000Z",
+        "note": "Clipper card",
+        "createdAt": 1791117120000
+      },
+      {
+        "id": "t33",
+        "amount": 2318,
+        "bucketId": "trans",
+        "date": "2026-10-11T12:00:00.000Z",
+        "note": "Uber",
+        "createdAt": 1791721980000
+      },
+      {
+        "id": "t34",
+        "amount": 5210,
+        "bucketId": "trans",
+        "date": "2026-10-18T12:00:00.000Z",
+        "note": "Shell",
+        "createdAt": 1792326840000
+      },
+      {
+        "id": "t35",
+        "amount": 1845,
+        "bucketId": "dine",
+        "date": "2026-10-05T12:00:00.000Z",
+        "note": "Blue Bottle Coffee",
+        "createdAt": 1791203700000
+      },
+      {
+        "id": "t36",
+        "amount": 6240,
+        "bucketId": "dine",
+        "date": "2026-10-07T12:00:00.000Z",
+        "note": "Nopa",
+        "createdAt": 1791376560000
+      },
+      {
+        "id": "t37",
+        "amount": 2275,
+        "bucketId": "dine",
+        "date": "2026-10-12T12:00:00.000Z",
+        "note": "Tartine",
+        "createdAt": 1791808620000
+      },
+      {
+        "id": "t38",
+        "amount": 4890,
+        "bucketId": "dine",
+        "date": "2026-10-16T12:00:00.000Z",
+        "note": "Burma Superstar",
+        "createdAt": 1792154280000
+      },
+      {
+        "id": "t39",
+        "amount": 645,
+        "bucketId": "dine",
+        "date": "2026-10-21T12:00:00.000Z",
+        "note": "Starbucks",
+        "createdAt": 1792586340000
+      },
+      {
+        "id": "t40",
+        "amount": 3200,
+        "bucketId": "ent",
+        "date": "2026-10-06T12:00:00.000Z",
+        "note": "AMC Metreon",
+        "createdAt": 1791290400000
+      },
+      {
+        "id": "t41",
+        "amount": 5999,
+        "bucketId": "ent",
+        "date": "2026-10-17T12:00:00.000Z",
+        "note": "Steam",
+        "createdAt": 1792240860000
+      },
+      {
+        "id": "t42",
+        "amount": 1549,
+        "bucketId": "subs",
+        "date": "2026-10-15T12:00:00.000Z",
+        "note": "Netflix",
+        "createdAt": 1792068120000
+      },
+      {
+        "id": "t43",
+        "amount": 1199,
+        "bucketId": "subs",
+        "date": "2026-10-15T12:00:00.000Z",
+        "note": "Spotify",
+        "createdAt": 1792068180000
+      },
+      {
+        "id": "t44",
+        "amount": 40000,
+        "bucketId": "save",
+        "date": "2026-10-01T12:00:00.000Z",
+        "note": "Monthly transfer",
+        "createdAt": 1790858640000
+      },
+      {
+        "id": "t45",
+        "amount": 30000,
+        "bucketId": "inv",
+        "date": "2026-10-01T12:00:00.000Z",
+        "note": "VTI buy",
+        "createdAt": 1790858700000
+      },
+      {
+        "id": "t46",
+        "amount": 20000,
+        "bucketId": "emer",
+        "date": "2026-10-01T12:00:00.000Z",
+        "note": "Top-up",
+        "createdAt": 1790858760000
+      },
+      {
+        "id": "t47",
+        "amount": 2899,
+        "bucketId": "misc",
+        "date": "2026-10-10T12:00:00.000Z",
+        "note": "Target",
+        "createdAt": 1791636420000
+      },
+      {
+        "id": "t48",
+        "amount": 1500,
+        "bucketId": "misc",
+        "date": "2026-10-19T12:00:00.000Z",
+        "note": "Haircut tip",
+        "createdAt": 1792414080000
+      }
+    ],
+    "recurringTransactions": [
+      {
+        "id": "r1",
+        "amount": 180000,
+        "bucketId": "rent",
+        "frequency": "monthly",
+        "dayOfMonth": 1,
+        "nextDueDate": "2026-11-01T12:00:00.000Z",
+        "note": "Rent",
+        "isActive": true
+      },
+      {
+        "id": "r2",
+        "amount": 3500,
+        "bucketId": "ent",
+        "frequency": "monthly",
+        "dayOfMonth": 25,
+        "nextDueDate": "2026-10-25T12:00:00.000Z",
+        "note": "Gym",
+        "isActive": true
+      },
+      {
+        "id": "r3",
+        "amount": 1549,
+        "bucketId": "subs",
+        "frequency": "monthly",
+        "dayOfMonth": 27,
+        "nextDueDate": "2026-10-27T12:00:00.000Z",
+        "note": "Netflix",
+        "isActive": true
+      }
+    ],
+    "incomes": [
+      {
+        "id": "i1",
+        "amount": 520000,
+        "date": "2026-09-01T12:00:00.000Z",
+        "note": "Salary",
+        "isRecurring": true,
+        "type": "fixed"
+      },
+      {
+        "id": "i2",
+        "amount": 50000,
+        "date": "2026-09-15T12:00:00.000Z",
+        "note": "Bonus",
+        "isRecurring": false,
+        "type": "one-time"
+      },
+      {
+        "id": "i3",
+        "amount": 520000,
+        "date": "2026-10-01T12:00:00.000Z",
+        "note": "Salary",
+        "isRecurring": true,
+        "type": "fixed"
+      }
+    ],
+    "monthSnapshots": [
+      {
+        "month": "2026-09",
+        "incomeTotal": 0,
+        "allocations": {
+          "rent": 180000,
+          "util": 15000,
+          "groc": 50000,
+          "trans": 20000,
+          "dine": 30000,
+          "ent": 15000,
+          "subs": 6000,
+          "save": 40000,
+          "inv": 30000,
+          "emer": 20000,
+          "misc": 10000
+        },
+        "spent": {},
+        "rollovers": {}
+      },
+      {
+        "month": "2026-10",
+        "incomeTotal": 0,
+        "allocations": {
+          "rent": 180000,
+          "util": 15000,
+          "groc": 50000,
+          "trans": 20000,
+          "dine": 30000,
+          "ent": 15000,
+          "subs": 6000,
+          "save": 40000,
+          "inv": 30000,
+          "emer": 20000,
+          "misc": 10000
+        },
+        "spent": {},
+        "rollovers": {},
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Friend’s wedding weekend",
+            "effect": "down",
+            "createdAt": 1791806400000
+          }
+        ]
+      }
+    ],
+    "savingsGoals": [
+      {
+        "id": "g1",
+        "name": "Emergency fund",
+        "bucketId": "emer",
+        "targetAmount": 1000000,
+        "targetDate": "2027-06-30T12:00:00.000Z",
+        "createdAt": "2026-01-01T12:00:00.000Z",
+        "startingBalance": 380000
+      }
+    ],
+    "investmentLots": [
+      {
+        "id": "l1",
+        "symbol": "VTI",
+        "shares": 10,
+        "pricePerShare": 25000,
+        "purchaseDate": "2026-03-10T12:00:00.000Z",
+        "note": "First lot",
+        "soldShares": 0
+      }
+    ],
+    "investmentSells": [],
+    "investmentPrices": [
+      {
+        "symbol": "VTI",
+        "pricePerShare": 27350,
+        "updatedAt": "2026-10-20T12:00:00.000Z"
+      }
+    ],
+    "settings": {
+      "baseCurrency": "USD",
+      "currencyConfirmed": true
+    }
+  }
+}

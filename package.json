@@ -11,7 +11,10 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest",
-		"test:run": "vitest run"
+		"test:run": "vitest run",
+		"ui:smoke": "node scripts/ui-check/run.cjs smoke",
+		"ui:shots": "node scripts/ui-check/run.cjs shots",
+		"ui:a11y": "node scripts/ui-check/run.cjs a11y"
 	},
 	"devDependencies": {
 		"@capacitor/cli": "8.5.3",
@@ -22,8 +25,10 @@
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@testing-library/svelte": "^5.3.1",
 		"autoprefixer": "^10.5.0",
+		"axe-core": "4.10.2",
 		"fake-indexeddb": "6.2.5",
 		"jsdom": "^29.0.2",
+		"playwright-core": "1.64.1",
 		"postcss": "^8.5.10",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
