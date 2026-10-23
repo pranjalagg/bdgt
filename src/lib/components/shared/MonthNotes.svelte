@@ -8,7 +8,9 @@
   import { MAX_NOTE_LENGTH, NOTE_EFFECTS, cleanNoteText } from '$lib/utils/monthNotes';
   import type { MonthNoteEffect } from '$lib/types';
 
-  let open = false;
+  // Budget's notes sheet opens it straight away.
+  export let startOpen = false;
+  let open = startOpen;
   let text = '';
   let effect: MonthNoteEffect = 'none';
   let editingId: string | null = null;

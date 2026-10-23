@@ -130,9 +130,11 @@ async function smoke(browser, errors) {
     await page.getByRole('button', { name: /^October/ }).first().waitFor({ timeout: 3000 });
   });
   await step(results, 'income sheet lists this month', async () => {
-    await page.getByRole('button', { name: /Income/ }).first().click();
+    await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^Income this month/ }).click();
     await page.getByRole('dialog').getByText('Salary').first().waitFor({ timeout: 3000 });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
   });
   await step(results, 'sheet closes by button, Escape and dragging down', async () => {
     const open = async () => { await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.getByRole('dialog').waitFor({ timeout: 3000 }); await page.waitForTimeout(400); };
@@ -189,13 +191,16 @@ async function smoke(browser, errors) {
     await page.getByRole('dialog').getByRole('button', { name: 'Dismiss', exact: true }).click();
     await page.waitForTimeout(400);
   });
-  await step(results, 'buckets list and edit sheet', async () => {
+  await step(results, 'Budget lists envelopes in three groups', async () => {
     await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle');
-    await text('Grocery').waitFor({ timeout: 3000 });
-    await page.getByRole('button', { name: 'Edit Grocery' }).click();
+    for (const [group, name] of [['Everyday', 'Grocery'], ['Bills', 'Utilities'], ['Savings', 'Emergency Fund']]) {
+      await page.getByRole('region', { name: group }).getByRole('button', { name: new RegExp(name) }).waitFor({ timeout: 3000 });
+    }
+  });
+  await step(results, 'envelope sheet opens from its row; defaults have no Delete', async () => {
+    await page.getByRole('region', { name: 'Everyday' }).getByRole('button', { name: /^Grocery/ }).click();
     const dlg = page.getByRole('dialog');
     if (await dlg.locator('#name').inputValue() !== 'Grocery') throw new Error('sheet shows wrong bucket');
-    // Default buckets can't be deleted, so their sheet has no Delete.
     if (await dlg.getByRole('button', { name: 'Delete bucket' }).count()) throw new Error('default bucket offers delete');
     await page.keyboard.press('Escape'); await page.waitForTimeout(400);
   });
@@ -204,11 +209,60 @@ async function smoke(browser, errors) {
     await page.locator('#name').fill('Smoke bucket');
     await page.getByRole('dialog').getByRole('button', { name: 'Add Bucket' }).click();
     await page.waitForTimeout(400);
-    await page.getByRole('button', { name: 'Edit Smoke bucket' }).click();
+    const row = page.getByRole('button', { name: /^Smoke bucket/ });
+    await row.click();
     await page.getByRole('dialog').getByRole('button', { name: 'Delete bucket' }).click();
     await page.waitForTimeout(500);
-    if (await page.getByRole('button', { name: 'Edit Smoke bucket' }).count()) throw new Error('still there');
+    if (await row.count()) throw new Error('still there');
     if (await page.getByRole('dialog').count()) throw new Error('sheet still open');
+  });
+  await step(results, 'income sheet adds and deletes an income', async () => {
+    await page.getByRole('button', { name: /^Income this month/ }).click();
+    await page.locator('#income-amount').fill('100');
+    await page.locator('#income-note').fill('Smoke income');
+    await page.getByRole('dialog').getByRole('button', { name: 'Add Income' }).click();
+    await page.getByRole('dialog').getByText('Smoke income').waitFor({ timeout: 3000 });
+    const row = page.getByRole('dialog').locator('div').filter({ hasText: 'Smoke income' }).filter({ has: page.getByRole('button', { name: 'Delete income' }) }).last();
+    await row.getByRole('button', { name: 'Delete income' }).click();
+    await page.waitForTimeout(400);
+    if (await page.getByRole('dialog').getByText('Smoke income').count()) throw new Error('income still listed');
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+  });
+  await step(results, 'assign: fields, over-assigning, the rest, Done persists', async () => {
+    const dlg = page.getByRole('dialog');
+    const figure = () => dlg.locator('p.figure').first();
+    await page.getByRole('button', { name: 'Assign', exact: true }).click();
+    await dlg.waitFor({ timeout: 3000 });
+    if ((await figure().textContent()).trim() !== '$1,040.00') throw new Error('starts at ' + (await figure().textContent()));
+    await page.locator('#assign-groc').fill('650');
+    if ((await figure().textContent()).trim() !== '$890.00') throw new Error('after 650: ' + (await figure().textContent()));
+    await page.locator('#assign-dine').fill('1500');
+    if (!(await figure().getAttribute('class')).includes('text-danger')) throw new Error('over-assigned not red');
+    await dlg.getByText('assigned beyond your income').waitFor({ timeout: 2000 });
+    await page.locator('#assign-dine').fill('300');
+    await dlg.getByRole('button', { name: /^Put the rest/ }).click();
+    await dlg.getByText('Every dollar has a job').waitFor({ timeout: 2000 });
+    await dlg.getByRole('button', { name: 'Done' }).click();
+    await page.waitForTimeout(500);
+    await page.reload(); await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Assign', exact: true }).click();
+    if (await page.locator('#assign-groc').inputValue() !== '650') throw new Error('Grocery not saved');
+    await dlg.getByRole('button', { name: 'Cancel' }).click(); await page.waitForTimeout(400);
+  });
+  await step(results, 'add a savings goal', async () => {
+    await page.getByRole('button', { name: 'Add goal' }).click();
+    await page.locator('#goal-name').fill('Smoke goal');
+    await page.locator('#goal-bucket').selectOption('save');
+    await page.locator('#goal-target').fill('500');
+    await page.getByRole('dialog').getByRole('button', { name: 'Create Goal' }).click();
+    await page.getByText('Smoke goal').waitFor({ timeout: 3000 });
+  });
+  await step(results, 'month notes: add a note', async () => {
+    await page.getByRole('button', { name: 'Month notes' }).click();
+    await page.locator('#month-note-text').fill('Smoke note');
+    await page.locator('#month-note-text').press('Enter');
+    await page.getByRole('dialog').getByText('Smoke note').waitFor({ timeout: 3000 });
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
   });
   await step(results, 'recurring lists bills', async () => {
     await page.goto(BASE + '/budget/bills'); await page.waitForLoadState('networkidle');

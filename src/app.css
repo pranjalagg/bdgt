@@ -274,6 +274,22 @@
     box-shadow: var(--shadow-card);
   }
 
+  /* A row in a grouped list. Rows after the first get a hairline that
+     starts after the icon (--row-inset), as iOS lists do. */
+  .group-row {
+    @apply relative;
+  }
+
+  .group-row + .group-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: var(--row-inset, 64px);
+    height: 0.5px;
+    background: rgb(var(--c-sep) / var(--sep-alpha));
+  }
+
   .card {
     @apply rounded-card border border-transparent bg-surface;
     /* The transparent border still draws an edge in forced-colors mode,

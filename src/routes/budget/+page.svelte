@@ -1,12 +1,21 @@
 <script lang="ts">
+  // Budget: the month's plan. Income and what is left to assign on top,
+  // then the envelopes in three groups, then bills, goals and notes.
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { base } from '$app/paths';
-  import { buckets, bucketStatuses, addBucket, updateBucket, deleteBucket, setAllocation, updateBucketAllocation, totalPercentage, computedAllocations } from '$lib/stores/budgetStore';
+  import { buckets, bucketStatuses, addBucket, updateBucket, deleteBucket, updateBucketAllocation, unsortedTransactions } from '$lib/stores/budgetStore';
   import { loadRecurring } from '$lib/stores/recurringStore';
   import { loadGoals } from '$lib/stores/goalsStore';
-  import { formatCurrency, evaluateExpression, currencySymbol } from '$lib/utils/currency';
-  import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
+  import MonthMenu from '$lib/components/layout/MonthMenu.svelte';
+  import BudgetSummary from '$lib/components/budget/BudgetSummary.svelte';
+  import EnvelopeRow from '$lib/components/budget/EnvelopeRow.svelte';
+  import AssignSheet from '$lib/components/budget/AssignSheet.svelte';
+  import IncomeSheet from '$lib/components/budget/IncomeSheet.svelte';
+  import GoalSheet from '$lib/components/budget/GoalSheet.svelte';
+  import NotesSheet from '$lib/components/budget/NotesSheet.svelte';
+  import GoalsSection from '$lib/components/budget/GoalsSection.svelte';
+  import { groupEnvelopes } from '$lib/budget/groups';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { openModal, closeModal } from '$lib/stores/uiStore';
   import type { AllocationType } from '$lib/types';
@@ -93,104 +102,72 @@
     closeModal();
   }
 
-  async function handleAllocationChange(bucketId: string, value: string, inputEl: HTMLInputElement) {
-    const parsed = evaluateExpression(value);
-    if (parsed === null || !isFinite(parsed) || parsed < 0) {
-      inputEl.classList.add('!border-danger');
-      return;
-    }
-    inputEl.classList.remove('!border-danger');
-    const cents = Math.round(parsed * 100);
-    await setAllocation(bucketId, cents);
-  }
-
-  // For a fixed bucket this must describe the *viewed month's* assignment,
-  // not the bucket's standing default — assigning from the dashboard writes
-  // a per-month override, and showing the default here contradicted the
-  // input sitting right next to it.
-  function formatAllocationDisplay(
-    bucket: { allocationType: AllocationType; fixedAmount: number; percentageAmount: number },
-    computedAmount: number,
-    assignedThisMonth: number
-  ): string {
-    switch (bucket.allocationType) {
-      case 'percentage':
-        return `${bucket.percentageAmount}% of income · ${formatCurrency(computedAmount)}`;
-      case 'hybrid':
-        return `${formatCurrency(bucket.fixedAmount)} + ${bucket.percentageAmount}% · ${formatCurrency(computedAmount)}`;
-      case 'fixed':
-      default:
-        return assignedThisMonth === bucket.fixedAmount
-          ? `Assigned this month`
-          : `Assigned this month · standing amount ${formatCurrency(bucket.fixedAmount)}`;
-    }
-  }
+  $: groups = groupEnvelopes($bucketStatuses);
+  $: sections = [
+    { title: 'Everyday', note: 'counts toward safe to spend', rows: groups.everyday },
+    { title: 'Bills', note: '', rows: groups.bills },
+    { title: 'Savings', note: '', rows: groups.savings },
+  ].filter((g) => g.rows.length > 0);
 </script>
 
 <NavBar title="Budget">
+  <svelte:fragment slot="leading"><MonthMenu /></svelte:fragment>
   <svelte:fragment slot="trailing">
     <button class="btn-icon text-tint" on:click={handleAddBucket} aria-label="Add bucket"><Icon name="plus" size={24} /></button>
   </svelte:fragment>
 </NavBar>
 
 <div class="space-y-6">
-  <MonthPicker />
+  <BudgetSummary />
 
-  <a href="{base}/budget/bills" class="group flex min-h-[56px] items-center gap-3 rounded-card bg-surface px-4 py-2.5 text-label" style="box-shadow: var(--shadow-card)">
-    <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="calendar" size={19} /></span>
-    <span class="min-w-0 flex-1"><span class="block text-[16px] font-medium">Bills and subscriptions</span><span class="block text-[13px] text-label-2">Recurring items</span></span>
-    <span class="text-label-2"><Icon name="chevron-right" size={18} /></span>
-  </a>
+  {#each sections as section (section.title)}
+    <section aria-label={section.title}>
+      <h2 class="settings-label">{section.title}{#if section.note}<span class="font-normal">{' · '}{section.note}</span>{/if}</h2>
+      <div class="group">
+        {#each section.rows as status (status.bucket.id)}
+          <EnvelopeRow {status} onClick={() => handleEditBucket(status.bucket)} />
+        {/each}
+      </div>
+    </section>
+  {/each}
 
-  {#if $totalPercentage > 100}
-    <div class="flex items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger dark:text-danger-light">
-      <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Total percentage allocation is {$totalPercentage}% (exceeds 100%)
-    </div>
+  {#if $unsortedTransactions.length > 0 && groups.unsorted}
+    <section aria-label="Needs an envelope">
+      <h2 class="settings-label">Needs an envelope</h2>
+      <div class="group">
+        <EnvelopeRow status={groups.unsorted} href="{base}/activity?bucket=unsorted" />
+      </div>
+    </section>
   {/if}
 
-  <!-- One grouped list, as a settings screen draws it. Delete lives in the
-       bucket's sheet. -->
-  <div class="card overflow-hidden">
-    {#each $bucketStatuses.filter((s) => !s.bucket.isSystem) as status, i (status.bucket.id)}
-      <div class="relative flex items-center gap-3 py-3 pl-4 pr-2">
-        {#if i > 0}
-          <span class="pointer-events-none absolute left-11 right-0 top-0 h-px bg-border dark:bg-border-dark" aria-hidden="true"></span>
-        {/if}
-        <span class="h-3 w-3 flex-none rounded-full" style="background-color: {status.bucket.color}" aria-hidden="true"></span>
-        <div class="min-w-0 flex-1">
-          <h2 class="truncate text-[15px] font-semibold text-gray-950 dark:text-gray-50">{status.bucket.name}</h2>
-          <p class="amt text-[13px] leading-snug text-muted dark:text-muted-dark">
-            {formatAllocationDisplay(status.bucket, $computedAllocations[status.bucket.id], status.allocated)}
-          </p>
-          {#if status.rollover !== 0}
-            <p class="text-[13px] leading-snug text-muted dark:text-muted-dark">Rollover <span class="money amt">{formatCurrency(status.rollover)}</span></p>
-          {/if}
-        </div>
-        {#if status.bucket.allocationType === 'fixed'}
-          <label class="relative flex-none">
-            <span class="sr-only">Assigned to {status.bucket.name} this month</span>
-            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted dark:text-muted-dark" aria-hidden="true">{currencySymbol()}</span>
-            <input
-              type="text"
-              value={(status.allocated / 100).toFixed(2)}
-              on:change={(e) => handleAllocationChange(status.bucket.id, e.currentTarget.value, e.currentTarget)}
-              class="input-base money !w-[7.5rem] !py-2 pl-7 text-right"
-              placeholder="0.00"
-            />
-          </label>
-        {:else}
-          <span class="money amt flex-none text-[15px] text-gray-700 dark:text-gray-200">
-            {formatCurrency(status.allocated)}
-          </span>
-        {/if}
-        <button class="btn-icon flex-none" on:click={() => handleEditBucket(status.bucket)} aria-label="Edit {status.bucket.name}">
-          <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-        </button>
-      </div>
-    {/each}
-  </div>
+  <section aria-label="More">
+    <h2 class="settings-label">More</h2>
+    <div class="group">
+      <a href="{base}/budget/bills" class="group-row flex min-h-[56px] items-center gap-3 px-4 py-2.5 text-label hover:bg-fill">
+        <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="calendar" size={19} /></span>
+        <span class="min-w-0 flex-1 text-[16px] font-medium">Bills and subscriptions</span>
+        <span class="text-label-2/60"><Icon name="chevron-right" size={18} /></span>
+      </a>
+      <button type="button" on:click={() => openModal('notes')} class="group-row flex min-h-[56px] w-full items-center gap-3 px-4 py-2.5 text-left text-label hover:bg-fill">
+        <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="list" size={19} /></span>
+        <span class="min-w-0 flex-1 text-[16px] font-medium">Month notes</span>
+        <span class="text-label-2/60"><Icon name="chevron-right" size={18} /></span>
+      </button>
+      <button type="button" on:click={handleAddBucket} class="group-row flex min-h-[56px] w-full items-center gap-3 px-4 py-2.5 text-left text-label hover:bg-fill">
+        <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="plus" size={19} /></span>
+        <span class="min-w-0 flex-1 text-[16px] font-medium">New envelope</span>
+        <span class="text-label-2/60"><Icon name="chevron-right" size={18} /></span>
+      </button>
+    </div>
+  </section>
+
+  <GoalsSection />
 </div>
+
+<AssignSheet />
+<IncomeSheet />
+<GoalSheet />
+<NotesSheet />
 
 <Modal id="bucket-form" title={editingBucket ? 'Edit Bucket' : 'Add Bucket'}>
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">

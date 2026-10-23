@@ -1,16 +1,12 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import MonthMenu from '$lib/components/layout/MonthMenu.svelte';
   import AvatarButton from '$lib/components/layout/AvatarButton.svelte';
   import PrivacyToggle from '$lib/components/shared/PrivacyToggle.svelte';
-  import { segmentedPill } from '$lib/actions/segmentedPill';
   import { base } from '$app/paths';
   import EnvelopeLine from '$lib/components/shared/EnvelopeLine.svelte';
   import EnvelopeRow from '$lib/components/shared/EnvelopeRow.svelte';
-  import AssignPanel from '$lib/components/shared/AssignPanel.svelte';
-  import Modal from '$lib/components/shared/Modal.svelte';
-  import GoalCard from '$lib/components/shared/GoalCard.svelte';
-  import MonthNotes from '$lib/components/shared/MonthNotes.svelte';
   import InfoPopover from '$lib/components/shared/InfoPopover.svelte';
   import SafeToSpendRing from '$lib/components/dashboard/SafeToSpendRing.svelte';
   import Tile from '$lib/components/dashboard/Tile.svelte';
@@ -18,10 +14,9 @@
   import { upcomingRecurring } from '$lib/stores/recurringStore';
   import { unsortedTransactions, savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate } from '$lib/stores/budgetStore';
   import { safeToSpendWithPending as safeToSpendPerDay, pendingEverydaySpend } from '$lib/stores/captureStore';
-  import type { Income, IncomeType } from '$lib/types';
-  import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
-  import { currentMonthKey, today, openModal, closeModal, openLog } from '$lib/stores/uiStore';
-  import { formatCurrency, parseCurrency, isValidCurrency, isExpression, evaluateExpression, dollarsToCents, currencySymbol, symbolPadding } from '$lib/utils/currency';
+  import { goalStatuses } from '$lib/stores/goalsStore';
+  import { currentMonthKey, today, openLog } from '$lib/stores/uiStore';
+  import { formatCurrency } from '$lib/utils/currency';
   import { parseMonthKey, getDaysInMonth, formatMonthYear } from '$lib/utils/dates';
   import { savingsRateDelta } from '$lib/utils/calculations';
 
@@ -46,42 +41,6 @@
     document.getElementById('goals')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }
 
-  let incomeAmount = '';
-  let incomeNote = '';
-  let incomeType: IncomeType = 'fixed';
-  let incomeTouched = false;
-  let editingIncomeId: string | null = null;
-
-  let goalName = '';
-  let goalBucketId = '';
-  let goalTargetAmount = '';
-  let goalStartingBalance = '';
-  let goalMode: 'deadline' | 'monthly' = 'deadline';
-  let goalTargetDate = '';
-  let goalMonthlyContribution = '';
-  let goalAmountTouched = false;
-  let goalContribTouched = false;
-
-  $: incomeError = incomeTouched && incomeAmount && !isValidCurrency(incomeAmount)
-    ? 'Please enter a valid amount (e.g. 5000, 2500 + 500)'
-    : '';
-  $: incomeCanSubmit = !!incomeAmount && !incomeError && isValidCurrency(incomeAmount);
-  $: incomePreview = isExpression(incomeAmount) && isValidCurrency(incomeAmount) ? evaluateExpression(incomeAmount) : null;
-
-  $: goalTargetError = goalAmountTouched && goalTargetAmount && !isValidCurrency(goalTargetAmount)
-    ? 'Please enter a valid amount'
-    : '';
-  $: goalBalanceError = goalStartingBalance && evaluateExpression(goalStartingBalance) === null
-    ? 'Please enter a valid amount'
-    : '';
-  $: goalContribError = goalContribTouched && goalMonthlyContribution && !isValidCurrency(goalMonthlyContribution)
-    ? 'Please enter a valid amount'
-    : '';
-  $: goalCanSubmit = !!goalName && !!goalBucketId && !!goalTargetAmount
-    && !goalTargetError && isValidCurrency(goalTargetAmount)
-    && !goalBalanceError
-    && (goalMode !== 'monthly' || (!!goalMonthlyContribution && !goalContribError && isValidCurrency(goalMonthlyContribution)));
-
   // Trend is the last 6 months ending at the viewed month, so the one
   // before the last entry is the previous month.
   $: prevSavingsRate = $savingsRateTrend.length >= 2 ? $savingsRateTrend[$savingsRateTrend.length - 2] : null;
@@ -100,61 +59,6 @@
     0
   );
 
-  async function handleAddGoal() {
-    goalAmountTouched = true;
-    goalContribTouched = true;
-    if (!goalCanSubmit) return;
-    await addGoal({
-      name: goalName,
-      bucketId: goalBucketId,
-      targetAmount: parseCurrency(goalTargetAmount),
-      startingBalance: parseCurrency(goalStartingBalance),
-      targetDate: goalMode === 'deadline' && goalTargetDate ? new Date(goalTargetDate) : undefined,
-      monthlyContribution: goalMode === 'monthly' ? parseCurrency(goalMonthlyContribution) : undefined,
-      createdAt: new Date(),
-    });
-    goalName = ''; goalBucketId = ''; goalTargetAmount = ''; goalStartingBalance = '';
-    goalTargetDate = ''; goalMonthlyContribution = '';
-    goalAmountTouched = false; goalContribTouched = false;
-    closeModal();
-  }
-
-  function resetIncomeForm() {
-    incomeAmount = '';
-    incomeNote = '';
-    incomeType = 'fixed';
-    incomeTouched = false;
-    editingIncomeId = null;
-  }
-
-  function handleEditIncome(income: Income) {
-    editingIncomeId = income.id;
-    incomeAmount = (income.amount / 100).toFixed(2);
-    incomeNote = income.note || '';
-    incomeType = income.type || 'fixed';
-    incomeTouched = false;
-  }
-
-  async function handleSubmitIncome() {
-    incomeTouched = true;
-    if (!incomeCanSubmit) return;
-    if (editingIncomeId) {
-      await updateIncome(editingIncomeId, {
-        amount: parseCurrency(incomeAmount),
-        note: incomeNote || undefined,
-        type: incomeType,
-      });
-    } else {
-      await addIncome({
-        amount: parseCurrency(incomeAmount),
-        date: parseMonthKey($currentMonthKey),
-        note: incomeNote || undefined,
-        isRecurring: false,
-        type: incomeType,
-      });
-    }
-    resetIncomeForm();
-  }
 </script>
 
 <NavBar title="Home" large={false}>
@@ -219,7 +123,7 @@
     statuses={$bucketStatuses}
     income={$currentMonthIncome}
     unallocated={$unallocated}
-    onAssign={() => openModal('assign')}
+    onAssign={() => goto(`${base}/budget`)}
   />
 
   {#if $currentMonthIncome === 0}
@@ -228,7 +132,7 @@
       <p class="text-sm text-gray-700 dark:text-gray-200">
         Add this month's income and every bucket has something to hold.
       </p>
-      <button class="btn-primary flex-none" on:click={() => openModal('income')}>Add income</button>
+      <a class="btn-primary flex-none" href="{base}/budget">Add income</a>
     </div>
   {/if}
 
@@ -247,7 +151,7 @@
   <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border dark:border-border-dark dark:bg-border-dark sm:grid-cols-3">
     <button
       class="flex flex-col items-start bg-white p-4 text-left transition-colors hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:bg-surface-dark dark:hover:bg-white/[0.03]"
-      on:click={() => openModal('income')}
+      on:click={() => goto(`${base}/budget`)}
     >
       <p class="metric-label">Income</p>
       <p class="metric-value mt-1 text-xl amt">{formatCurrency($currentMonthIncome)}</p>
@@ -295,8 +199,6 @@
     </div>
   </div>
 
-  <MonthNotes />
-
   <!-- Envelopes -->
   <div>
     <div class="mb-2.5 flex items-center justify-between">
@@ -315,232 +217,4 @@
     </div>
   </div>
 
-  <!-- Goals Section -->
-  <div id="goals" class="scroll-mt-[calc(var(--safe-top)+1rem)]">
-    <div class="mb-2.5 flex items-center justify-between">
-      <h2 class="eyebrow">Savings goals</h2>
-      {#if $goalStatuses.length > 0}
-        <button
-          class="text-[13px] font-medium text-primary hover:underline"
-          on:click={() => openModal('add-goal')}
-        >
-          Add goal
-        </button>
-      {/if}
-    </div>
-
-    {#if $goalStatuses.length === 0}
-      <button
-        class="w-full rounded border border-dashed border-rule px-3.5 py-3 text-left text-[13.5px] font-medium text-muted transition-colors hover:border-primary hover:text-primary dark:border-border-dark dark:text-muted-dark"
-        on:click={() => openModal('add-goal')}
-      >
-        Create your first savings goal
-      </button>
-    {:else}
-      <div class="grid gap-1.5 lg:grid-cols-2">
-        {#each $goalStatuses as status}
-          <GoalCard {status} />
-        {/each}
-      </div>
-    {/if}
-  </div>
 </div>
-
-<Modal id="assign" title="Assign your income">
-  <AssignPanel />
-</Modal>
-
-<Modal id="income" title="Manage Income">
-  <form on:submit|preventDefault={handleSubmitIncome} class="space-y-4">
-    <div>
-      <span id="income-type-label" class="label mb-1.5 block">Type</span>
-      <div class="segmented md:!flex md:!w-full" role="group" aria-labelledby="income-type-label" use:segmentedPill>
-        <button type="button" class="segment" aria-pressed={incomeType === 'fixed'} on:click={() => (incomeType = 'fixed')}>Fixed</button>
-        <button type="button" class="segment" aria-pressed={incomeType === 'one-time'} on:click={() => (incomeType = 'one-time')}>Variable</button>
-      </div>
-    </div>
-    <div>
-      <label for="income-amount" class="label">Amount</label>
-      <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
-        <input
-          id="income-amount"
-          type="text"
-          inputmode="decimal"
-          bind:value={incomeAmount}
-          on:input={() => incomeTouched = true}
-          style:padding-left={symbolPadding(1.75)}
-          class="input-base pl-7 {incomeError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
-          placeholder="0.00"
-        />
-      </div>
-      {#if incomeError}
-        <p class="mt-1 text-sm text-danger">{incomeError}</p>
-      {:else if incomePreview !== null}
-        <p class="mt-1 text-sm text-muted">= <span class="amt">{formatCurrency(dollarsToCents(incomePreview))}</span></p>
-      {/if}
-    </div>
-    <div>
-      <label for="income-note" class="label">Note (optional)</label>
-      <input
-        id="income-note"
-        type="text"
-        bind:value={incomeNote}
-        class="mt-1.5 input-base"
-      />
-    </div>
-    <div class="flex gap-2">
-      {#if editingIncomeId}
-        <button type="button" class="btn-secondary flex-1" on:click={resetIncomeForm}>Cancel</button>
-      {/if}
-      <button type="submit" disabled={!incomeCanSubmit} class="btn-primary flex-1">
-        {editingIncomeId ? 'Save Changes' : 'Add Income'}
-      </button>
-    </div>
-  </form>
-
-  {#if $currentMonthIncomes.length > 0}
-    <div class="mt-6">
-      <h3 class="settings-label">This month's income</h3>
-      <div class="space-y-2">
-        {#each $currentMonthIncomes as income}
-          <div class="flex items-center justify-between gap-3 rounded-[14px] bg-raised py-2 pl-4 pr-1.5 dark:bg-raised-dark">
-            <div>
-              <div class="flex items-center gap-2">
-                <p class="money amt text-[15px] font-semibold text-gray-950 dark:text-gray-50">{formatCurrency(income.amount)}</p>
-                <span class="rounded-full bg-white px-1.5 py-px text-[10.5px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-white/10 dark:text-gray-200">
-                  {income.type === 'fixed' ? 'Fixed' : 'Variable'}
-                </span>
-              </div>
-              {#if income.note}<p class="text-[13px] text-muted">{income.note}</p>{/if}
-            </div>
-            <div class="flex flex-none items-center">
-              <button
-                class="btn-icon"
-                on:click={() => handleEditIncome(income)}
-                aria-label="Edit income"
-              >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-              </button>
-              <button
-                class="btn-icon hover:!bg-danger/10 hover:!text-danger dark:hover:!text-danger-light"
-                on:click={() => confirm(`Delete this ${formatCurrency(income.amount)} income?`) && deleteIncome(income.id)}
-                aria-label="Delete income"
-              >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              </button>
-            </div>
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
-</Modal>
-
-<Modal id="add-goal" title="Add Savings Goal">
-  <form on:submit|preventDefault={handleAddGoal} class="space-y-4">
-    <div>
-      <label for="goal-name" class="label">Goal Name</label>
-      <input
-        id="goal-name"
-        type="text"
-        bind:value={goalName}
-        class="mt-1.5 input-base"
-        placeholder="Emergency Fund"
-      />
-    </div>
-    <div>
-      <label for="goal-bucket" class="label">Linked Bucket</label>
-      <select id="goal-bucket" bind:value={goalBucketId} class="mt-1.5 select-base">
-        <option value="">Select a bucket</option>
-        {#each $buckets.filter((b) => !b.isSystem) as bucket}
-          <option value={bucket.id}>{bucket.name}</option>
-        {/each}
-      </select>
-    </div>
-    <div>
-      <label for="goal-target" class="label">Target Amount</label>
-      <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
-        <input
-          id="goal-target"
-          type="text"
-          inputmode="decimal"
-          bind:value={goalTargetAmount}
-          on:input={() => goalAmountTouched = true}
-          style:padding-left={symbolPadding(1.75)}
-          class="input-base pl-7 {goalTargetError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
-          placeholder="1000.00"
-        />
-      </div>
-      {#if goalTargetError}
-        <p class="mt-1 text-sm text-danger">{goalTargetError}</p>
-      {/if}
-    </div>
-    <div>
-      <label for="goal-start" class="label">Starting Balance (optional)</label>
-      <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
-        <input
-          id="goal-start"
-          type="text"
-          inputmode="decimal"
-          bind:value={goalStartingBalance}
-          style:padding-left={symbolPadding(1.75)}
-          class="input-base pl-7 {goalBalanceError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
-          placeholder="0.00"
-        />
-      </div>
-      {#if goalBalanceError}
-        <p class="mt-1 text-sm text-danger">{goalBalanceError}</p>
-      {/if}
-    </div>
-    <div>
-      <span class="label mb-2 block">Goal Mode</span>
-      <div class="flex gap-4">
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="radio" bind:group={goalMode} value="deadline" class="accent-primary" />
-          <span class="text-sm text-gray-700 dark:text-gray-200">Set deadline</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="radio" bind:group={goalMode} value="monthly" class="accent-primary" />
-          <span class="text-sm text-gray-700 dark:text-gray-200">Set monthly contribution</span>
-        </label>
-      </div>
-    </div>
-    {#if goalMode === 'deadline'}
-      <div>
-        <label for="goal-date" class="label">Target Date</label>
-        <input
-          id="goal-date"
-          type="date"
-          bind:value={goalTargetDate}
-          class="mt-1.5 input-base"
-        />
-      </div>
-    {:else}
-      <div>
-        <label for="goal-monthly" class="label">Monthly Contribution</label>
-        <div class="relative mt-1.5">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
-          <input
-            id="goal-monthly"
-            type="text"
-            inputmode="decimal"
-            bind:value={goalMonthlyContribution}
-            on:input={() => goalContribTouched = true}
-            style:padding-left={symbolPadding(1.75)}
-            class="input-base pl-7 {goalContribError ? '!border-danger focus:!border-danger focus:!ring-danger/20' : ''}"
-            placeholder="100.00"
-          />
-        </div>
-        {#if goalContribError}
-          <p class="mt-1 text-sm text-danger">{goalContribError}</p>
-        {/if}
-      </div>
-    {/if}
-    <button type="submit" disabled={!goalCanSubmit} class="w-full btn-primary">
-      Create Goal
-    </button>
-  </form>
-</Modal>

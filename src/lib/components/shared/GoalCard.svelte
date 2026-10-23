@@ -31,10 +31,10 @@
   type="button"
   on:click={onClick}
   disabled={!onClick}
-  class="group relative w-full overflow-hidden rounded border border-border bg-white px-3.5 py-2.5
-         text-left transition-colors enabled:hover:border-rule focus:outline-none focus-visible:ring-2
-         focus-visible:ring-primary disabled:cursor-default dark:border-border-dark dark:bg-surface-dark
-         dark:enabled:hover:border-white/20"
+  class="group relative w-full overflow-hidden rounded-card border border-transparent bg-surface px-4 py-3
+         text-left transition-colors enabled:hover:bg-fill focus:outline-none focus-visible:ring-2
+         focus-visible:ring-tint disabled:cursor-default"
+  style="box-shadow: var(--shadow-card)"
 >
   <span
     class="pointer-events-none absolute inset-y-0 left-0 transition-[width] duration-500 ease-out"
@@ -46,7 +46,7 @@
 
   <span class="relative grid grid-cols-[1fr_auto_2.6rem] items-center gap-x-3 gap-y-0.5">
     <span class="flex items-center gap-2.5 text-[13.5px] font-medium text-gray-900 dark:text-gray-100">
-      <span class="h-4 w-[3px] flex-none rounded-sm" style="background:{color}"></span>
+      <span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{color}"></span>
       {status.goal.name}
     </span>
     <span class="money text-right text-[13px] font-medium text-gray-900 dark:text-gray-100 amt">
