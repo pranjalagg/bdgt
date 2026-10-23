@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js';
+  import './font';
   import { resolvedTheme } from '$lib/stores/themeStore';
   import { formatCurrency, dollarsToCents } from '$lib/utils/currency';
 

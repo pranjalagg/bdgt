@@ -90,6 +90,18 @@
   }
 }
 
+/* Section tabs: show the new page's tabs at once (their pill is mid-slide),
+   not a cross-fade of two pill positions. */
+::view-transition-group(section-tabs),
+::view-transition-new(section-tabs) {
+  animation: none;
+}
+
+::view-transition-old(section-tabs) {
+  animation: none;
+  opacity: 0;
+}
+
 /* The held-still parts don't move, but the browser still runs a position
    morph on them; reduced motion keeps only the fades. */
 @media (prefers-reduced-motion: reduce) {
@@ -251,6 +263,36 @@
   .segment:is([aria-current='page'], [aria-selected='true'], [aria-pressed='true']) {
     @apply bg-white font-semibold text-gray-950 dark:bg-[#3a3b40] dark:text-white;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  /* With the segmentedPill action, one pill slides behind the selected
+     segment (iOS and Material both move it rather than swap it). */
+  .segmented.has-pill {
+    @apply relative;
+  }
+
+  .segmented-pill {
+    @apply pointer-events-none absolute bottom-1 left-0 top-1 rounded-full bg-white dark:bg-[#3a3b40];
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .segmented-pill {
+      transition: transform 260ms cubic-bezier(0.2, 0, 0, 1), width 260ms cubic-bezier(0.2, 0, 0, 1);
+    }
+  }
+
+  .segmented-pill.no-slide {
+    transition: none;
+  }
+
+  .has-pill > .segment {
+    @apply relative;
+  }
+
+  .has-pill > .segment:is([aria-current='page'], [aria-selected='true'], [aria-pressed='true']) {
+    @apply bg-transparent;
+    box-shadow: none;
   }
 
   /* A row that scrolls sideways by touch; the clipped last item is the cue

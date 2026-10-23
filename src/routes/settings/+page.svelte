@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { segmentedPill } from '$lib/actions/segmentedPill';
   import { exportToJson, exportToCsv, importFromJson, resetAllData, downloadFile } from '$lib/utils/export';
   import { loadData } from '$lib/stores/budgetStore';
   import { loadRecurring } from '$lib/stores/recurringStore';
@@ -104,7 +105,7 @@
     <div class="card">
     <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
       <span id="theme-label" class="text-[15px] font-medium text-gray-900 dark:text-gray-100">Theme</span>
-      <div id="theme" class="segmented !w-auto" role="group" aria-labelledby="theme-label">
+      <div id="theme" class="segmented !w-auto" role="group" aria-labelledby="theme-label" use:segmentedPill>
         {#each THEMES as [value, label]}
           <button type="button" class="segment" aria-pressed={$themePreference === value} on:click={() => setTheme(value)}>{label}</button>
         {/each}

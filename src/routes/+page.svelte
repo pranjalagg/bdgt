@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { segmentedPill } from '$lib/actions/segmentedPill';
   import { base } from '$app/paths';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
   import EnvelopeLine from '$lib/components/shared/EnvelopeLine.svelte';
@@ -349,7 +350,7 @@
   <form on:submit|preventDefault={handleSubmitIncome} class="space-y-4">
     <div>
       <span id="income-type-label" class="label mb-1.5 block">Type</span>
-      <div class="segmented md:!flex md:!w-full" role="group" aria-labelledby="income-type-label">
+      <div class="segmented md:!flex md:!w-full" role="group" aria-labelledby="income-type-label" use:segmentedPill>
         <button type="button" class="segment" aria-pressed={incomeType === 'fixed'} on:click={() => (incomeType = 'fixed')}>Fixed</button>
         <button type="button" class="segment" aria-pressed={incomeType === 'one-time'} on:click={() => (incomeType = 'one-time')}>Variable</button>
       </div>

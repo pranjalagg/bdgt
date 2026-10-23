@@ -54,7 +54,8 @@ if (browser) {
       return;
     }
     const pause = document.createElement('style');
-    pause.textContent = '*,*::before,*::after{transition:none!important}';
+    // The theme control's own pill still slides.
+    pause.textContent = '*:not(.segmented-pill),*::before,*::after{transition:none!important}';
     document.head.appendChild(pause);
     apply();
     void document.documentElement.offsetHeight; // flush styles before transitions return

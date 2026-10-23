@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { segmentedPill } from '$lib/actions/segmentedPill';
   import { base } from '$app/paths';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { buckets, transactions } from '$lib/stores/budgetStore';
@@ -170,7 +171,7 @@
     Payments your phone noticed. They count toward safe to spend straight away, and reach a bucket once you approve them.
   </p>
 
-  <div class="segmented" role="tablist" aria-label="Payments">
+  <div class="segmented" role="tablist" aria-label="Payments" use:segmentedPill>
     {#each [['pending', 'To review'], ['approved', 'Approved'], ['dismissed', 'Dismissed']] as [key, label]}
       <button
         type="button"

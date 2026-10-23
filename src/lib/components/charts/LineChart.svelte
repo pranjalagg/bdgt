@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { Chart, LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, Filler } from 'chart.js';
+  import './font';
   import { resolvedTheme } from '$lib/stores/themeStore';
 
   Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, Filler);

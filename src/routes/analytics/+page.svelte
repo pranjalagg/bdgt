@@ -116,7 +116,7 @@
     <div class="flex items-baseline justify-between gap-3 px-5 py-3.5 sm:block sm:py-5">
       <p class="metric-label">Income</p>
       <div class="text-right sm:text-left">
-        <p class="money amt text-[17px] font-semibold text-gray-950 dark:text-white sm:display sm:text-2xl">{formatCurrency($currentMonthIncome)}</p>
+        <p class="money amt text-[17px] font-semibold text-gray-950 dark:text-white sm:text-xl">{formatCurrency($currentMonthIncome)}</p>
         {#if $currentMonthFixedIncome > 0 && $currentMonthFixedIncome !== $currentMonthIncome}
           <p class="mt-0.5 text-xs text-muted dark:text-muted-dark">
             <span class="money amt">{formatCurrency($currentMonthFixedIncome)}</span> fixed &middot;
@@ -127,12 +127,12 @@
     </div>
     <div class="flex items-baseline justify-between gap-3 px-5 py-3.5 sm:block sm:py-5">
       <p class="metric-label">Spent</p>
-      <p class="money amt text-[17px] font-semibold text-gray-950 dark:text-white sm:display sm:text-2xl">{formatCurrency(totalSpending)}</p>
+      <p class="money amt text-[17px] font-semibold text-gray-950 dark:text-white sm:text-xl">{formatCurrency(totalSpending)}</p>
     </div>
     <div class="flex items-baseline justify-between gap-3 px-5 py-3.5 sm:block sm:py-5">
       <p class="metric-label">Net</p>
       <p
-        class="money amt text-[17px] font-semibold sm:display sm:text-2xl
+        class="money amt text-[17px] font-semibold sm:text-xl
                {netIncome > 0 ? 'text-success dark:text-success-light' : netIncome < 0 ? 'text-danger dark:text-danger-light' : 'text-gray-950 dark:text-white'}"
       >
         {formatCurrency(netIncome)}

@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip } from 'chart.js';
+  import './font';
   import { resolvedTheme } from '$lib/stores/themeStore';
 
   Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
