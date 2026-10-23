@@ -12,6 +12,8 @@
   // Shown in the bar once scrolled, when it should differ from the heading
   // (Home shows today's figure there). Treated as an amount for Hide amounts.
   export let compactTitle: string | null = null;
+  // A page that slides up (Review) keeps its small title in the bar always.
+  export let pinTitle = false;
 
   let top: HTMLElement;
   let below: HTMLElement;
@@ -37,7 +39,7 @@
     };
   });
 
-  $: compact = large ? titled : scrolled;
+  $: compact = pinTitle || (large ? titled : scrolled);
 </script>
 
 <div bind:this={top} class="h-0" aria-hidden="true"></div>

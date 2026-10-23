@@ -15,3 +15,9 @@ export function tabRootOf(path: string): string {
 }
 
 export const isTabRoot = (path: string) => (TAB_ROOTS as readonly string[]).includes(path === '' ? '/' : path.replace(/(.)\/$/, '$1'));
+
+// Review and Settings themselves (Close sits where Back would).
+export const isModalRoot = (path: string) => (MODAL_ROOTS as readonly string[]).includes(path.replace(/(.)\/$/, '$1'));
+
+// Any page inside Review or Settings: the tab bar steps aside for them.
+export const inModal = (path: string) => MODAL_ROOTS.some((m) => path === m || path.startsWith(m + '/'));

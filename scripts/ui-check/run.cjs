@@ -362,26 +362,88 @@ async function smoke(browser, errors) {
     await page.waitForTimeout(400);
     if (await text('Smoke test').count()) throw new Error('still there');
   });
-  await step(results, 'review: approve a suggested payment', async () => {
-    await page.goto(BASE + '/review'); await page.waitForLoadState('networkidle');
-    const before = await page.getByRole('button', { name: 'Approve', exact: true }).count();
-    await page.getByRole('button', { name: 'Approve', exact: true }).first().click();
-    await page.waitForTimeout(500);
-    const after = await page.getByRole('button', { name: 'Approve', exact: true }).count();
-    if (after !== before - 1) throw new Error('approve buttons ' + before + ' -> ' + after);
+  const left = async () => Number((await page.getByText(/^\d+ left$/).first().textContent()).split(' ')[0]);
+  const topCard = () => page.locator('[data-top]');
+  const topName = async () => (await topCard().locator('h2').textContent()).trim();
+  const settle = () => page.waitForTimeout(600);
+  await step(results, 'deck hides every amount with the eye on', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Hide amounts' }).first().click();
+    try {
+      await page.goto(BASE + '/review'); await page.waitForLoadState('networkidle'); await settle();
+      await assertAmountsHidden(page);
+    } finally {
+      await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+      await page.getByRole('button', { name: 'Hide amounts' }).first().click();
+    }
+    await page.goto(BASE + '/review'); await page.waitForLoadState('networkidle'); await settle();
   });
-  await step(results, 'review: the toast offers Undo, and Undo brings it back', async () => {
-    const before = await page.getByRole('button', { name: 'Approve', exact: true }).count();
-    await page.getByRole('button', { name: 'Approve', exact: true }).first().click();
+  await step(results, 'drag the top card right approves it (count drops by 1)', async () => {
+    const before = await left();
+    const name = await topName();
+    const b = await topCard().boundingBox();
+    const y = b.y + b.height - 60;
+    await page.mouse.move(b.x + b.width / 2, y); await page.mouse.down();
+    for (let i = 1; i <= 10; i++) { await page.mouse.move(b.x + b.width / 2 + i * 18, y); await page.waitForTimeout(16); }
+    await page.mouse.up(); await settle();
+    if ((await left()) !== before - 1) throw new Error('left ' + before + ' -> ' + (await left()));
+    await text('Approved ' + name).waitFor({ timeout: 2000 });
+  });
+  await step(results, 'Undo after approve brings it back', async () => {
+    const before = await left();
     await page.getByRole('status').getByRole('button', { name: 'Undo' }).click({ timeout: 3000 });
-    await page.waitForTimeout(600);
-    const after = await page.getByRole('button', { name: 'Approve', exact: true }).count();
-    if (after !== before) throw new Error('approve buttons ' + before + ' -> ' + after);
+    await settle();
+    if ((await left()) !== before + 1) throw new Error('left ' + before + ' -> ' + (await left()));
   });
-  await step(results, 'review: dismiss with the sheet', async () => {
+  await step(results, 'Dismiss button opens the sheet and dismisses', async () => {
+    const before = await left();
     await page.getByRole('button', { name: 'Dismiss', exact: true }).first().click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Dismiss', exact: true }).click();
-    await page.waitForTimeout(400);
+    const sheet = page.getByRole('dialog', { name: 'Dismiss payment' });
+    await sheet.waitFor({ timeout: 2000 }); await page.waitForTimeout(300);
+    await sheet.getByRole('switch').waitFor({ timeout: 1000 });
+    await sheet.getByRole('button', { name: 'Dismiss', exact: true }).click(); await settle();
+    if ((await left()) !== before - 1) throw new Error('left ' + before + ' -> ' + (await left()));
+  });
+  await step(results, '₹ card shows ₹250.00 and Rate needed; Approve reads Add rate and asks for a rate', async () => {
+    if ((await topName()) !== 'Swiggy') throw new Error('top card ' + (await topName()));
+    await topCard().getByText('₹250.00').waitFor({ timeout: 1000 });
+    await topCard().getByText('Rate needed').waitFor({ timeout: 1000 });
+    const before = await left();
+    await page.getByRole('button', { name: 'Add rate', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'Edit and approve' });
+    await sheet.waitFor({ timeout: 2000 }); await page.waitForTimeout(300);
+    await sheet.locator('#review-rate').fill('83.33');
+    await sheet.getByRole('button', { name: 'Approve', exact: true }).click(); await settle();
+    if ((await left()) !== before - 1) throw new Error('left ' + before + ' -> ' + (await left()));
+  });
+  await step(results, 'with a rate known, the next ₹ card shows About $150.01', async () => {
+    if ((await topName()) !== 'CRED') throw new Error('top card ' + (await topName()));
+    await topCard().getByText(/^About \$150\.0\d$/).waitFor({ timeout: 1000 });
+  });
+  await step(results, 'card without an envelope: Approve opens the picker first', async () => {
+    const before = await left();
+    await page.getByRole('button', { name: 'Choose envelope', exact: true }).last().click();
+    const sheet = page.getByRole('dialog', { name: 'Choose envelope' });
+    await sheet.waitFor({ timeout: 2000 }); await page.waitForTimeout(300);
+    await sheet.getByRole('button', { name: /^Misc/ }).click(); await settle();
+    if ((await left()) !== before - 1) throw new Error('left ' + before + ' -> ' + (await left()));
+  });
+  await step(results, 'Approved list shows Back to review', async () => {
+    const before = await left();
+    await page.getByRole('tab', { name: 'Approved' }).click(); await page.waitForTimeout(300);
+    const row = page.locator('.group-row').filter({ hasText: 'CRED' });
+    await row.getByRole('button', { name: 'Back to review' }).click(); await settle();
+    await page.getByRole('tab', { name: /^To review/ }).click(); await page.waitForTimeout(300);
+    if ((await left()) !== before + 1) throw new Error('left ' + before + ' -> ' + (await left()));
+  });
+  await step(results, 'Approve all suggested approves only suggested ones', async () => {
+    const label = await page.getByRole('button', { name: /^Approve all suggested/ }).textContent();
+    const n = Number(label.match(/\((\d+)\)/)[1]);
+    const before = await left();
+    await page.getByRole('button', { name: /^Approve all suggested/ }).click(); await settle();
+    const after = await left();
+    if (after !== before - n || after === 0) throw new Error('left ' + before + ' -> ' + after + ' approving ' + n);
+    if (await page.getByRole('button', { name: /^Approve all suggested/ }).count()) throw new Error('still offers approve all');
   });
   await step(results, 'Budget lists envelopes in three groups', async () => {
     await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle');
@@ -533,6 +595,8 @@ async function smoke(browser, errors) {
     await page.goto(BASE + '/review'); await page.waitForLoadState('networkidle');
     const label = await page.getByRole('tab', { selected: true }).textContent();
     const want = (label.match(/\((\d+)\)/) || [, '0'])[1];
+    if (await page.getByRole('navigation', { name: 'Tabs' }).count()) throw new Error('tab bar shows over Review');
+    await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
     const link = page.getByRole('navigation', { name: 'Tabs' }).locator('a[href="/activity"]');
     const badge = await link.locator('.badge').textContent();
     const name = await link.getAttribute('aria-label');
@@ -601,6 +665,14 @@ async function a11y(browser, errors) {
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await swipeRow(page, page.locator('[data-row]').first(), 0.6); await page.waitForTimeout(500);
     await run(page, `${theme} move-sheet`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.goto(BASE + '/review'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'Dismiss', exact: true }).first().click(); await page.waitForTimeout(500);
+    await run(page, `${theme} review-dismiss-sheet`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Edit', exact: true }).click(); await page.waitForTimeout(500);
+    await run(page, `${theme} review-edit-sheet`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.context().close();
   }
   const page = await newPage(browser, { ...CONFIGS[0], name: 'narrow', viewport: { width: 320, height: 800 } }, errors);

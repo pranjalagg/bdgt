@@ -16,7 +16,7 @@
   import { onNavigate, beforeNavigate, afterNavigate } from '$app/navigation';
   import { navDirection } from '$lib/ui/navDirection';
   import { edgeSwipeBack } from '$lib/ui/edgeSwipe';
-  import { isTabRoot } from '$lib/ui/routes';
+  import { isTabRoot, isModalRoot, inModal } from '$lib/ui/routes';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
 
@@ -106,7 +106,7 @@
 <!-- While a sheet is open the app behind it is inert: no focus, no reading. -->
 <div id="stage" inert={$modalStack.length > 0} class:scaled={$scaledBack} class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
   <Nav />
-  <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path)} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
+  <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path) && !isModalRoot(path)} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
     <!-- The app draws under the status bar; this strip keeps content that
          scrolls up from running into the clock and icons. -->
     <div
@@ -121,8 +121,11 @@
   </main>
 
   <!-- Phones: the floating tab bar and the round Log button beside it. -->
-  <TabBar on:reselect={(e) => reselect(e.detail)} />
-  <LogButton />
+  <!-- Review and Settings slide up over the tabs and cover them. -->
+  {#if !inModal(path)}
+    <TabBar on:reselect={(e) => reselect(e.detail)} />
+    <LogButton />
+  {/if}
 </div>
 
 <Toast />

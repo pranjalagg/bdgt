@@ -1,274 +1,178 @@
 <script lang="ts">
   import NavBar from '$lib/components/layout/NavBar.svelte';
-  import { showToast } from '$lib/stores/toastStore';
+  import CloseButton from '$lib/components/layout/CloseButton.svelte';
+  import Deck from '$lib/components/review/Deck.svelte';
+  import ReviewList from '$lib/components/review/ReviewList.svelte';
+  import DismissSheet from '$lib/components/review/DismissSheet.svelte';
+  import ReviewEditSheet from '$lib/components/review/ReviewEditSheet.svelte';
+  import EnvelopePicker from '$lib/components/shared/EnvelopePicker.svelte';
   import { segmentedPill } from '$lib/actions/segmentedPill';
-  import { base } from '$app/paths';
-  import Modal from '$lib/components/shared/Modal.svelte';
-  import { buckets, transactions } from '$lib/stores/budgetStore';
-  import { baseCurrency } from '$lib/stores/currencyStore';
+  import { showToast } from '$lib/stores/toastStore';
   import { openModal, closeModal } from '$lib/stores/uiStore';
-  import TransactionForm from '$lib/components/shared/TransactionForm.svelte';
-  import type { TransactionValues } from '$lib/components/shared/transactionValues';
+  import { baseCurrency } from '$lib/stores/currencyStore';
   import {
-    captures, pendingCaptures, duplicatesOf, suggestions, bulkApprovable, rateFor,
+    captures, pendingCaptures, bulkApprovable, rateFor,
     approveCapture, approveCaptureAs, dismissCapture, undoCapture, notDuplicate, approveAllSuggested,
   } from '$lib/stores/captureStore';
-  import { HINT_TEXT, baseAmount, recordedDiffers } from '$lib/capture/queue';
-  import { formatCurrency, formatMoney } from '$lib/utils/currency';
+  import { formatCurrency } from '$lib/utils/currency';
+  import { haptic } from '$lib/ui/haptics';
+  import type { TransactionValues } from '$lib/components/shared/transactionValues';
   import type { Capture } from '$lib/types';
 
   // Payments noticed on the phone, waiting to be approved, changed or
-  // dismissed. Nothing counts in a bucket until it is approved.
+  // dismissed. Nothing counts in an envelope until it is approved.
 
   type Filter = 'pending' | 'approved' | 'dismissed';
   let filter: Filter = 'pending';
   let error = '';
+  let deck: Deck;
 
   const WEEK = 7 * 24 * 3600 * 1000;
-  $: assignable = $buckets.filter((b) => !b.isSystem);
-  $: bucketById = new Map($buckets.map((b) => [b.id, b]));
-  $: shown =
+  $: decided =
     filter === 'pending'
-      ? $pendingCaptures
+      ? []
       : $captures
           .filter((c) => c.status === filter && (filter === 'dismissed' || (c.resolvedAt ?? 0) > Date.now() - WEEK))
           .sort((a, b) => (b.resolvedAt ?? 0) - (a.resolvedAt ?? 0));
   $: bulkTotal = $bulkApprovable.reduce((sum, x) => sum + (x.amount ?? 0), 0);
 
-  function when(c: Capture): string {
-    return new Date(c.postedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  async function attempt(action: () => Promise<void>): Promise<boolean> {
+    try {
+      error = '';
+      await action();
+      return true;
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+      return false;
+    }
   }
 
-  function estimate(c: Capture): string | null {
-    if (c.currency === $baseCurrency) return null;
-    const amount = baseAmount(c, $baseCurrency, rateFor(c.currency));
-    return amount === null ? 'rate needed' : `≈ ${formatCurrency(amount)}`;
-  }
-
-  // "Approved into Dining Out", plus what went into the budget when that is
-  // not simply the amount paid (part of a shared bill, or converted).
-  function approvedText(c: Capture): string {
-    const tx = $transactions.find((t) => t.id === c.transactionId);
-    if (!tx) return 'Approved';
-    const into = `Approved into ${bucketById.get(tx.bucketId)?.name ?? 'a bucket'}`;
-    return recordedDiffers(c, tx, $baseCurrency) ? `${into} · recorded ${formatCurrency(tx.amount)}` : into;
-  }
-
-  function reasonText(c: Capture): string {
-    const s = $suggestions.get(c.id);
-    if (!s) return '';
-    const name = bucketById.get(s.bucketId)?.name ?? '';
-    return s.reason === 'rule' ? `Last filed under ${name}` : `Usually ${name}`;
-  }
-
-  // Offers to undo the last decision for 8 seconds.
+  // Every decision can be taken back for 8 seconds.
   function offerUndo(id: string, text: string) {
     showToast({ message: text, action: { label: 'Undo', run: () => void attempt(() => undoCapture(id)) }, ms: 8000 });
   }
 
-  async function attempt(action: () => Promise<void>) {
-    try {
-      error = '';
-      await action();
-    } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
-    }
-  }
+  const needsRate = (c: Capture) => c.currency !== $baseCurrency && !rateFor(c.currency);
 
+  // Approve with the suggested envelope, or ask for what is missing first.
   function approve(c: Capture) {
-    if (!$suggestions.get(c.id) || (c.currency !== $baseCurrency && !rateFor(c.currency))) return startEdit(c);
+    const need = deck?.need(c);
+    if (need === 'envelope') return startPick(c);
+    if (need === 'rate') return startEdit(c);
     void attempt(async () => {
       await approveCapture(c.id);
+      haptic('success');
       offerUndo(c.id, `Approved ${c.merchant}`);
+    });
+  }
+
+  function dismiss(c: Capture) {
+    void attempt(async () => {
+      await dismissCapture(c.id);
+      haptic('light');
+      offerUndo(c.id, `Dismissed ${c.merchant}`);
     });
   }
 
   async function approveAll() {
     const n = $bulkApprovable.length;
-    if (!confirm(`Approve ${n} ${n === 1 ? 'payment' : 'payments'} (${formatCurrency(bulkTotal)}) into their suggested buckets?`)) return;
-    await attempt(async () => {
-      await approveAllSuggested();
+    if (!confirm(`Approve ${n} ${n === 1 ? 'payment' : 'payments'} (${formatCurrency(bulkTotal)}) into their suggested envelopes?`)) return;
+    if (await attempt(async () => void (await approveAllSuggested()))) haptic('success');
+  }
+
+  // The envelope pill, or Approve on a card with no suggestion.
+  let picking: Capture | null = null;
+  function startPick(c: Capture) {
+    picking = c;
+    openModal('review-pick');
+  }
+  function picked(bucketId: string, name: string) {
+    const c = picking;
+    closeModal('review-pick');
+    if (!c) return;
+    // Another currency with no rate yet: the form asks for it.
+    if (needsRate(c)) return startEdit(c, bucketId);
+    void attempt(async () => {
+      await approveCapture(c.id, { bucketId });
+      haptic('success');
+      offerUndo(c.id, `Approved ${c.merchant} into ${name}`);
     });
   }
 
-  // Edit, then approve: the same form as editing a transaction in Activity.
+  // Edit, then approve: the same form as editing an expense.
   let editing: Capture | null = null;
-
-  function startEdit(c: Capture) {
+  let editBucket: string | null = null;
+  function startEdit(c: Capture, bucketId: string | null = null) {
     editing = c;
+    editBucket = bucketId;
     error = '';
     openModal('review-edit');
   }
-
-  function editInitial(c: Capture) {
-    return {
-      amount: c.amount,
-      currency: c.currency,
-      rate: c.currency === $baseCurrency ? undefined : rateFor(c.currency) ?? undefined,
-      bucketId: $suggestions.get(c.id)?.bucketId ?? '',
-      date: new Date(c.date),
-      note: c.merchant,
-    };
+  async function saveEdit(c: Capture, v: TransactionValues) {
+    const ok = await attempt(() => approveCaptureAs(c.id, { amount: v.baseCents, foreign: v.foreign, bucketId: v.bucketId, date: v.date, note: v.note }));
+    if (!ok) return;
+    closeModal('review-edit');
+    editing = null;
+    haptic('success');
+    offerUndo(c.id, `Approved ${c.merchant}`);
   }
 
-  async function saveEdit(v: TransactionValues) {
-    if (!editing) return;
-    const c = editing;
-    await attempt(async () => {
-      await approveCaptureAs(c.id, { amount: v.baseCents, foreign: v.foreign, bucketId: v.bucketId, date: v.date, note: v.note });
-      closeModal();
-      editing = null;
-      offerUndo(c.id, `Approved ${c.merchant}`);
-    });
-  }
-
-  // Dismiss, optionally ignoring the payee from now on.
+  // The Dismiss button asks first, and can ignore the payee from now on.
   let dismissing: Capture | null = null;
-  let ignorePayee = false;
   function startDismiss(c: Capture) {
     dismissing = c;
-    ignorePayee = false;
     openModal('review-dismiss');
   }
-  async function confirmDismiss() {
-    if (!dismissing) return;
-    const c = dismissing;
-    await attempt(async () => {
-      await dismissCapture(c.id, { ignorePayee });
-      closeModal();
-      dismissing = null;
-      offerUndo(c.id, `Dismissed ${c.merchant}`);
-    });
+  async function confirmDismiss(c: Capture, ignorePayee: boolean) {
+    const ok = await attempt(() => dismissCapture(c.id, { ignorePayee }));
+    if (!ok) return;
+    closeModal('review-dismiss');
+    dismissing = null;
+    haptic('light');
+    offerUndo(c.id, `Dismissed ${c.merchant}`);
   }
 </script>
 
-<NavBar title="Review payments" back={{ href: `${base}/activity`, label: 'Activity' }} />
+<NavBar title="To review" large={false} pinTitle>
+  <svelte:fragment slot="leading"><CloseButton /></svelte:fragment>
+  <svelte:fragment slot="trailing">
+    <span class="pr-1.5 text-[15px] text-label-2">{$pendingCaptures.length} left</span>
+  </svelte:fragment>
+</NavBar>
 
-<div class="space-y-5 pb-16">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    {#if filter === 'pending' && $bulkApprovable.length > 0}
-      <button type="button" class="btn-secondary" on:click={approveAll}>
-        Approve all suggested ({$bulkApprovable.length})
-      </button>
-    {/if}
-  </div>
-
-  <p class="text-sm text-muted dark:text-muted-dark">
-    Payments your phone noticed. They count toward safe to spend straight away, and reach a bucket once you approve them.
-  </p>
-
+<div class="mx-auto max-w-md space-y-4 pt-1">
   <div class="segmented" role="tablist" aria-label="Payments" use:segmentedPill>
     {#each [['pending', 'To review'], ['approved', 'Approved'], ['dismissed', 'Dismissed']] as [key, label]}
-      <button
-        type="button"
-        role="tab"
-        aria-selected={filter === key}
-        class="segment"
-        on:click={() => (filter = key as Filter)}
-      >{label}{key === 'pending' && $pendingCaptures.length ? ` (${$pendingCaptures.length})` : ''}</button>
+      <button type="button" role="tab" aria-selected={filter === key} class="segment" on:click={() => (filter = key as Filter)}>
+        {label}{key === 'pending' && $pendingCaptures.length ? ` (${$pendingCaptures.length})` : ''}
+      </button>
     {/each}
   </div>
 
-  {#if filter === 'approved'}
-    <p class="text-sm text-muted dark:text-muted-dark">The last 7 days. Older ones are in Activity like any other transaction.</p>
-  {/if}
+  {#if error}<p class="px-1 text-[15px] text-danger" role="alert">{error}</p>{/if}
 
-  {#if error}<p class="text-sm text-danger dark:text-danger-light" role="alert">{error}</p>{/if}
-
-  {#if shown.length === 0}
-    <div class="card p-5 text-sm text-muted dark:text-muted-dark">
-      {filter === 'pending' ? 'Nothing to review. New payments from your phone show up here.' : 'Nothing here.'}
-    </div>
+  {#if filter === 'pending'}
+    {#if $bulkApprovable.length > 0}
+      <button type="button" class="btn-secondary w-full" on:click={approveAll}>Approve all suggested ({$bulkApprovable.length})</button>
+    {/if}
+    <Deck
+      bind:this={deck}
+      captures={$pendingCaptures}
+      on:approve={(e) => approve(e.detail)}
+      on:dismiss={(e) => dismiss(e.detail)}
+      on:dismissAsk={(e) => startDismiss(e.detail)}
+      on:edit={(e) => startEdit(e.detail)}
+      on:pick={(e) => startPick(e.detail)}
+      on:notDuplicate={(e) => attempt(() => notDuplicate(e.detail))}
+    />
+    {#if $pendingCaptures.length}
+      <p class="px-1 pt-2 text-center text-[13px] text-label-2">They count toward safe to spend straight away, and reach an envelope once you approve them.</p>
+    {/if}
   {:else}
-    <ul class="card divide-y divide-border overflow-hidden dark:divide-border-dark">
-      {#each shown as c (c.id)}
-        {@const suggestion = $suggestions.get(c.id)}
-        {@const suggested = suggestion ? bucketById.get(suggestion.bucketId) : undefined}
-        {@const est = estimate(c)}
-        <li class="space-y-2 p-4">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="truncate font-medium text-gray-900 dark:text-gray-50">{c.merchant}</p>
-              <p class="text-xs text-muted dark:text-muted-dark">
-                {when(c)} · {c.sourceLabel}{#if c.accountHint} · ••{c.accountHint}{/if}
-              </p>
-            </div>
-            <div class="text-right">
-              <p class="money amt font-medium text-gray-900 dark:text-gray-50">{formatMoney(c.amount, c.currency)}</p>
-              {#if est}<p class="money amt text-xs text-muted dark:text-muted-dark">{est}</p>{/if}
-            </div>
-          </div>
-
-          {#if c.hint && c.status === 'pending'}
-            <p class="rounded-xl bg-warning/10 px-3 py-2 text-xs text-gray-800 dark:text-gray-100">{HINT_TEXT[c.hint]}</p>
-          {/if}
-
-          {#if c.status === 'pending'}
-            {#if suggested}
-              <p class="flex items-center gap-2 text-sm">
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 font-medium text-gray-900 dark:border-border-dark dark:text-gray-100">
-                  <span class="h-2 w-2 rounded-full" style="background:{suggested.color}"></span>{suggested.name}
-                </span>
-                <span class="text-xs text-muted dark:text-muted-dark">{reasonText(c)}</span>
-              </p>
-            {:else}
-              <p class="text-xs text-muted dark:text-muted-dark">No bucket suggested yet</p>
-            {/if}
-            <div class="flex flex-wrap gap-2 pt-1">
-              <button type="button" class="btn-primary" on:click={() => approve(c)}>{!suggested ? 'Choose bucket' : est === 'rate needed' ? 'Add rate' : 'Approve'}</button>
-              <button type="button" class="btn-secondary" on:click={() => startEdit(c)}>Edit</button>
-              <button type="button" class="btn-secondary" on:click={() => startDismiss(c)}>Dismiss</button>
-            </div>
-          {:else}
-            <div class="flex items-center justify-between gap-3 text-sm">
-              <span class="text-muted dark:text-muted-dark">
-                {c.status === 'approved' ? approvedText(c) : 'Dismissed'}
-              </span>
-              <button type="button" class="btn-secondary" on:click={() => attempt(() => undoCapture(c.id))}>Back to review</button>
-            </div>
-          {/if}
-
-          {#each $duplicatesOf.get(c.id) ?? [] as d (d.id)}
-            <div class="flex items-center justify-between gap-3 rounded-xl bg-raised px-3 py-2 text-xs dark:bg-raised-dark">
-              <span class="text-muted dark:text-muted-dark">Also seen: {d.sourceLabel} · {when(d)}</span>
-              <button type="button" class="font-medium text-gray-900 underline dark:text-gray-100" on:click={() => attempt(() => notDuplicate(d.id))}>Not a duplicate</button>
-            </div>
-          {/each}
-        </li>
-      {/each}
-    </ul>
+    <ReviewList captures={decided} status={filter} on:reopen={(e) => attempt(() => undoCapture(e.detail))} />
   {/if}
 </div>
 
-
-<Modal id="review-edit" title="Edit and approve">
-  {#if editing}
-    {#key editing.id}
-      <div class="pt-4">
-        <TransactionForm id="review" initial={editInitial(editing)} submitLabel="Approve" busyLabel="Approving…" onSubmit={saveEdit}>
-          {#if error}<p class="text-sm text-danger dark:text-danger-light" role="alert">{error}</p>{/if}
-        </TransactionForm>
-      </div>
-    {/key}
-  {/if}
-</Modal>
-
-<Modal id="review-dismiss" title="Dismiss payment">
-  {#if dismissing}
-    <div class="space-y-4 pt-4">
-      <p class="text-sm text-gray-700 dark:text-gray-200">
-        {dismissing.merchant}, {formatMoney(dismissing.amount, dismissing.currency)}, will not be added to your budget.
-      </p>
-      {#if dismissing.payeeKey}
-        <label class="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-100">
-          <input type="checkbox" class="mt-0.5" bind:checked={ignorePayee} />
-          <span>Always ignore payments to {dismissing.merchant} (for example a card bill or your own account)</span>
-        </label>
-      {/if}
-      <div class="flex gap-3">
-        <button type="button" class="btn-primary" on:click={confirmDismiss}>Dismiss</button>
-        <button type="button" class="btn-secondary" on:click={() => closeModal()}>Cancel</button>
-      </div>
-    </div>
-  {/if}
-</Modal>
+<EnvelopePicker id="review-pick" title="Choose envelope" current={null} on:pick={(e) => picked(e.detail.id, e.detail.name)} />
+<ReviewEditSheet capture={editing} bucketId={editBucket} {error} onApprove={saveEdit} />
+<DismissSheet capture={dismissing} on:dismiss={(e) => confirmDismiss(e.detail.capture, e.detail.ignorePayee)} />

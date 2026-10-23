@@ -21,6 +21,14 @@ export function swipeOutcome(x: number, width: number, velocity: number): SwipeO
   return 'close';
 }
 
+// The Review deck's top card: past 110 px, or a flick faster than
+// 0.7 px/ms, approves (right) or dismisses (left); otherwise it springs back.
+export function deckOutcome(x: number, velocity: number): 'approve' | 'dismiss' | 'back' {
+  if (x > 110 || (x >= 0 && velocity > 0.7)) return 'approve';
+  if (x < -110 || (x <= 0 && velocity < -0.7)) return 'dismiss';
+  return 'back';
+}
+
 // Whose drag this is: the row's (sideways) or the list's (scrolling).
 // Undecided until the pointer has moved 10 px.
 export function swipeDirection(dx: number, dy: number): 'horizontal' | 'vertical' | null {
