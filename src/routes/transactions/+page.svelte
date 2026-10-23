@@ -2,16 +2,18 @@
   import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import MonthPicker from '$lib/components/shared/MonthPicker.svelte';
+  import ReviewBanner from '$lib/components/shared/ReviewBanner.svelte';
+  import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { currentMonthTransactions, transactions, buckets, deleteTransaction } from '$lib/stores/budgetStore';
+  import { currentMonthTransactions, transactions, buckets } from '$lib/stores/budgetStore';
   import { UNSORTED_BUCKET_ID } from '$lib/utils/unsorted';
   import { groupTransactionsByDay } from '$lib/utils/calculations';
-  import { formatCurrency, formatMoney } from '$lib/utils/currency';
+  import { formatCurrency, formatMoney, splitFraction } from '$lib/utils/currency';
+  import { parseMonthKey } from '$lib/utils/dates';
   import { baseCurrency } from '$lib/stores/currencyStore';
   import { shouldShowForeignNote } from '$lib/currency/conversion';
-  import { openModal, openLog } from '$lib/stores/uiStore';
-  import { base } from '$app/paths';
-  import { pendingCaptures, captures } from '$lib/stores/captureStore';
+  import { openModal, currentMonthKey, today } from '$lib/stores/uiStore';
+  import { captures } from '$lib/stores/captureStore';
   import { captureIdOf, recordedDiffers } from '$lib/capture/queue';
   import type { Transaction } from '$lib/types';
 
@@ -25,10 +27,10 @@
     openModal('edit-transaction');
   }
 
-  async function handleDelete(t: Transaction) {
-    if (!confirm(`Delete this ${formatCurrency(t.amount)} transaction?`)) return;
-    await deleteTransaction(t.id);
-  }
+  // Arriving with a bucket picked (from the dashboard), its chip may sit
+  // past the right edge; bring it into view.
+  let chipRow: HTMLDivElement | undefined;
+  onMount(() => chipRow?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' }));
 
   $: bucketById = new Map($buckets.map((b) => [b.id, b]));
   $: savingsBucketIds = new Set($buckets.filter((b) => b.isSavings).map((b) => b.id));
@@ -54,47 +56,67 @@
   $: monthSpent = days.reduce((sum, d) => sum + d.total, 0);
   $: monthSetAside = days.reduce((sum, d) => sum + d.setAside, 0);
 
-  const dayLabel = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'long' });
+  $: [spentWhole, spentCents] = splitFraction(formatCurrency(monthSpent));
+  $: spentLabel =
+    filterBucketId === UNSORTED_BUCKET_ID
+      ? 'Spent, all months'
+      : `Spent in ${parseMonthKey($currentMonthKey).toLocaleDateString('en-US', { month: 'long' })}`;
+
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  function dayLabel(d: Date, now: Date) {
+    if (sameDay(d, now)) return 'Today';
+    if (sameDay(d, new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return 'Yesterday';
+    return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'long' });
+  }
+
+  // First character, not first code unit, so a name that starts with an
+  // emoji keeps it whole.
+  const initial = (name: string | undefined) => (name ? Array.from(name)[0].toUpperCase() : '?');
 </script>
 
-<div class="space-y-5">
+<div class="space-y-4">
   <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
     <h1 class="page-title">Transactions</h1>
     <MonthPicker />
   </div>
 
-  {#if $pendingCaptures.length > 0}
-    <a href="{base}/review" class="card flex items-center justify-between gap-3 p-4 text-sm hover:border-gray-300 dark:hover:border-white/20">
-      <span class="font-medium text-gray-900 dark:text-gray-50">{$pendingCaptures.length} captured {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review</span>
-      <span class="text-muted dark:text-muted-dark">Review &rarr;</span>
-    </a>
-  {/if}
+  <ReviewBanner />
 
-  <div class="flex flex-wrap items-center gap-2">
-    <div class="relative min-w-[180px] flex-1">
-      <svg
-        class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted dark:text-muted-dark"
-        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+  <div class="relative">
+    <svg
+      class="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted dark:text-muted-dark"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+    <input
+      type="search"
+      bind:value={query}
+      placeholder="Search notes and buckets"
+      aria-label="Search transactions"
+      class="input-base !rounded-full pl-11"
+    />
+  </div>
+
+  <!-- Bleeds to the screen edge on phones, so chips scroll out from under
+       the margin instead of being cut at it. Wider screens wrap them: a
+       mouse wheel can't scroll sideways. -->
+  <div bind:this={chipRow} class="scroll-row -mx-4 px-4 py-1 sm:-mx-6 sm:px-6 md:flex-wrap md:overflow-visible" role="group" aria-label="Filter by bucket">
+    <button type="button" class="chip" aria-pressed={filterBucketId === ''} on:click={() => (filterBucketId = '')}>All</button>
+    {#each $buckets as bucket (bucket.id)}
+      <button
+        type="button"
+        class="chip"
+        aria-pressed={filterBucketId === bucket.id}
+        on:click={() => (filterBucketId = filterBucketId === bucket.id ? '' : bucket.id)}
       >
-        <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-      <input
-        type="search"
-        bind:value={query}
-        placeholder="Search notes and buckets"
-        aria-label="Search transactions"
-        class="input-base pl-8"
-      />
-    </div>
-    <select bind:value={filterBucketId} class="select-base max-w-[190px]" aria-label="Filter by bucket">
-      <option value="">All buckets</option>
-      {#each $buckets as bucket}
-        <option value={bucket.id}>{bucket.name}</option>
-      {/each}
-    </select>
-    <button class="btn-primary" on:click={() => openLog()}>Add</button>
+        <span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{bucket.color}" aria-hidden="true"></span>
+        {bucket.name}
+      </button>
+    {/each}
   </div>
 
   {#if days.length === 0}
@@ -108,81 +130,79 @@
       </p>
     </div>
   {:else}
-    <!-- The column gets a sum. -->
-    <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border pb-2 dark:border-border-dark">
-      <span class="eyebrow">{filtered.length} transaction{filtered.length === 1 ? '' : 's'}</span>
-      <span class="text-sm text-muted dark:text-muted-dark">
-        <span class="money font-semibold text-gray-900 dark:text-gray-50 amt">{formatCurrency(monthSpent)}</span> spent
-        {#if monthSetAside > 0}
-          &middot; <span class="money font-semibold text-success dark:text-success-light amt">{formatCurrency(monthSetAside)}</span> set aside
-        {/if}
-      </span>
+    <div class="px-1 pt-1">
+      <p class="text-sm font-medium text-muted dark:text-muted-dark">{spentLabel}</p>
+      <p class="display amt mt-0.5 text-[32px] font-semibold leading-tight tracking-tight text-gray-950 dark:text-white">
+        {spentWhole}<span class="text-[20px]">{spentCents}</span>
+      </p>
+      <p class="mt-0.5 text-sm text-muted dark:text-muted-dark">
+        {filtered.length} transaction{filtered.length === 1 ? '' : 's'}{#if monthSetAside > 0}{' '}&middot;
+          <span class="money amt font-medium text-success dark:text-success-light">{formatCurrency(monthSetAside)}</span> set aside{/if}
+      </p>
     </div>
 
-    <div>
-      {#each days as day (day.key)}
-        <div class="flex items-baseline justify-between gap-4 border-b border-border pb-1.5 pt-5 dark:border-border-dark">
-          <h2 class="eyebrow">{dayLabel(day.date)}</h2>
-          <span class="money text-xs text-muted dark:text-muted-dark amt">{formatCurrency(day.total)}</span>
+    {#each days as day (day.key)}
+      <section aria-labelledby="day-{day.key}">
+        <div class="flex items-baseline justify-between gap-4 px-1 pb-2 pt-3">
+          <h2 id="day-{day.key}" class="eyebrow">{dayLabel(day.date, $today)}</h2>
+          <span class="money text-[13px] text-muted dark:text-muted-dark amt">{formatCurrency(day.total)}</span>
         </div>
 
-        {#each day.transactions as t (t.id)}
-          {@const bucket = bucketById.get(t.bucketId)}
-          {@const isSetAside = savingsBucketIds.has(t.bucketId)}
-          {@const capture = captureIdOf(t.id) ? captureById.get(captureIdOf(t.id) ?? '') : undefined}
-          {@const partOf = capture && capture.currency === $baseCurrency && recordedDiffers(capture, t, $baseCurrency) ? capture.amount : null}
-          <div
-            class="group grid grid-cols-[3px_1fr_auto_auto] items-center gap-x-3 border-b border-border
-                   py-2 dark:border-border-dark"
-          >
-            <span class="h-7 w-[3px] rounded-sm" style="background:{bucket?.color ?? '#cbd4c9'}"></span>
-
-            <div class="min-w-0">
-              <p class="flex min-w-0 items-center gap-1.5 text-[13.5px] leading-tight text-gray-900 dark:text-gray-100">
-                <span class="truncate">{t.note || bucket?.name || 'Transaction'}</span>
-                <!-- Added without typing: approved from Review, or made by a recurring item. -->
-                {#if captureIdOf(t.id)}
-                  <span class="flex-none rounded border border-border px-1 text-[10px] font-medium uppercase tracking-wide text-muted dark:border-border-dark dark:text-muted-dark" title={capture ? `Added from ${capture.sourceLabel}` : 'Added from a payment notification'}>Auto</span>
-                {:else if t.recurringId}
-                  <span class="flex-none rounded border border-border px-1 text-[10px] font-medium uppercase tracking-wide text-muted dark:border-border-dark dark:text-muted-dark" title="Added by a recurring item">Recurring</span>
-                {/if}
-              </p>
-              <p class="truncate text-[11.5px] text-muted dark:text-muted-dark">
-                {bucket?.name ?? 'Unknown bucket'}{#if bucket?.isSystem}<span class="ml-1 text-warning">· needs a bucket, tap edit</span>{/if}{#if isSetAside}<span class="ml-1 text-success dark:text-success-light">· set aside</span>{/if}{#if t.foreign && shouldShowForeignNote(t.foreign, $baseCurrency)}<span class="amt ml-1">· {formatMoney(t.foreign.amount, t.foreign.currency)} @ {t.foreign.rate}</span>{/if}
-              </p>
-            </div>
-
-            <span class="text-right">
-              <span
-                class="money amt text-[13.5px] font-medium
-                       {isSetAside ? 'text-success dark:text-success-light' : 'text-gray-900 dark:text-gray-100'}"
-              >
-                {formatCurrency(t.amount)}
-              </span>
-              <!-- Only part of the payment was this person's (a shared bill). -->
-              {#if partOf !== null}
-                <span class="money amt block text-[11px] text-muted dark:text-muted-dark">of {formatCurrency(partOf)}</span>
+        <div class="card overflow-hidden">
+          {#each day.transactions as t, i (t.id)}
+            {@const bucket = bucketById.get(t.bucketId)}
+            {@const isSetAside = savingsBucketIds.has(t.bucketId)}
+            {@const capture = captureIdOf(t.id) ? captureById.get(captureIdOf(t.id) ?? '') : undefined}
+            {@const partOf = capture && capture.currency === $baseCurrency && recordedDiffers(capture, t, $baseCurrency) ? capture.amount : null}
+            <!-- The whole row opens the edit sheet; delete lives there. -->
+            <button
+              type="button"
+              data-row
+              on:click={() => handleEdit(t)}
+              class="relative flex w-full items-center gap-3 px-4 py-3 text-left transition-colors
+                     hover:bg-black/[0.02] active:bg-black/[0.05] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary
+                     dark:hover:bg-white/[0.03] dark:active:bg-white/[0.06]"
+            >
+              {#if i > 0}
+                <span class="pointer-events-none absolute left-[4.25rem] right-0 top-0 h-px bg-border dark:bg-border-dark" aria-hidden="true"></span>
               {/if}
-            </span>
 
-            <!-- Controls stay keyboard-reachable; they only fade in on
-                 hover for pointer users. -->
-            <span class="flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-              <button class="btn-icon !p-1.5" on:click={() => handleEdit(t)} aria-label="Edit transaction">
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-              </button>
-              <button
-                class="btn-icon !p-1.5 hover:!bg-danger/10 hover:!text-danger"
-                on:click={() => handleDelete(t)}
-                aria-label="Delete transaction"
-              >
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              </button>
-            </span>
-          </div>
-        {/each}
-      {/each}
-    </div>
+              <!-- The bucket's colour, tinted, behind an ink initial: legible
+                   whatever colour the bucket was given. -->
+              <span class="relative flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-full" aria-hidden="true">
+                <span class="absolute inset-0 opacity-25 dark:opacity-35" style="background:{bucket?.color ?? '#cbd4c9'}"></span>
+                <span class="relative text-[15px] font-semibold text-gray-900 dark:text-white">{initial(bucket?.name)}</span>
+              </span>
+
+              <span class="min-w-0 flex-1">
+                <span class="flex min-w-0 items-center gap-1.5 text-[15px] font-medium leading-snug text-gray-950 dark:text-gray-50">
+                  <span class="truncate">{t.note || bucket?.name || 'Transaction'}</span>
+                  <!-- Added without typing: approved from Review, or made by a recurring item. -->
+                  {#if captureIdOf(t.id)}
+                    <span class="flex-none rounded-full bg-raised px-1.5 py-px text-[10.5px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-raised-dark dark:text-gray-200" title={capture ? `Added from ${capture.sourceLabel}` : 'Added from a payment notification'}>Auto</span>
+                  {:else if t.recurringId}
+                    <span class="flex-none rounded-full bg-raised px-1.5 py-px text-[10.5px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-raised-dark dark:text-gray-200" title="Added by a recurring item">Recurring</span>
+                  {/if}
+                </span>
+                <span class="block truncate text-[13px] text-muted dark:text-muted-dark">
+                  {bucket?.name ?? 'Unknown bucket'}{#if bucket?.isSystem}<span class="ml-1 text-warning">· needs a bucket, tap to pick one</span>{/if}{#if isSetAside}<span class="ml-1 text-success dark:text-success-light">· set aside</span>{/if}{#if t.foreign && shouldShowForeignNote(t.foreign, $baseCurrency)}<span class="amt ml-1">· {formatMoney(t.foreign.amount, t.foreign.currency)} @ {t.foreign.rate}</span>{/if}
+                </span>
+              </span>
+
+              <span class="flex-none text-right">
+                <span class="money amt block text-[15px] font-semibold {isSetAside ? 'text-success dark:text-success-light' : 'text-gray-950 dark:text-gray-50'}">
+                  {formatCurrency(t.amount)}
+                </span>
+                <!-- Only part of the payment was this person's (a shared bill). -->
+                {#if partOf !== null}
+                  <span class="money amt block text-[12px] text-muted dark:text-muted-dark">of {formatCurrency(partOf)}</span>
+                {/if}
+              </span>
+            </button>
+          {/each}
+        </div>
+      </section>
+    {/each}
   {/if}
 </div>
 

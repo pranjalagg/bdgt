@@ -171,12 +171,40 @@
            dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-gray-100;
   }
 
+  /* Filter chip: a toggle, so its state is aria-pressed, and the pressed
+     one is ink like every other selected control. */
+  .chip {
+    @apply inline-flex min-h-[2.25rem] flex-none items-center gap-2 whitespace-nowrap rounded-full border border-transparent bg-white px-3.5
+           text-sm font-medium text-gray-800
+           hover:bg-[#f7f8f5]
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+           dark:bg-surface-dark dark:text-gray-200 dark:hover:bg-[#1e1f23];
+    box-shadow: var(--shadow-card);
+  }
+
+  .chip[aria-pressed='true'] {
+    @apply bg-primary text-white hover:bg-primary-hover dark:text-gray-900;
+  }
+
+  /* A row that scrolls sideways by touch; the clipped last item is the cue
+     that there is more. */
+  .scroll-row {
+    @apply flex gap-2 overflow-x-auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Press feedback for buttons and tappable rows: a quick 0.96 scale, never
      on a disabled control; an opacity dip when motion is reduced. */
   .btn-primary,
   .btn-secondary,
   .btn-danger,
   .btn-icon,
+  .chip,
   .pressable {
     transition-property: transform, background-color, border-color, color, opacity, box-shadow;
     transition-duration: 150ms;
@@ -184,7 +212,7 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    :is(.btn-primary, .btn-secondary, .btn-danger, .btn-icon):not(:disabled):active {
+    :is(.btn-primary, .btn-secondary, .btn-danger, .btn-icon, .chip):not(:disabled):active {
       transform: scale(0.96);
     }
 
@@ -195,7 +223,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :is(.btn-primary, .btn-secondary, .btn-danger, .btn-icon, .pressable):not(:disabled):active {
+    :is(.btn-primary, .btn-secondary, .btn-danger, .btn-icon, .chip, .pressable):not(:disabled):active {
       opacity: 0.7;
     }
   }

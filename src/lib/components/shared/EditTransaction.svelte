@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { updateTransaction } from '$lib/stores/budgetStore';
+  import { updateTransaction, deleteTransaction } from '$lib/stores/budgetStore';
   import { closeModal } from '$lib/stores/uiStore';
   import { baseCurrency } from '$lib/stores/currencyStore';
   import { baseAmountForSave } from '$lib/currency/conversion';
+  import { formatCurrency } from '$lib/utils/currency';
   import type { Transaction } from '$lib/types';
   import TransactionForm from './TransactionForm.svelte';
   import type { TransactionValues } from './transactionValues';
@@ -35,6 +36,17 @@
     closeModal();
     onComplete?.();
   }
+
+  // Delete lives here, not on the row: a row is one tap target that opens
+  // this sheet, and a destructive action stays a deliberate second step.
+  async function remove() {
+    if (!confirm(`Delete this ${formatCurrency(transaction.amount)} transaction?`)) return;
+    await deleteTransaction(transaction.id);
+    closeModal();
+    onComplete?.();
+  }
 </script>
 
 <TransactionForm id="edit" {initial} keepBucketId={transaction.bucketId} submitLabel="Save Changes" busyLabel="Saving..." onSubmit={save} />
+
+<button type="button" class="btn-danger mt-2 w-full" on:click={remove}>Delete transaction</button>

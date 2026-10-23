@@ -10,9 +10,10 @@
   import InfoPopover from '$lib/components/shared/InfoPopover.svelte';
   import SafeToSpendRing from '$lib/components/dashboard/SafeToSpendRing.svelte';
   import Tile from '$lib/components/dashboard/Tile.svelte';
+  import ReviewBanner from '$lib/components/shared/ReviewBanner.svelte';
   import { upcomingRecurring } from '$lib/stores/recurringStore';
   import { unsortedTransactions, savingsRateTrend, bucketStatuses, currentMonthIncome, currentMonthFixedIncome, currentMonthIncomes, unallocated, addIncome, updateIncome, deleteIncome, buckets, savingsRate } from '$lib/stores/budgetStore';
-  import { safeToSpendWithPending as safeToSpendPerDay, pendingCaptures, pendingTotal, pendingEverydaySpend } from '$lib/stores/captureStore';
+  import { safeToSpendWithPending as safeToSpendPerDay, pendingEverydaySpend } from '$lib/stores/captureStore';
   import type { Income, IncomeType } from '$lib/types';
   import { goalStatuses, addGoal } from '$lib/stores/goalsStore';
   import { currentMonthKey, today, openModal, closeModal, openLog } from '$lib/stores/uiStore';
@@ -206,18 +207,7 @@
     </div>
   {/if}
 
-  {#if $pendingCaptures.length > 0}
-    <a href="{base}/review" class="card pressable flex items-center gap-3.5 p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-      <span class="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-gray-950 text-white dark:bg-white dark:text-gray-950" aria-hidden="true">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>
-      </span>
-      <span class="min-w-0 flex-1">
-        <span class="block text-[15px] font-semibold text-gray-950 dark:text-white">{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review</span>
-        <span class="block text-[13px] text-muted dark:text-muted-dark"><span class="money amt">{formatCurrency($pendingTotal)}</span> noticed on your phone</span>
-      </span>
-      <svg class="h-5 w-5 flex-none text-muted dark:text-muted-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-    </a>
-  {/if}
+  <ReviewBanner />
 
   <!-- The thesis: one line, the whole month. -->
   <EnvelopeLine
