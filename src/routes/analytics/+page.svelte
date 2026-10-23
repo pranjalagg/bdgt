@@ -180,7 +180,7 @@
         {/if}
 
         <!-- Two Donut Charts -->
-        <div class="grid gap-6 sm:grid-cols-2">
+        <div class="grid gap-6 sm:grid-cols-2 [&>*]:min-w-0">
           <div>
             <h3 class="mb-3 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
               Big Purchases (&ge; ${thresholdInput || '500'})
@@ -248,7 +248,7 @@
     </div>
   {/if}
 
-  <div class="grid gap-6 lg:grid-cols-2">
+  <div class="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
     <div class="card">
       <div class="px-5 pb-1 pt-5">
         <h2 class="section-title">Monthly Spending Trend</h2>

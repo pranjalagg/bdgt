@@ -9,6 +9,8 @@
   import { currencyConfirmed, takeCurrencyPrompt, currencyAnsweredElsewhere } from '$lib/stores/currencyStore';
   import { openLog, openModal, closeModal, activeModal, logPreselectedBucketId } from '$lib/stores/uiStore';
   import { onNavigate, beforeNavigate, afterNavigate } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { base } from '$app/paths';
 
   // Ask until the user confirms, once per load of the saved settings.
   // Reactive so an import or reset that keeps the same currency code (and so
@@ -43,6 +45,20 @@
     });
   });
 
+  // Each page's name in the tab, the task switcher and screen readers.
+  const TITLES: Record<string, string> = {
+    '/': 'Month',
+    '/transactions': 'Transactions',
+    '/review': 'Review payments',
+    '/analytics': 'Analytics',
+    '/investments': 'Investments',
+    '/buckets': 'Buckets',
+    '/recurring': 'Recurring',
+    '/settings': 'Settings',
+  };
+  $: path = $page.url.pathname.slice(base.length).replace(/(.)\/$/, '$1') || '/';
+  $: title = TITLES[path] ? `${TITLES[path]} · bdgt` : 'bdgt';
+
   function handleLogComplete() {
     closeModal();
     logPreselectedBucketId.set(undefined);
@@ -60,6 +76,10 @@
 </script>
 
 <svelte:window on:keydown={handleGlobalKeydown} />
+
+<svelte:head>
+  <title>{title}</title>
+</svelte:head>
 
 <div class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
   <Nav />

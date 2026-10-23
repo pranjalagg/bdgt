@@ -26,10 +26,13 @@ export default {
         'raised-dark': '#232428',
         primary: 'rgb(var(--color-ctl) / <alpha-value>)',
         'primary-hover': 'rgb(var(--color-ctl-hover) / <alpha-value>)',
-        success: '#2b7a52',         // money set aside -- the one job green has
+        // Status colours follow the theme (app.css), so text set in them
+        // stays legible on dark cards without a dark: variant. The -light
+        // names are the dark-theme values, kept for existing dark: variants.
+        success: 'rgb(var(--color-success) / <alpha-value>)', // money set aside -- the one job green has
         'success-light': '#63c592',
-        warning: '#a8722a',
-        danger: '#b83a26',          // envelope empty or overspent -- the one job red has
+        warning: 'rgb(var(--color-warning) / <alpha-value>)',
+        danger: 'rgb(var(--color-danger) / <alpha-value>)', // envelope empty or overspent -- the one job red has
         'danger-light': '#f0836c',
         // Follows the theme (app.css), so a bare text-muted stays legible in
         // dark mode; muted-dark is the same dark value, kept for existing

@@ -105,7 +105,7 @@
               {@html iconPaths[item.icon]}
             </svg>
             {#if item.icon === 'list' && $pendingCaptures.length > 0}
-              <span class="absolute right-2.5 -top-1 min-w-[18px] rounded-full bg-danger px-1 text-center text-[11px] font-semibold leading-[18px] text-white ring-2 ring-white dark:ring-[#141518]" aria-label="{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review">{$pendingCaptures.length}</span>
+              <span class="absolute right-2.5 -top-1 min-w-[18px] rounded-full bg-danger px-1 text-center text-[11px] font-semibold leading-[18px] text-white ring-2 dark:text-gray-950 ring-white dark:ring-[#141518]" aria-label="{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review">{$pendingCaptures.length}</span>
             {/if}
             {#if item.icon === 'cog' && $attention}
               <span class="absolute right-4 top-0.5 h-2 w-2 rounded-full bg-danger ring-2 ring-white dark:ring-[#141518]" role="img" aria-label="Sync needs attention"></span>

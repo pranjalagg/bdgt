@@ -156,7 +156,7 @@
         {/if}
         <span class="h-3 w-3 flex-none rounded-full" style="background-color: {status.bucket.color}" aria-hidden="true"></span>
         <div class="min-w-0 flex-1">
-          <h3 class="truncate text-[15px] font-semibold text-gray-950 dark:text-gray-50">{status.bucket.name}</h3>
+          <h2 class="truncate text-[15px] font-semibold text-gray-950 dark:text-gray-50">{status.bucket.name}</h2>
           <p class="amt text-[13px] leading-snug text-muted dark:text-muted-dark">
             {formatAllocationDisplay(status.bucket, $computedAllocations[status.bucket.id], status.allocated)}
           </p>
