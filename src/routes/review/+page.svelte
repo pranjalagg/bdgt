@@ -10,7 +10,7 @@
     captures, pendingCaptures, duplicatesOf, suggestions, bulkApprovable, rateFor,
     approveCapture, approveCaptureAs, dismissCapture, undoCapture, notDuplicate, approveAllSuggested,
   } from '$lib/stores/captureStore';
-  import { HINT_TEXT, baseAmount } from '$lib/capture/queue';
+  import { HINT_TEXT, baseAmount, recordedDiffers } from '$lib/capture/queue';
   import { formatCurrency, formatMoney } from '$lib/utils/currency';
   import type { Capture } from '$lib/types';
 
@@ -42,9 +42,13 @@
     return amount === null ? 'rate needed' : `≈ ${formatCurrency(amount)}`;
   }
 
-  function approvedBucketName(c: Capture): string {
+  // "Approved into Dining Out", plus what went into the budget when that is
+  // not simply the amount paid (part of a shared bill, or converted).
+  function approvedText(c: Capture): string {
     const tx = $transactions.find((t) => t.id === c.transactionId);
-    return (tx && bucketById.get(tx.bucketId)?.name) ?? 'a bucket';
+    if (!tx) return 'Approved';
+    const into = `Approved into ${bucketById.get(tx.bucketId)?.name ?? 'a bucket'}`;
+    return recordedDiffers(c, tx, $baseCurrency) ? `${into} · recorded ${formatCurrency(tx.amount)}` : into;
   }
 
   function reasonText(c: Capture): string {
@@ -228,7 +232,7 @@
           {:else}
             <div class="flex items-center justify-between gap-3 text-sm">
               <span class="text-muted dark:text-muted-dark">
-                {c.status === 'approved' ? `Approved into ${approvedBucketName(c)}` : 'Dismissed'}
+                {c.status === 'approved' ? approvedText(c) : 'Dismissed'}
               </span>
               <button type="button" class="btn-secondary" on:click={() => attempt(() => undoCapture(c.id))}>Back to review</button>
             </div>

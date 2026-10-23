@@ -11,7 +11,8 @@
   import { shouldShowForeignNote } from '$lib/currency/conversion';
   import { openModal, openLog } from '$lib/stores/uiStore';
   import { base } from '$app/paths';
-  import { pendingCaptures } from '$lib/stores/captureStore';
+  import { pendingCaptures, captures } from '$lib/stores/captureStore';
+  import { captureIdOf, recordedDiffers } from '$lib/capture/queue';
   import type { Transaction } from '$lib/types';
 
   // Arrives from the dashboard's "needs a bucket" banner.
@@ -34,6 +35,8 @@
 
   // Unsorted ignores the month: they are spread across whenever the old
   // bucket was used, and the point is to clear them all.
+  // The payment behind each transaction approved from Review.
+  $: captureById = new Map($captures.map((c) => [c.id, c]));
   $: source = filterBucketId === UNSORTED_BUCKET_ID ? $transactions : $currentMonthTransactions;
 
   $: filtered = source.filter((t) => {
@@ -126,6 +129,8 @@
         {#each day.transactions as t (t.id)}
           {@const bucket = bucketById.get(t.bucketId)}
           {@const isSetAside = savingsBucketIds.has(t.bucketId)}
+          {@const capture = captureIdOf(t.id) ? captureById.get(captureIdOf(t.id) ?? '') : undefined}
+          {@const partOf = capture && capture.currency === $baseCurrency && recordedDiffers(capture, t, $baseCurrency) ? capture.amount : null}
           <div
             class="group grid grid-cols-[3px_1fr_auto_auto] items-center gap-x-3 border-b border-border
                    py-2 dark:border-border-dark"
@@ -133,19 +138,31 @@
             <span class="h-7 w-[3px] rounded-sm" style="background:{bucket?.color ?? '#cbd4c9'}"></span>
 
             <div class="min-w-0">
-              <p class="truncate text-[13.5px] leading-tight text-gray-900 dark:text-gray-100">
-                {t.note || bucket?.name || 'Transaction'}
+              <p class="flex min-w-0 items-center gap-1.5 text-[13.5px] leading-tight text-gray-900 dark:text-gray-100">
+                <span class="truncate">{t.note || bucket?.name || 'Transaction'}</span>
+                <!-- Added without typing: approved from Review, or made by a recurring item. -->
+                {#if captureIdOf(t.id)}
+                  <span class="flex-none rounded border border-border px-1 text-[10px] font-medium uppercase tracking-wide text-muted dark:border-border-dark dark:text-muted-dark" title={capture ? `Added from ${capture.sourceLabel}` : 'Added from a payment notification'}>Auto</span>
+                {:else if t.recurringId}
+                  <span class="flex-none rounded border border-border px-1 text-[10px] font-medium uppercase tracking-wide text-muted dark:border-border-dark dark:text-muted-dark" title="Added by a recurring item">Recurring</span>
+                {/if}
               </p>
               <p class="truncate text-[11.5px] text-muted dark:text-muted-dark">
                 {bucket?.name ?? 'Unknown bucket'}{#if bucket?.isSystem}<span class="ml-1 text-warning">· needs a bucket, tap edit</span>{/if}{#if isSetAside}<span class="ml-1 text-success dark:text-success-light">· set aside</span>{/if}{#if t.foreign && shouldShowForeignNote(t.foreign, $baseCurrency)}<span class="amt ml-1">· {formatMoney(t.foreign.amount, t.foreign.currency)} @ {t.foreign.rate}</span>{/if}
               </p>
             </div>
 
-            <span
-              class="money amt text-[13.5px] font-medium
-                     {isSetAside ? 'text-success dark:text-success-light' : 'text-gray-900 dark:text-gray-100'}"
-            >
-              {formatCurrency(t.amount)}
+            <span class="text-right">
+              <span
+                class="money amt text-[13.5px] font-medium
+                       {isSetAside ? 'text-success dark:text-success-light' : 'text-gray-900 dark:text-gray-100'}"
+              >
+                {formatCurrency(t.amount)}
+              </span>
+              <!-- Only part of the payment was this person's (a shared bill). -->
+              {#if partOf !== null}
+                <span class="money amt block text-[11px] text-muted dark:text-muted-dark">of {formatCurrency(partOf)}</span>
+              {/if}
             </span>
 
             <!-- Controls stay keyboard-reachable; they only fade in on

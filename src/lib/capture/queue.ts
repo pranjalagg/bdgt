@@ -40,6 +40,19 @@ export function transactionIdFor(captureId: string): string {
   return `capture:${captureId}`;
 }
 
+// The capture a transaction was approved from, if any.
+export function captureIdOf(transactionId: string): string | null {
+  return transactionId.startsWith('capture:') ? transactionId.slice('capture:'.length) : null;
+}
+
+// True when what went into the budget is not simply the payment as captured:
+// only part of it was kept (friends paid their share), or it was converted
+// from another currency.
+export function recordedDiffers(capture: Capture, transaction: Transaction, base: CurrencyCode): boolean {
+  if (capture.currency !== base) return true;
+  return transaction.foreign !== undefined || transaction.amount !== capture.amount;
+}
+
 export function rulesByKey(rules: CaptureRule[]): Map<string, CaptureRule> {
   return new Map(rules.map((r) => [r.payeeKey, r]));
 }

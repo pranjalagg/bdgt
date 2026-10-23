@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   suggestBucket, rulesByKey, isIgnored, baseAmount, pendingEverydayCents, canApproveInBulk,
-  buildApproval, approvedWith, learnedRule, reopened, transactionIdFor,
+  buildApproval, approvedWith, learnedRule, reopened, transactionIdFor, captureIdOf, recordedDiffers,
 } from '$lib/capture/queue';
 import type { Bucket, Capture, CaptureRule } from '$lib/types';
 
@@ -138,5 +138,19 @@ describe('reopened', () => {
     expect(r.status).toBe('pending');
     expect(r).not.toHaveProperty('transactionId');
     expect(r).not.toHaveProperty('resolvedAt');
+  });
+});
+
+describe('captureIdOf and recordedDiffers', () => {
+  it('finds the capture behind an approved transaction', () => {
+    expect(captureIdOf('capture:sms:1')).toBe('sms:1');
+    expect(captureIdOf('8f0c2a')).toBeNull();
+  });
+
+  it('tells a partly recorded or converted payment from one recorded as paid', () => {
+    const tx = (over: object) => ({ id: 'capture:sms:1', amount: 25000, bucketId: 'dining', date: new Date(2026, 9, 21), ...over });
+    expect(recordedDiffers(capture(), tx({}), 'INR')).toBe(false);
+    expect(recordedDiffers(capture(), tx({ amount: 10000 }), 'INR')).toBe(true);
+    expect(recordedDiffers(capture(), tx({ amount: 298 }), 'USD')).toBe(true);
   });
 });
