@@ -21,9 +21,11 @@ describe('development helpers', () => {
 
 describe('Android build configuration', () => {
   it('passes the sync variables and the Google client ID from repository variables, never secrets', () => {
-    expect(androidWorkflow).toMatch(/VITE_SUPABASE_URL: \$\{\{ vars\.VITE_SUPABASE_URL \}\}/);
-    expect(androidWorkflow).toMatch(/VITE_SUPABASE_PUBLISHABLE_KEY: \$\{\{ vars\.VITE_SUPABASE_PUBLISHABLE_KEY \}\}/);
-    expect(androidWorkflow).toMatch(/VITE_GOOGLE_WEB_CLIENT_ID: \$\{\{ vars\.VITE_GOOGLE_WEB_CLIENT_ID \}\}/);
+    // Every build but the UI preview (a separate app id Google sign-in is
+    // not registered for) passes them.
+    for (const name of ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_GOOGLE_WEB_CLIENT_ID']) {
+      expect(androidWorkflow).toContain(`${name}: \${{ env.PREVIEW != '1' && vars.${name} || '' }}`);
+    }
     // The only secret is the signing key.
     expect(androidWorkflow.match(/secrets\.\w+/g)).toEqual(['secrets.ANDROID_DEBUG_KEYSTORE_BASE64']);
   });
