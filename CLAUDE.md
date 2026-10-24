@@ -38,9 +38,19 @@ All monetary values stored in **cents** (integers).
 
 - `src/lib/db/index.ts`: Dexie schema with migrations
 - `src/lib/utils/calculations.ts`: Budget math (allocation, remaining, status)
-- `src/routes/+page.svelte`: Dashboard with bucket cards and income management
-- `src/routes/buckets/`: Bucket CRUD and allocation editing
-- `tests/`: Unit tests for utilities (currency, dates, calculations)
+- Routes (mobile-first; four tabs plus pages that slide up):
+  - `src/routes/+page.svelte`: Home (safe-to-spend hero, pace chart, cards chosen in Edit Home)
+  - `src/routes/budget/`: Budget tab, envelope page `budget/[id]`, `budget/bills` (recurring)
+  - `src/routes/activity/`: expenses by day, filter chips, swipe actions
+  - `src/routes/insights/`: period chart, breakdowns, trend pages `insights/[chart]`, `insights/investments`
+  - `src/routes/review/` and `src/routes/settings/` (with `settings/sync|capture|rules`): slide up over the tabs; no tab bar
+  - Old addresses (`/buckets`, `/transactions`, `/analytics`, `/recurring`, …) redirect in their `+page.ts`
+- `src/lib/components/`: `layout/` (NavBar, TabBar, MonthMenu, Layout), `home/`, `budget/`, `activity/`, `log/`, `review/`, `insights/`, `charts/` (SVG charts), `ui/` (Icon, Switch, RollingNumber, Toast), `shared/Modal.svelte` (stacked sheets)
+- `src/lib/ui/`: motion springs, haptics, icons, routes, history, swipe, keypad, edge swipe, Android back button
+- `src/lib/charts/`: chart scales, paths and the scrub action; `src/lib/insights/`: trend math and pattern logic
+- `src/lib/home/`: Home hero math and the Home layout (`homeLayout` row in the settings table)
+- `tests/`: Unit tests for utilities, stores and the pure UI logic above
+- `scripts/ui-check/run.cjs`: browser checks (`npm run ui:smoke`, `ui:a11y`, `ui:shots`) against the dev server on port 5174
 
 ### Important Patterns
 

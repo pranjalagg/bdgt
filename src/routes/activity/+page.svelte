@@ -136,7 +136,7 @@
         <div class="group">
           {#each day.transactions as t (t.id)}
             <div class="group-row" style="--row-inset: 64px" out:slide={{ duration: reduced() ? 0 : 220 }}>
-              <SwipeRow onDelete={() => remove(t)} onMove={() => move(t)}>
+              <SwipeRow label={t.note || bucketById.get(t.bucketId)?.name || 'expense'} onDelete={() => remove(t)} onMove={() => move(t)}>
                 <TransactionRow transaction={t} bucket={bucketById.get(t.bucketId)} tag={tagOf(t)} partOf={partOf(t)} onOpen={() => open(t)} />
               </SwipeRow>
             </div>

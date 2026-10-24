@@ -2,11 +2,14 @@
   import { swipeActions } from '$lib/ui/swipe';
   import Icon from '$lib/components/ui/Icon.svelte';
 
-  // A list row that swipes: left shows Delete, right shows Move. The sheet
-  // the row opens has both actions too, for anyone who doesn't swipe.
+  // A list row that swipes: left shows Delete, right shows Move. With a
+  // mouse, hovering (or tabbing into) the row shows the same two as buttons.
+  // The sheet the row opens has both actions too.
 
   export let onDelete: () => void;
   export let onMove: () => void;
+  // Names the row's hover buttons ("Delete Starbucks").
+  export let label: string;
 
   let offset = 0;
   let reset = 0;
@@ -31,12 +34,44 @@
       </button>
     </div>
   {/if}
-  <div class="relative bg-surface" use:swipeActions={{ onDelete, onMove, reset }} on:swipe={(e) => (offset = e.detail)}>
+  <div class="face relative bg-surface" use:swipeActions={{ onDelete, onMove, reset }} on:swipe={(e) => (offset = e.detail)}>
     <slot />
+    <div class="hover-actions absolute inset-y-0 right-0 items-center gap-1 pl-10 pr-3">
+      <button type="button" class="btn-icon" aria-label="Move {label}" on:click|stopPropagation={onMove}><Icon name="move" size={18} /></button>
+      <button type="button" class="btn-icon !text-danger" aria-label="Delete {label}" on:click|stopPropagation={onDelete}><Icon name="trash" size={18} /></button>
+    </div>
   </div>
 </div>
 
 <style>
+  .hover-actions {
+    display: none;
+    background: linear-gradient(to right, rgb(var(--c-surface) / 0), rgb(var(--c-surface)) 32px);
+  }
+
+  /* Matches the row's own hover tint, which sits over the surface. */
+  .face:hover .hover-actions {
+    background:
+      linear-gradient(to right, transparent, rgb(var(--c-fill) / var(--fill-alpha)) 32px),
+      linear-gradient(to right, rgb(var(--c-surface) / 0), rgb(var(--c-surface)) 32px);
+  }
+
+  /* Only where there is a pointer that hovers; touch swipes instead. */
+  @media (hover: hover) {
+    .hover-actions {
+      display: flex;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease-out;
+    }
+
+    .face:hover .hover-actions,
+    .face:focus-within .hover-actions {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
   /* iOS's high-contrast red: white text on it measures 5.38:1. */
   .del {
     background: #d70015;

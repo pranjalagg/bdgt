@@ -218,6 +218,14 @@
     transition: transform 200ms ease-in, opacity 200ms ease-in;
   }
 
+  /* Under reduced motion the cards only fade: the top one out, the next in. */
+  @media (prefers-reduced-motion: reduce) {
+    .deck-card,
+    .deck-card.flying {
+      transition: opacity 200ms ease-out;
+    }
+  }
+
   .action {
     display: flex;
     height: 64px;

@@ -2,7 +2,7 @@
 
 A running list of things we chose not to do yet, kept so they are not lost. Each entry says what it is, why it was deferred, where it lives, and a suggested fix. Add to it whenever something is deferred; move an entry to "Resolved" when it is done.
 
-Last updated: 2026-10-23.
+Last updated: 2026-10-23 (mobile-first redesign).
 
 ## How to read this
 
@@ -139,11 +139,8 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 ---
 
 ## Native-feeling UI (branch `claude/native-ui`, plan: `docs/superpowers/plans/2026-10-23-native-ui.md`)
-- **Editing a paused recurring item resumes it.** `handleSubmit` in `src/routes/recurring/+page.svelte` always saves `isActive: true`. Pause now lives in the same sheet, so it is easier to hit. Not changed because it is behaviour, not UI. Fix: save `editing.isActive`. Size S.
-- **Insights charts still draw spending in red and income in green** (`#ef4444`, `#22c55e`), against the app's colour meanings (red means overspent, green means set aside), and use the same fixed colours in both themes. Needs a chart colour pass: neutral or ink for spending, a separate hue for income, theme-aware values. `src/routes/analytics/+page.svelte`, `src/lib/components/charts/`. Size M.
 - **Edit sheets focus their first field when they open**, so on a phone the keyboard covers the sheet even when you came to look or delete. Consider focusing the sheet itself for edit sheets (not Log) on touch screens. `Modal.svelte` `focusFirst`. Size S.
 - **The preview app ("bdgt preview") has no sync.** Google sign-in is registered for the real app id only. To turn it on: add an Android OAuth client for `io.github.pranjalagg.bdgt.preview` with the same SHA-1 in Google Cloud, then drop the `PREVIEW` gating of the three `VITE_` variables in `.github/workflows/android.yml`. Size S.
-- **Review keeps its action cards** (Approve, Edit, Dismiss on each) rather than the avatar rows of Activity and Recurring. Swipe to approve or dismiss, and haptics (`@capacitor/haptics`), were left out. Size M.
 - **Back restores scroll only within a session:** positions are kept in memory per URL, so after a full reload Back starts at the top. `Layout.svelte`. Size S.
 - **The bottom bar's count of payments to review is red**, the platform convention for badges and the one place red does not mean overspent.
 - **GitHub Actions warns that `actions/checkout@v4` and `actions/setup-node@v4` target Node 20** (deprecated, now forced onto Node 24). Move to the next major versions when convenient. Size S.
@@ -151,6 +148,11 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 ---
 
 ## Mobile-first redesign (branch `claude/native-ui`, plan: `docs/superpowers/plans/2026-10-23-mobile-first-redesign.md`)
+- **Only Activity's rows swipe.** The envelope page's transaction list and the Bills list open their sheets on tap (Delete and Move live there) but do not swipe. `SwipeRow.svelte` can wrap them. Size S.
+- **The Review deck has no arrow keys on desktop**; Approve, Edit and Dismiss are buttons, so the keyboard works, but → / ← as shortcuts would be quicker. `Deck.svelte`. Size S.
+- **Close after opening Review or Settings directly counts as a step back** (`goto(..., { replaceState: true })` still increments the history depth in `src/lib/ui/history.ts`), so a later Android back on that tab may leave the app one step early. Size S.
+- **The Sync page was checked only without sync** (the dev server runs with sync off); its content is unchanged apart from colours, but sign-in, Sync now and Sign out under `/settings/sync` want a look on a synced build. Not code; a check.
+- **Investments' Add purchase and Sell sheets keep the older form layout** (labels over outlined fields), restyled only in colour and button order. Size S.
 - **Add purchase (Investments) starts on tomorrow's date in the evening** in time zones west of UTC: `AddLotModal.svelte` takes the date from `toISOString()` (UTC). Found while restyling; not changed because it is behaviour. Fix: `getLocalDateKey(new Date())` in both places it is set. Size S.
 
 ---
@@ -164,6 +166,9 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 ---
 
 ## Resolved
+- Editing a paused recurring item resumed it (fixed in the redesign: the form's data shaping is `recurringFormData()` in `src/lib/budget/recurringForm.ts`, tested).
+- Insights drew spending in red and income in green (fixed in the redesign: spending is the tint, income grey; the charts are the app's own SVG components with theme tokens).
+- Review's per-card buttons without swipe or haptics (replaced by the swipe deck, with `haptic()` on decisions).
 - A `SIGNED_IN` event for the same user did not resume a device whose session had ended (fixed with Android sign-in, where signing in again does not reload the page).
 - Settings page `fileInput.value = ''` threw a TypeError after any import (fixed, guarded).
 - Exporting a never-confirmed fresh profile wrote USD instead of the detected currency (fixed: the detected currency is now saved as unconfirmed when first loaded).

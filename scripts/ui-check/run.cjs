@@ -66,7 +66,11 @@ async function shots(browser, errors) {
     await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, cfg.name + '-log-sheet.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
-    await page.getByRole('button', { name: /Income/ }).first().click(); await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'Edit Home' }).click(); await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(OUT, cfg.name + '-edit-home-sheet.png') });
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^Income this month/ }).click(); await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, cfg.name + '-income-sheet.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
@@ -816,6 +820,42 @@ async function a11y(browser, errors) {
     await run(page, `${theme} threshold-sheet`);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.context().close();
+  }
+  // Reduced motion: whatever still animates may only fade.
+  {
+    const ctx = await browser.newContext({ viewport: CONFIGS[0].viewport, deviceScaleFactor: 1, locale: 'en-US', timezoneId: 'America/Los_Angeles', isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => errors.push('reduced-motion: ' + String(e)));
+    page.on('dialog', (d) => d.accept());
+    await seed(page);
+    const moving = async (label) => {
+      const props = await page.evaluate(() => {
+        const out = new Set();
+        for (const a of document.getAnimations()) {
+          if (a.transitionProperty) out.add(a.transitionProperty);
+          else for (const k of a.effect?.getKeyframes?.() ?? []) for (const key of Object.keys(k)) if (!['offset', 'easing', 'composite', 'computedOffset'].includes(key)) out.add(key);
+        }
+        return [...out];
+      });
+      // Fades of opacity or colour are fine; anything that moves or resizes is not.
+      const bad = props.filter((p) => !['opacity', 'color', 'background-color', 'border-color', 'outline-color', 'box-shadow', 'fill', 'stroke'].includes(p));
+      if (bad.length) out.push(`reduced motion ${label}: animates ${bad.join(', ')}`);
+    };
+    const settleShort = () => page.waitForTimeout(60);
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(400);
+    await page.getByRole('button', { name: /^(Log|Add an expense)/ }).first().click(); await settleShort();
+    await moving('opening a sheet');
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+    await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(400);
+    await page.getByRole('region', { name: 'Everyday' }).getByRole('link', { name: /^Grocery/ }).click(); await settleShort();
+    await moving('pushing a page');
+    await page.goto(BASE + '/review'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Approve', exact: true }).click(); await settleShort();
+    await moving('approving a card');
+    await page.goto(BASE + '/insights'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(400);
+    await page.getByRole('tab', { name: 'Week', exact: true }).click(); await settleShort();
+    await moving('switching the period');
+    await ctx.close();
   }
   const page = await newPage(browser, { ...CONFIGS[0], name: 'narrow', viewport: { width: 320, height: 800 } }, errors);
   await seed(page);
