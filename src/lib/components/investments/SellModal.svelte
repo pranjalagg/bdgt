@@ -65,7 +65,7 @@
         <p class="text-[15px] font-medium text-label">
           {lot.symbol} · {availableShares} shares available
         </p>
-        <p class="text-xs text-muted">
+        <p class="text-xs text-label-2">
           Cost basis: <span class="amt">{formatCurrency(lot.pricePerShare)}</span>/share
         </p>
       </div>
@@ -137,6 +137,6 @@
       </div>
     </form>
   {:else}
-    <p class="py-4 text-center text-muted">Lot not found</p>
+    <p class="py-4 text-center text-label-2">Lot not found</p>
   {/if}
 </Modal>

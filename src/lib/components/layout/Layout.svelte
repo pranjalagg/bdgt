@@ -111,13 +111,13 @@
 </svelte:head>
 
 <!-- While a sheet is open the app behind it is inert: no focus, no reading. -->
-<div id="stage" inert={$modalStack.length > 0} class:scaled={$scaledBack} class="flex h-screen bg-background supports-[height:100dvh]:h-[100dvh] dark:bg-background-dark">
+<div id="stage" inert={$modalStack.length > 0} class:scaled={$scaledBack} class="flex h-screen bg-page supports-[height:100dvh]:h-[100dvh]">
   <Nav />
   <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path) && !isModalRoot(path)} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
     <!-- The app draws under the status bar; this strip keeps content that
          scrolls up from running into the clock and icons. -->
     <div
-      class="pointer-events-none fixed inset-x-0 top-0 z-30 [view-transition-name:status-strip] bg-background/85 backdrop-blur-xl dark:bg-background-dark/85 md:hidden"
+      class="pointer-events-none fixed inset-x-0 top-0 z-30 [view-transition-name:status-strip] bg-page/85 backdrop-blur-xl md:hidden"
       style="height: var(--safe-top)"
       aria-hidden="true"
     ></div>

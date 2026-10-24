@@ -24,7 +24,6 @@
   /* Older names, now pointing at the values above. */
   --color-ctl: 88 86 214;
   --color-ctl-hover: 75 73 201; /* #4b49c9 */
-  --color-muted: 94 94 100;
   /* Status text, at least 4.5:1 on the page, cards and raised surfaces. */
   --color-success: 39 116 77; /* #27744d */
   --color-warning: 143 95 28; /* #8f5f1c */
@@ -63,7 +62,6 @@
 
   --color-ctl: 94 92 230;
   --color-ctl-hover: 84 82 220; /* #5452dc */
-  --color-muted: 161 161 168;
   --color-success: 99 197 146; /* #63c592 */
   --color-warning: 219 164 90; /* #dba45a */
   --color-danger: 240 131 108; /* #f0836c */
@@ -228,7 +226,7 @@
 :root {
   accent-color: rgb(var(--color-ctl));
   caret-color: rgb(var(--color-ctl));
-  scrollbar-color: theme('colors.rule') transparent;
+  scrollbar-color: #c7c7cc transparent;
 }
 
 :root.dark {
@@ -268,11 +266,6 @@
   }
 
   /* Older name for .figure, kept while screens move over. */
-  .display {
-    @apply tabular-nums;
-    letter-spacing: -0.02em;
-  }
-
   /* iOS large title. */
   .ltitle {
     @apply text-label;
@@ -320,18 +313,13 @@
     box-shadow: var(--shadow-card);
   }
 
-  .card-padded {
-    @apply card p-5;
-  }
-
   /* Outlined field: the outline keeps 3:1 against the surface, so the
      field is findable before it is focused. */
   .input-base {
     @apply w-full rounded-[14px] border border-[#8f938f] bg-white px-3.5 py-2.5 text-[15px]
-           text-gray-900 placeholder-gray-500
-           focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25
-           dark:border-white/[0.36] dark:bg-white/[0.04] dark:text-gray-100 dark:placeholder-gray-400
-           dark:focus:border-primary dark:focus:ring-primary/30;
+           text-label placeholder:text-label-2
+           focus:border-tint focus:outline-none focus:ring-2 focus:ring-tint/25
+           dark:border-white/[0.36] dark:bg-white/[0.04] dark:focus:ring-tint/30;
     min-height: 2.75rem;
     transition-property: border-color, box-shadow;
     transition-duration: 150ms;
@@ -345,21 +333,20 @@
   /* Buttons are pills with a 44px touch height. The filled one is the
      single primary action on a view; tonal ones are everything else. */
   .btn-primary {
-    @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full bg-primary px-5
+    @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full bg-tint px-5
            text-[15px] font-semibold text-white
-           hover:bg-primary-hover
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background
-           disabled:cursor-not-allowed disabled:opacity-50
-           dark:focus-visible:ring-offset-background-dark;
+           hover:bg-[rgb(var(--color-ctl-hover))]
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-tint/40 focus-visible:ring-offset-2 focus-visible:ring-offset-page
+           disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary {
     @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-transparent bg-raised px-5
-           text-[15px] font-semibold text-gray-900
-           hover:bg-[#e2e4e0]
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+           text-[15px] font-semibold text-label
+           hover:bg-[#e2e2e7]
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-tint/40
            disabled:cursor-not-allowed disabled:opacity-50
-           dark:bg-raised-dark dark:text-gray-100 dark:hover:bg-[#2d2e33];
+           dark:hover:bg-[#3a3a3c];
   }
 
   .btn-danger {
@@ -375,20 +362,20 @@
 
   .btn-icon {
     @apply inline-flex items-center justify-center rounded-full p-2.5
-           text-gray-600
-           hover:bg-black/5 hover:text-gray-900
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
-           dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-gray-100;
+           text-label-2
+           hover:bg-black/5 hover:text-label
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-tint/40
+           dark:hover:bg-white/10;
   }
 
   /* Filter chip: a toggle, so its state is aria-pressed, and the pressed
      one is ink like every other selected control. */
   .chip {
-    @apply inline-flex min-h-[2.25rem] flex-none items-center gap-2 whitespace-nowrap rounded-full border border-transparent bg-white px-3.5
-           text-sm font-medium text-gray-800
-           hover:bg-[#f7f8f5]
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
-           dark:bg-surface-dark dark:text-gray-200 dark:hover:bg-[#1e1f23];
+    @apply inline-flex min-h-[2.25rem] flex-none items-center gap-2 whitespace-nowrap rounded-full border border-transparent bg-surface px-3.5
+           text-sm font-medium text-label
+           hover:bg-[#f7f7fa]
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-tint/40
+           dark:hover:bg-[#2c2c2e];
     box-shadow: var(--shadow-card);
   }
 
@@ -399,24 +386,23 @@
   /* Segmented control: a few views of one thing (sub-pages of a section,
      a list's filter). The selected segment is a raised surface on a track. */
   .segmented {
-    @apply flex w-full gap-1 rounded-full bg-raised p-1 dark:bg-raised-dark md:inline-flex md:w-auto;
+    @apply flex w-full gap-1 rounded-full bg-raised p-1 md:inline-flex md:w-auto;
   }
 
   /* Equal widths, until a narrow phone can't fit the labels: then each
      takes what its label needs. */
   .segment {
     @apply flex min-h-[2.25rem] flex-1 items-center justify-center whitespace-nowrap rounded-full px-4
-           text-sm font-medium text-gray-600 hover:text-gray-950
+           text-sm font-medium text-label-2 hover:text-label
            max-[374px]:flex-auto max-[374px]:px-2 max-[374px]:text-[13px]
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
-           dark:text-gray-300 dark:hover:text-white;
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-tint/40;
     transition-property: background-color, color, box-shadow;
     transition-duration: 150ms;
     transition-timing-function: ease-out;
   }
 
   .segment:is([aria-current='page'], [aria-selected='true'], [aria-pressed='true']) {
-    @apply bg-white font-semibold text-gray-950 dark:bg-[#3a3b40] dark:text-white;
+    @apply bg-white font-semibold text-label dark:bg-[#3a3b40];
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
@@ -493,32 +479,16 @@
   }
 
   .label {
-    @apply block text-[13px] font-medium text-gray-600 dark:text-gray-300;
+    @apply block text-[13px] font-medium text-label-2;
   }
 
-  .page-title {
-    @apply display text-[28px] font-semibold leading-tight tracking-tight text-gray-950 dark:text-white;
-  }
 
-  .section-title {
-    @apply text-[17px] font-semibold text-gray-900 dark:text-gray-50;
-  }
 
-  .metric-value {
-    @apply display text-2xl font-semibold tracking-tight text-gray-950 dark:text-white;
-  }
 
-  .metric-label {
-    @apply text-[13px] font-medium text-muted dark:text-muted-dark;
-  }
 
   /* A settings group's name, above its card. */
   .settings-label {
-    @apply px-1 pb-2 text-[13px] font-semibold text-muted dark:text-muted-dark;
+    @apply px-1 pb-2 text-[13px] font-semibold text-label-2;
   }
 
-  /* Section header above a group of cards or rows. */
-  .eyebrow {
-    @apply text-sm font-semibold text-gray-900 dark:text-gray-100;
-  }
 }

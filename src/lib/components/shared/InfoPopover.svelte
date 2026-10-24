@@ -44,8 +44,8 @@
 >
   <button
     type="button"
-    class="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted transition-colors hover:text-gray-900
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-muted-dark dark:hover:text-gray-100"
+    class="inline-flex h-4 w-4 items-center justify-center rounded-full text-label-2 transition-colors hover:text-label
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-tint"
     aria-label={label}
     aria-expanded={open}
     aria-describedby={open ? id : undefined}
@@ -64,9 +64,8 @@
     <div
       {id}
       role="tooltip"
-      class="absolute inset-x-3 top-full z-20 mt-2 space-y-2 sm:inset-x-auto sm:left-0 sm:w-80 rounded border border-border bg-white p-3 text-left
-             text-[12.5px] normal-case leading-snug tracking-normal text-gray-700 shadow-md
-             dark:border-border-dark dark:bg-surface-dark dark:text-gray-200"
+      class="absolute inset-x-3 top-full z-20 mt-2 space-y-2 sm:inset-x-auto sm:left-0 sm:w-80 rounded-[14px] border border-sep bg-surface p-3 text-left dark:bg-raised
+             text-[12.5px] normal-case leading-snug tracking-normal text-label shadow-md"
     >
       <slot />
     </div>

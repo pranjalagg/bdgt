@@ -71,7 +71,7 @@
     <div>
       <label for="rec-amount" class="label">Amount</label>
       <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-label-2">{currencySymbol()}</span>
         <input
           id="rec-amount"
           type="text"
@@ -87,7 +87,7 @@
       {#if amountError}
         <p class="mt-1 text-sm text-danger">{amountError}</p>
       {:else if previewValue !== null}
-        <p class="mt-1 text-sm text-muted">= <span class="amt">{formatCurrency(dollarsToCents(previewValue))}</span></p>
+        <p class="mt-1 text-sm text-label-2">= <span class="amt">{formatCurrency(dollarsToCents(previewValue))}</span></p>
       {/if}
     </div>
     <div>

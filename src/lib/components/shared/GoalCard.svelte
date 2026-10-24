@@ -19,7 +19,7 @@
 
   $: statusColor = status.status === 'behind'
     ? 'text-warning'
-    : 'text-success dark:text-success-light';
+    : 'text-success';
 
   function formatDate(date: Date | null): string {
     if (!date) return '';
@@ -45,24 +45,24 @@
   ></span>
 
   <span class="relative grid grid-cols-[1fr_auto_2.6rem] items-center gap-x-3 gap-y-0.5">
-    <span class="flex items-center gap-2.5 text-[13.5px] font-medium text-gray-900 dark:text-gray-100">
+    <span class="flex items-center gap-2.5 text-[13.5px] font-medium text-label">
       <span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{color}"></span>
       {status.goal.name}
     </span>
-    <span class="money text-right text-[13px] font-medium text-gray-900 dark:text-gray-100 amt">
+    <span class="money text-right text-[13px] font-medium text-label amt">
       {formatCurrency(status.currentAmount)}
     </span>
-    <span class="text-[11.5px] text-muted dark:text-muted-dark">saved</span>
+    <span class="text-[11.5px] text-label-2">saved</span>
 
-    <span class="text-[11.5px] text-muted dark:text-muted-dark">
+    <span class="text-[11.5px] text-label-2">
       <span class="font-medium {statusColor}">{statusLabel}</span>
       &middot; of <span class="money amt">{formatCurrency(status.goal.targetAmount)}</span>
     </span>
-    <span class="money text-right text-[11.5px] text-muted dark:text-muted-dark">{Math.round(pct)}%</span>
+    <span class="money text-right text-[11.5px] text-label-2">{Math.round(pct)}%</span>
     <span aria-hidden="true"></span>
 
     {#if status.status !== 'completed' && (status.goal.targetDate || status.projectedDate)}
-      <span class="col-span-3 text-[11.5px] text-muted dark:text-muted-dark">
+      <span class="col-span-3 text-[11.5px] text-label-2">
         {#if status.goal.targetDate}
           Need <span class="money amt">{formatCurrency(status.monthlyNeeded)}</span>/month to reach it by {formatDate(status.goal.targetDate)}
         {:else if status.projectedDate}

@@ -58,7 +58,7 @@
   <div>
     <label for="{id}-amount" class="label">Amount</label>
     <div class="relative mt-1">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{currencyInfo(currency).symbol}</span>
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-label-2">{currencyInfo(currency).symbol}</span>
       <input
         id="{id}-amount"
         type="text"
@@ -74,7 +74,7 @@
     {#if amountError}
       <p class="mt-1 text-sm text-danger">{amountError}</p>
     {:else if showPreview && previewValue !== null}
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">= <span class="amt">{formatMoney(dollarsToCents(previewValue), currency)}</span></p>
+      <p class="mt-1 text-sm text-label-2">= <span class="amt">{formatMoney(dollarsToCents(previewValue), currency)}</span></p>
     {/if}
     <ForeignCurrencyField {id} bind:currency bind:rate foreignMinor={typedMinor} bind:baseCents bind:rateValid />
   </div>

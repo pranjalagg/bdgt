@@ -55,24 +55,24 @@
 
   const effectLabel = (e: MonthNoteEffect) => NOTE_EFFECTS.find((x) => x.value === e)?.label ?? '';
   const effectColor = (e: MonthNoteEffect) =>
-    e === 'up' ? 'text-success dark:text-success-light'
-    : e === 'down' ? 'text-danger dark:text-danger-light'
-    : 'text-muted dark:text-muted-dark';
+    e === 'up' ? 'text-success'
+    : e === 'down' ? 'text-danger'
+    : 'text-label-2';
 </script>
 
-<section class="rounded-xl border border-border bg-white dark:border-border-dark dark:bg-surface-dark">
+<section class="rounded-xl border border-sep bg-surface">
   <button
     type="button"
     class="flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-colors
-           hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary
+           hover:bg-page focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint
            dark:hover:bg-white/[0.03]"
     aria-expanded={open}
     aria-controls="month-notes-body"
     on:click={() => (open = !open)}
   >
     <span class="flex min-w-0 items-center gap-2.5">
-      <span class="text-[13px] font-medium text-gray-900 dark:text-gray-100">Month notes</span>
-      <span class="truncate text-[12.5px] text-muted dark:text-muted-dark">{summary}</span>
+      <span class="text-[13px] font-medium text-label">Month notes</span>
+      <span class="truncate text-[12.5px] text-label-2">{summary}</span>
     </span>
     <span class="flex flex-none items-center gap-2">
       {#if !open}
@@ -89,14 +89,14 @@
           </span>
         {/each}
       {/if}
-      <svg class="h-4 w-4 text-muted transition-transform dark:text-muted-dark {open ? 'rotate-180' : ''}" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg class="h-4 w-4 text-label-2 transition-transform {open ? 'rotate-180' : ''}" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="m6 8 4 4 4-4" />
       </svg>
     </span>
   </button>
 
   {#if open}
-    <div id="month-notes-body" class="space-y-3 border-t border-border px-4 pb-4 pt-3 dark:border-border-dark">
+    <div id="month-notes-body" class="space-y-3 border-t border-sep px-4 pb-4 pt-3">
       {#if $currentMonthNotes.length > 0}
         <ul class="space-y-1.5">
           {#each $currentMonthNotes as n (n.id)}
@@ -111,10 +111,10 @@
                 {/if}
                 <span class="sr-only">{effectLabel(n.effect)}</span>
               </span>
-              <span class="min-w-0 flex-1 text-gray-900 dark:text-gray-100">{n.text}</span>
+              <span class="min-w-0 flex-1 text-label">{n.text}</span>
               <span class="flex flex-none items-center gap-3 text-[12.5px]">
-                <button type="button" class="rounded text-muted hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-muted-dark dark:hover:text-gray-100" on:click={() => startEdit(n.id)}>Edit</button>
-                <button type="button" class="rounded text-muted hover:text-danger hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-muted-dark dark:hover:text-danger-light" on:click={() => remove(n.id)} aria-label="Delete note: {n.text}">Delete</button>
+                <button type="button" class="rounded text-label-2 hover:text-label hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => startEdit(n.id)}>Edit</button>
+                <button type="button" class="rounded text-label-2 hover:text-danger hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => remove(n.id)} aria-label="Delete note: {n.text}">Delete</button>
               </span>
             </li>
           {/each}

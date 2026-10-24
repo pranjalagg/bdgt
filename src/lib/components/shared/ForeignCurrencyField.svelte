@@ -54,7 +54,7 @@
 </script>
 
 <div class="mt-2 space-y-2">
-  <div class="flex items-center gap-2 text-sm text-muted dark:text-muted-dark">
+  <div class="flex items-center gap-2 text-sm text-label-2">
     <label for="{id}-select">Paid in</label>
     <select id="{id}-select" bind:value={currency} class="select-base !w-auto !py-1 text-sm">
       {#each CURRENCIES as c}
@@ -64,9 +64,9 @@
   </div>
 
   {#if isForeign}
-    <div class="rounded-lg border border-border p-3 text-sm dark:border-border-dark">
+    <div class="rounded-lg border border-sep p-3 text-sm">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-gray-700 dark:text-gray-300">1 {$baseCurrency} =</span>
+        <span class="text-label">1 {$baseCurrency} =</span>
         <input
           id="{id}-rate"
           type="text"
@@ -76,17 +76,17 @@
           placeholder="0.00"
           class="input-base !w-28 !py-1 text-sm"
         />
-        <span class="text-gray-700 dark:text-gray-300">{currency}</span>
+        <span class="text-label">{currency}</span>
         <button type="button" class="btn-secondary !px-3 !py-1 text-sm" disabled={fetching} on:click={fetchLatest}>
           {fetching ? 'Fetching…' : 'Fetch rate'}
         </button>
       </div>
       {#if fetchError}
-        <p class="mt-2 text-danger dark:text-danger-light">{fetchError}</p>
+        <p class="mt-2 text-danger">{fetchError}</p>
       {:else if !rateValid}
-        <p class="mt-2 text-muted dark:text-muted-dark">Enter a rate to convert.</p>
+        <p class="mt-2 text-label-2">Enter a rate to convert.</p>
       {:else if foreignMinor !== 0}
-        <p class="mt-2 text-muted dark:text-muted-dark">≈ <span class="amt">{formatCurrency(baseCents)}</span></p>
+        <p class="mt-2 text-label-2">≈ <span class="amt">{formatCurrency(baseCents)}</span></p>
       {/if}
     </div>
   {/if}

@@ -72,7 +72,7 @@
     <div>
       <label for="income-amount" class="label">Amount</label>
       <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-label-2">{currencySymbol()}</span>
         <input
           id="income-amount"
           type="text"
@@ -87,7 +87,7 @@
       {#if incomeError}
         <p class="mt-1 text-sm text-danger">{incomeError}</p>
       {:else if incomePreview !== null}
-        <p class="mt-1 text-sm text-muted">= <span class="amt">{formatCurrency(dollarsToCents(incomePreview))}</span></p>
+        <p class="mt-1 text-sm text-label-2">= <span class="amt">{formatCurrency(dollarsToCents(incomePreview))}</span></p>
       {/if}
     </div>
     <div>
@@ -114,15 +114,15 @@
       <h3 class="settings-label">This month's income</h3>
       <div class="space-y-2">
         {#each $currentMonthIncomes as income}
-          <div class="flex items-center justify-between gap-3 rounded-[14px] bg-raised py-2 pl-4 pr-1.5 dark:bg-raised-dark">
+          <div class="flex items-center justify-between gap-3 rounded-[14px] bg-raised py-2 pl-4 pr-1.5">
             <div>
               <div class="flex items-center gap-2">
-                <p class="money amt text-[15px] font-semibold text-gray-950 dark:text-gray-50">{formatCurrency(income.amount)}</p>
-                <span class="rounded-full bg-white px-1.5 py-px text-[10.5px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-white/10 dark:text-gray-200">
+                <p class="money amt text-[15px] font-semibold text-label">{formatCurrency(income.amount)}</p>
+                <span class="rounded-full bg-surface px-1.5 py-px text-[10.5px] font-semibold uppercase tracking-wide text-label dark:bg-white/10">
                   {income.type === 'fixed' ? 'Fixed' : 'Variable'}
                 </span>
               </div>
-              {#if income.note}<p class="text-[13px] text-muted">{income.note}</p>{/if}
+              {#if income.note}<p class="text-[13px] text-label-2">{income.note}</p>{/if}
             </div>
             <div class="flex flex-none items-center">
               <button
@@ -133,7 +133,7 @@
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
               </button>
               <button
-                class="btn-icon hover:!bg-danger/10 hover:!text-danger dark:hover:!text-danger-light"
+                class="btn-icon hover:!bg-danger/10 hover:!text-danger"
                 on:click={() => confirm(`Delete this ${formatCurrency(income.amount)} income?`) && deleteIncome(income.id)}
                 aria-label="Delete income"
               >

@@ -83,8 +83,8 @@
 </svelte:head>
 
 {#if $isLoading}
-	<div class="flex h-screen items-center justify-center bg-background dark:bg-background-dark">
-		<p class="text-gray-500 dark:text-gray-400">Loading...</p>
+	<div class="flex h-screen items-center justify-center bg-page">
+		<p class="text-label-2">Loading...</p>
 	</div>
 {:else}
 	{#key $baseCurrency}

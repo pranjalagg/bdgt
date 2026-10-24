@@ -24,7 +24,7 @@
   $: current = path === '/settings' || path.startsWith('/settings/') ? '/settings' : tabRootOf(path);
 </script>
 
-<nav class="hidden h-full w-56 flex-shrink-0 flex-col border-r border-border bg-surface dark:border-border-dark md:flex [view-transition-name:sidebar]" aria-label="Main">
+<nav class="hidden h-full w-56 flex-shrink-0 flex-col border-r border-sep bg-surface md:flex [view-transition-name:sidebar]" aria-label="Main">
   <div class="flex items-center gap-2.5 px-5 py-5">
     <div class="flex h-8 w-8 items-center justify-center rounded-[9px] bg-tint text-white">
       <Icon name="layers" size={18} strokeWidth={2.5} />
@@ -60,7 +60,7 @@
     {/each}
   </ul>
 
-  <div class="border-t border-border px-3 py-3 dark:border-border-dark">
+  <div class="border-t border-sep px-3 py-3">
     <CurrencyChip />
     <SyncChip />
   </div>

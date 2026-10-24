@@ -210,9 +210,9 @@
         Keep notifications on for these apps: the phone can only pass on what it shows. The full message text stays on this phone; the amount, date, merchant and card digits sync to your account, which the app's owner can see.
       </p>
 
-      <details class="rounded-lg border border-border dark:border-border-dark">
+      <details class="rounded-lg border border-sep">
         <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-label">Recorded notifications ({status.count})</summary>
-        <div class="space-y-3 border-t border-border px-3 py-3 dark:border-border-dark">
+        <div class="space-y-3 border-t border-sep px-3 py-3">
           {#if items.length === 0}
             <p class="text-sm text-label-2">Nothing yet. Pay with Google Wallet or a UPI app, or wait for a bank SMS.</p>
           {:else}

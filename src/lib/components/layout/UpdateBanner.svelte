@@ -52,8 +52,8 @@
 </script>
 
 {#if update}
-  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-white px-4 py-3 text-sm dark:border-border-dark dark:bg-surface-dark">
-    <p class="text-gray-800 dark:text-gray-100">Build {update.build} of the app is ready.</p>
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-sep bg-surface px-4 py-3 text-sm">
+    <p class="text-label">Build {update.build} of the app is ready.</p>
     <div class="flex gap-2">
       <a class="btn-primary" href={update.url}>Download</a>
       <button type="button" class="btn-secondary" on:click={later}>Later</button>

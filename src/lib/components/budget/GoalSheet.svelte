@@ -76,7 +76,7 @@
     <div>
       <label for="goal-target" class="label">Target Amount</label>
       <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-label-2">{currencySymbol()}</span>
         <input
           id="goal-target"
           type="text"
@@ -95,7 +95,7 @@
     <div>
       <label for="goal-start" class="label">Starting Balance (optional)</label>
       <div class="relative mt-1.5">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-label-2">{currencySymbol()}</span>
         <input
           id="goal-start"
           type="text"
@@ -115,11 +115,11 @@
       <div class="flex gap-4">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" bind:group={goalMode} value="deadline" class="accent-primary" />
-          <span class="text-sm text-gray-700 dark:text-gray-200">Set deadline</span>
+          <span class="text-sm text-label">Set deadline</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" bind:group={goalMode} value="monthly" class="accent-primary" />
-          <span class="text-sm text-gray-700 dark:text-gray-200">Set monthly contribution</span>
+          <span class="text-sm text-label">Set monthly contribution</span>
         </label>
       </div>
     </div>
@@ -137,7 +137,7 @@
       <div>
         <label for="goal-monthly" class="label">Monthly Contribution</label>
         <div class="relative mt-1.5">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol()}</span>
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-label-2">{currencySymbol()}</span>
           <input
             id="goal-monthly"
             type="text"
