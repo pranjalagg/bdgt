@@ -38,7 +38,7 @@
           <span class="t-row block truncate">{c.merchant}</span>
           <span class="amt block truncate text-[13px] text-label-2">{status === 'approved' ? approvedText(c) : 'Dismissed'} · {formatMoney(c.amount, c.currency)}</span>
         </span>
-        <button type="button" class="flex-none rounded-full bg-fill px-3.5 py-2 text-[13px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => dispatch('reopen', c.id)}>Back to review</button>
+        <button type="button" class="flex-none rounded-full bg-surface px-3.5 py-2 text-[13px] font-semibold text-tint shadow-[var(--shadow-card)] focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => dispatch('reopen', c.id)}>Back to review</button>
       </div>
     {/each}
   </div>

@@ -2,6 +2,8 @@
   import { formatCurrency, parseCurrency, isValidCurrency } from '$lib/utils/currency';
   import { setPrice, type Holding } from '$lib/stores/investmentStore';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
+  import SectionHeading from '$lib/components/ui/SectionHeading.svelte';
 
   export let holdings: Holding[];
   export let onAddPurchase: () => void;
@@ -56,25 +58,24 @@
 </script>
 
 <section aria-labelledby="inv-holdings">
-  <div class="flex items-center justify-between px-1 pb-1.5">
-    <h2 id="inv-holdings" class="text-[13px] font-medium uppercase tracking-wide text-label-2">Holdings</h2>
-    <button type="button" class="flex items-center gap-1 rounded-full px-1 text-[15px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={onAddPurchase}>
+  <SectionHeading strong="Holdings" id="inv-holdings">
+    <button slot="action" type="button" class="flex items-center gap-1 rounded-full px-1 text-[15px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={onAddPurchase}>
       <Icon name="plus" size={16} strokeWidth={2.4} />Add purchase
     </button>
-  </div>
+  </SectionHeading>
 
   {#if holdings.length === 0}
-    <div class="card px-5 py-8 text-center text-[15px] text-label-2">No holdings yet. Add your first purchase to get started.</div>
+    <p class="py-6 text-center text-[15px] text-label-2">No holdings yet. Add your first purchase to get started.</p>
   {:else}
-    <div class="group">
+    <div class="list">
       {#each holdings as holding (holding.symbol)}
         {@const open = expandedSymbol === holding.symbol}
-        <div class="group-row" style="--row-inset: 64px">
-          <div class="flex items-center gap-3 px-4 py-3">
+        <div>
+          <div class="row">
             <button type="button" class="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" aria-expanded={open} on:click={() => toggleExpand(holding.symbol)}>
-              <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#3b82f6] text-white" aria-hidden="true"><Icon name="trend" size={19} strokeWidth={2.2} /></span>
+              <IconMark icon="trend" />
               <span class="min-w-0 flex-1">
-                <span class="flex items-center gap-1 text-[16px] font-semibold text-label">{holding.symbol}<span class="chev text-label-2" class:open aria-hidden="true"><Icon name="chevron-down" size={14} strokeWidth={2.4} /></span></span>
+                <span class="t-row flex items-center gap-1">{holding.symbol}<span class="chev text-label-2" class:open aria-hidden="true"><Icon name="chevron-down" size={14} strokeWidth={2.4} /></span></span>
                 <span class="block text-[13px] text-label-2">{formatShares(holding.totalShares)} shares · <span class="amt">{formatCurrency(holding.totalCost)}</span> cost</span>
               </span>
             </button>
@@ -85,7 +86,7 @@
               {/if}
             </span>
           </div>
-          <div class="flex items-center justify-between gap-3 px-4 pb-3 pl-[64px] text-[13px]">
+          <div class="flex items-center justify-between gap-3 pb-3 pl-[58px] text-[13px]">
             <span class="text-label-2">Price</span>
             {#if editingPriceSymbol === holding.symbol}
               <span class="text-right">
@@ -104,14 +105,14 @@
                 {#if priceError}<span class="mt-0.5 block text-[12px] text-danger">{priceError}</span>{/if}
               </span>
             {:else}
-              <button type="button" class="money amt rounded-full bg-fill px-3 py-1 text-[13px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => startEditPrice(holding)}>
+              <button type="button" class="money amt rounded-full bg-surface px-3 py-1 text-[13px] font-semibold text-tint shadow-[var(--shadow-card)] focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => startEditPrice(holding)}>
                 {holding.currentPrice != null ? `${formatCurrency(holding.currentPrice)} each` : 'Set price'}
               </button>
             {/if}
           </div>
 
           {#if open}
-            <div class="px-4 pb-3 pl-[64px]">
+            <div class="pb-3 pl-[58px]">
               <p class="pb-1.5 text-[12px] font-medium uppercase tracking-wide text-label-2">Lots</p>
               <div class="grid gap-1.5">
                 {#each holding.lots as lot (lot.id)}

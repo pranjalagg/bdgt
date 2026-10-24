@@ -18,9 +18,9 @@
 </script>
 
 <div>
-  <p class="text-[15px] font-semibold text-label-2">{label}</p>
-  <p class="figure amt mt-1 text-[44px] leading-none text-label" style="letter-spacing: -0.035em" use:fitText={{ text: whole + frac, max: 44, min: 26 }}>
-    <RollingNumber text={whole} />{#if frac}<span class="text-[0.5em]"><RollingNumber text={frac} /></span>{/if}
+  <p class="text-[17px] font-semibold text-label">{label}</p>
+  <p class="t-figure amt mt-3 text-label" use:fitText={{ text: whole + frac, max: 48, min: 26 }}>
+    <RollingNumber text={whole} />{#if frac}<span class="cents"><RollingNumber text={frac} /></span>{/if}
   </p>
   {#if pill || sub}
     <p class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-label-2">
@@ -33,3 +33,12 @@
     </p>
   {/if}
 </div>
+
+<style>
+  .cents {
+    font-size: 0.5em;
+    color: rgb(var(--c-label-2));
+    font-weight: 600;
+    margin-left: 0.04em;
+  }
+</style>

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import NavBar from '$lib/components/layout/NavBar.svelte';
-  import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
+  import SectionHeading from '$lib/components/ui/SectionHeading.svelte';
   import Figure from '$lib/components/insights/Figure.svelte';
   import ScrubBars from '$lib/components/charts/ScrubBars.svelte';
   import PairedBars from '$lib/components/charts/PairedBars.svelte';
@@ -119,7 +120,7 @@
 
 <NavBar title={TITLES[kind]} back={{ href: `${base}/insights`, label: 'Insights' }} />
 
-<div class="space-y-4">
+<div class="space-y-6">
   <Figure label={fig.label} cents={fig.cents ?? null} text={fig.text ?? null} pill={fig.pill ?? null} sub={fig.sub ?? ''} />
 
   {#if kind === 'envelopes'}
@@ -149,27 +150,27 @@
   </div>
 
   <section aria-labelledby="list-h">
-    <h2 id="list-h" class="px-1 pb-1.5 pt-3 text-[13px] font-medium uppercase tracking-wide text-label-2">{kind === 'envelopes' ? nameOf(5) : 'By month'}</h2>
-    <div class="group">
+    <SectionHeading strong={kind === 'envelopes' ? nameOf(5) : 'By'} soft={kind === 'envelopes' ? '' : 'month'} id="list-h" />
+    <div class="list">
       {#if kind === 'envelopes'}
         {#each envelopeRows as r (r.s.bucketId)}
           {@const b = bucketById.get(r.s.bucketId)}
-          <div class="group-row flex items-center gap-3 px-4 py-2.5" style="--row-inset: 64px">
-            <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] text-white" style="background:{r.s.color}" aria-hidden="true"><Icon name={envelopeIcon(r.s.label, b?.isSystem)} size={19} strokeWidth={2.2} /></span>
+          <div class="row">
+            <IconMark icon={envelopeIcon(r.s.label, b?.isSystem)} dot={r.s.color} />
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-[16px] text-label">{r.s.label}</span>
+              <span class="t-row block truncate">{r.s.label}</span>
               <span class="amt block text-[13px] text-label-2">{r.now === r.before ? `Same as ${longName(months[4])}` : `${whole(Math.abs(r.now - r.before))} ${r.now < r.before ? 'less' : 'more'} than ${longName(months[4])}`}</span>
             </span>
             <span class="money amt flex-none text-[16px] font-semibold text-label">{whole(r.now)}</span>
           </div>
         {:else}
-          <p class="px-4 py-4 text-[15px] text-label-2">Nothing spent in these months.</p>
+          <p class="py-4 text-[15px] text-label-2">Nothing spent in these months.</p>
         {/each}
       {:else}
         {#each newestFirst as i}
-          <div class="group-row flex items-center gap-3 px-4 py-2.5" style="--row-inset: 16px">
+          <div class="row">
             <span class="min-w-0 flex-1">
-              <span class="block text-[16px] text-label">{nameOf(i)}</span>
+              <span class="t-row block">{nameOf(i)}</span>
               {#if empty[i]}
                 <span class="block text-[13px] text-label-2">Nothing logged</span>
               {:else if kind === 'income'}

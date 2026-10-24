@@ -37,7 +37,7 @@
   <svelte:fragment slot="trailing"><PrivacyToggle /></svelte:fragment>
 </NavBar>
 
-<div class="space-y-6">
+<div class="space-y-9">
 
   {#if $isLoadingInvestments}
     <div class="flex items-center justify-center py-12">

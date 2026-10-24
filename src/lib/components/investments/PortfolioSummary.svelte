@@ -24,18 +24,18 @@
     <Figure label="Invested" cents={summary.totalInvested} sub={summary.holdingsCount ? 'Set a price on a holding to see its value' : ''} />
   {/if}
 
-  <div class="card grid grid-cols-3 divide-x divide-sep py-3.5">
-    <div class="min-w-0 px-3.5">
+  <div class="grid grid-cols-3 gap-3">
+    <div class="min-w-0">
       <p class="text-[13px] font-medium text-label-2">Invested</p>
-      <p class="money amt mt-0.5 truncate text-[17px] font-semibold text-label">{formatCurrency(summary.totalInvested)}</p>
+      <p class="money amt mt-1 truncate text-[18px] font-bold text-label">{formatCurrency(summary.totalInvested)}</p>
     </div>
-    <div class="min-w-0 px-3.5">
+    <div class="min-w-0">
       <p class="text-[13px] font-medium text-label-2">Unrealised</p>
-      <p class="money amt mt-0.5 truncate text-[17px] font-semibold {tone(gain)}">{gain === null ? '—' : signed(gain)}</p>
+      <p class="money amt mt-1 truncate text-[18px] font-bold {tone(gain)}">{gain === null ? '—' : signed(gain)}</p>
     </div>
-    <div class="min-w-0 px-3.5">
+    <div class="min-w-0">
       <p class="text-[13px] font-medium text-label-2">Realised</p>
-      <p class="money amt mt-0.5 truncate text-[17px] font-semibold {tone(summary.realizedGain)}">{summary.realizedGain === 0 ? formatCurrency(0) : signed(summary.realizedGain)}</p>
+      <p class="money amt mt-1 truncate text-[18px] font-bold {tone(summary.realizedGain)}">{summary.realizedGain === 0 ? formatCurrency(0) : signed(summary.realizedGain)}</p>
     </div>
   </div>
 

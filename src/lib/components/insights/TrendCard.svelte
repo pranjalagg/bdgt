@@ -1,20 +1,20 @@
 <script lang="ts">
   import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
   import type { IconName } from '$lib/ui/icons';
 
   // A trend in one card: a figure and a small chart. Opens the full chart.
 
   export let href: string;
   export let icon: IconName;
-  export let color: string;
   export let title: string;
   export let value: string;
   export let sub: string;
 </script>
 
-<a {href} class="card grid gap-2.5 px-4 py-3.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint">
-  <span class="flex items-center gap-2 text-[15px] font-semibold text-label">
-    <span class="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-[8px] text-white" style="background:{color}" aria-hidden="true"><Icon name={icon} size={15} strokeWidth={2.2} /></span>
+<a {href} class="card grid gap-3 p-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" style="--mark-ring: rgb(var(--c-surface))">
+  <span class="flex items-center gap-2.5 text-[15px] font-semibold text-label">
+    <IconMark {icon} size={30} />
     {title}
     <span class="ml-auto text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={16} /></span>
   </span>
