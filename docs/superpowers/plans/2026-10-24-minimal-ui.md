@@ -183,3 +183,34 @@ Changes:
 - [ ] Desktop pass at 1280 × 800 in both themes. Fix what fails.
 - [ ] `npm run ui:smoke`, `npm run ui:a11y` (including the reduced-motion pass), `npm run ui:shots`, `npx vitest run`, `npm run check`, `npm run build`: all pass.
 - [ ] Commit: `chore(ui): sweep, docs`. Push. Confirm the preview build publishes `android-preview` from this branch and `android-latest` is unchanged.
+
+---
+
+## Execution record
+
+Copied from the executor's ledger when the plan finished (2026-10-24).
+
+### Rulings
+
+- Task 1: Ruling: Inter stays installed but unimported, so the system font comes back by swapping one import and one token (the owner half-agreed to Manrope) — cost if wrong: one unused dependency.
+- Task 1: Ruling: the preview publish step now keys on PREVIEW (native-ui or minimal-ui), so whichever UI branch pushed last owns android-preview; android-latest stays gated on the Android branch by name — cost if wrong: a native-ui push would replace this branch's preview.
+- Task 2: Ruling: highlightIndex takes the values (not a count) and skips bars with nothing in them — today often has no spending yet, and highlighting an empty bar left the chart all pale — cost if wrong: none (tested).
+- Task 2: Ruling: pale bars sit below 3:1 against the page, as in the references; the figure above the chart, the bubble, the aria-label and the trend pages' lists carry every value — cost if wrong: a non-text contrast finding on bar shapes.
+- Task 2: Ruling: the date rolled to Oct 24 mid-run and the Home smoke step hard-coded Oct 23's $234.47 — it now checks the hero against the bar's "$X today" — cost if wrong: none.
+- Task 3: Ruling: envelope tiles keep all text in the label colour (overspent reads "−$X over" in words) — red on a tinted orange tile in dark mode measures under 4.5:1 — cost if wrong: an overspent tile is not red.
+- Task 3: Ruling: the Review card drops its inner peek of the first payment (one quiet line: count, total, chevron) — the peek was the busiest part of Home — cost if wrong: the first merchant is one tap away.
+- Task 4: Ruling: a sheet left on screen after its page went away (envelope deleted from its own page) — the portal action now removes its element on destroy (Svelte 5 removes only a block's own DOM range); smoke step "a long envelope name…" ends by asserting no sheet stays open — cost if wrong: none.
+- Task 4: Ruling: Reset's currency prompt was closed by the shell rebuild (and the smoke step had been confirming a leftover copy) — promptToReopen (tested) lets the rebuilt Layout open it again — cost if wrong: the prompt opens once more after an import that leaves the currency unconfirmed.
+- Task 4: Ruling: Budget's group headings read "Everyday / Bills / Savings envelopes" (strong + soft); "More" and goal rows use open rows with chevrons only where a page opens — cost if wrong: wording.
+- Task 7: Ruling: tint text on a grey fill fails 4.5:1 once it sits on the page (4.42) — the price and Back to review pills use the surface colour instead — cost if wrong: none.
+
+### Task results
+
+- Task 1: complete (commits aceb261..e136f5f, tests: npm run ui:smoke → no page errors)
+- Task 2: complete (commits e136f5f..7db3078, tests: npx vitest run →    Duration  7.90s (transform 6.26s, setup 0ms, import 11.60s, tests 19.23s, environment 52.64s))
+- Task 3: complete (commits 7db3078..2d3e583, tests: npx vitest run →    Duration  7.56s (transform 5.50s, setup 0ms, import 10.27s, tests 18.49s, environment 50.78s))
+- Task 4: complete (commits 2d3e583..18cabb6, tests: npx vitest run →    Duration  7.96s (transform 5.49s, setup 0ms, import 10.49s, tests 18.28s, environment 55.34s))
+- Task 5: complete (commits 18cabb6..6e22bd9, tests: npx vitest run →    Duration  8.31s (transform 6.25s, setup 0ms, import 11.13s, tests 19.37s, environment 57.23s))
+- Task 6: complete (commits 6e22bd9..a3c8265, tests: npx vitest run →    Duration  8.67s (transform 5.64s, setup 0ms, import 11.39s, tests 19.25s, environment 61.45s))
+- Task 7: complete (commits a3c8265..15b2fae, tests: npx vitest run →    Duration  10.62s (transform 7.37s, setup 0ms, import 13.27s, tests 22.98s, environment 78.67s))
+- Task 8: complete (commits 15b2fae..265474b, tests: npx vitest run →    Duration  8.28s (transform 5.88s, setup 0ms, import 11.50s, tests 22.34s, environment 55.43s))

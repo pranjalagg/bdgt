@@ -50,6 +50,7 @@ All monetary values stored in **cents** (integers).
 - `src/lib/charts/`: chart scales, paths and the scrub action; `src/lib/insights/`: trend math and pattern logic
 - `src/lib/home/`: Home hero math and the Home layout (`homeLayout` row in the settings table)
 - `tests/`: Unit tests for utilities, stores and the pure UI logic above
+- Design language: `docs/superpowers/specs/2026-10-24-minimal-ui-design.md` (white space over boxes, one large figure per screen, neutral `IconMark` icons, envelope colour only as dots, bars and soft tiles, two-weight `SectionHeading`s, Manrope via one `--font-sans` token). Shared parts: `src/lib/components/ui/{IconMark,SectionHeading}.svelte`, `src/lib/ui/tiles.ts`, `.list` / `.row` / `.t-*` classes in `src/app.css`
 - `scripts/ui-check/run.cjs`: browser checks (`npm run ui:smoke`, `ui:a11y`, `ui:shots`) against the dev server on port 5174
 
 ### Important Patterns

@@ -158,6 +158,12 @@ Changing the base currency only relabels today; amounts are not converted. Step 
   - Settings' Sync row reads the sync status time once per render, not every 30 seconds as the Sync page does. Size S.
 - **Add purchase (Investments) starts on tomorrow's date in the evening** in time zones west of UTC: `AddLotModal.svelte` takes the date from `toISOString()` (UTC). Found while restyling; not changed because it is behaviour. Fix: `getLocalDateKey(new Date())` in both places it is set. Size S.
 
+## Quieter design language (branch `claude/minimal-ui`, plan: `docs/superpowers/plans/2026-10-24-minimal-ui.md`)
+- **Font is Manrope on trial** (the owner half agreed). To go back to the system font: in `src/routes/+layout.svelte` import `@fontsource-variable/inter/opsz.css` instead of Manrope, and set `--font-sans` in `src/app.css` back to `-apple-system, BlinkMacSystemFont, 'Inter Variable', Inter, system-ui, sans-serif`. Size S.
+- **Pale chart bars sit below 3:1 against the page** (as in the references). Every value is also in the figure above the chart, the scrub bubble, the chart's spoken label and the trend pages' lists. If a non-text contrast check matters later, darken the pale bars to `label-2` at about 40%. `ScrubBars.svelte`. Size S.
+- **Settings keeps hairline groups** (the iOS convention for settings); every other list is open. Revisit if the owner wants Settings open too.
+- **Only the Home envelope tiles use tinted colour backgrounds**; Budget rows show the envelope colour as a dot and a bar. Tiles elsewhere (Budget) could follow if the owner likes them.
+
 ---
 
 ## Product and UI
