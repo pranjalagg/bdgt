@@ -8,7 +8,7 @@
   import CurrencyModal from '$lib/components/shared/CurrencyModal.svelte';
   import SyncChoiceModal from '$lib/components/sync/SyncChoiceModal.svelte';
   import { syncEnabled } from '$lib/sync/browser';
-  import { currencyConfirmed, takeCurrencyPrompt, currencyAnsweredElsewhere } from '$lib/stores/currencyStore';
+  import { currencyConfirmed, takeCurrencyPrompt, currencyAnsweredElsewhere, promptToReopen } from '$lib/stores/currencyStore';
   import { openLog, openModal, closeModal, activeModal, modalStack, logPreselectedBucketId, scaledBack } from '$lib/stores/uiStore';
   import Toast from '$lib/components/ui/Toast.svelte';
   import TabBar from './TabBar.svelte';
@@ -87,8 +87,13 @@
 
   const edgeBack = () => goBack();
 
-  // Android: look for a newer test build (the navigation bar shows it).
-  onMount(startUpdateChecks);
+  // Android: look for a newer test build (the navigation bar shows it). A
+  // currency prompt that a reset or import closed by rebuilding this shell
+  // opens again.
+  onMount(() => {
+    if (promptToReopen($currencyConfirmed, $modalStack.includes('currency'))) openModal('currency');
+    return startUpdateChecks();
+  });
 
   // The Log sheet's date lives here so the chip in its header and the form
   // share it; the form resets it each time the sheet opens.

@@ -2,7 +2,7 @@
   import { buckets } from '$lib/stores/budgetStore';
   import { formatCurrency } from '$lib/utils/currency';
   import { envelopeIcon } from '$lib/ui/icons';
-  import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
   import type { RecurringTransaction } from '$lib/types';
 
   // A bill or subscription: what it is, its envelope and how often, the
@@ -21,15 +21,13 @@
   type="button"
   data-row
   disabled={!onClick}
-  class="group-row flex w-full items-center gap-3 px-4 py-3 text-left transition-colors enabled:hover:bg-fill enabled:active:bg-fill focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint disabled:cursor-default"
+  class="row row-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-tint disabled:cursor-default disabled:hover:bg-transparent"
   on:click={() => onClick?.()}
 >
-  <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] text-white" style="background:{bucket?.color ?? '#8e8e93'}">
-    <Icon name={bucket ? envelopeIcon(bucket.name, bucket.isSystem) : 'tag'} size={19} strokeWidth={2.2} />
-  </span>
+  <IconMark icon={bucket ? envelopeIcon(bucket.name, bucket.isSystem) : 'tag'} dot={bucket && !bucket.isSystem ? bucket.color : null} />
   <span class="min-w-0 flex-1">
     <span class="flex items-center gap-1.5">
-      <span class="truncate text-[16px] font-medium text-label">{item.note || bucket?.name || 'Recurring'}</span>
+      <span class="t-row truncate">{item.note || bucket?.name || 'Recurring'}</span>
       {#if !item.isActive}<span class="tag flex-none">Paused</span>{/if}
     </span>
     <span class="block truncate text-[13px] text-label-2">{bucket?.name ?? 'Unknown'} · {FREQUENCY[item.frequency] ?? item.frequency}</span>

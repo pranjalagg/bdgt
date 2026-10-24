@@ -8,7 +8,7 @@
   import { envelopeIcon } from '$lib/ui/icons';
   import { haptic } from '$lib/ui/haptics';
   import { draftFrom, draftTotal, fieldCents, leftToAssign, restTarget, dollarsText, type AssignDraft } from '$lib/budget/assignDraft';
-  import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
 
   // Give every dollar a job in one sitting: a number field per fixed
   // envelope and a live figure of what is left. Nothing is written until
@@ -111,14 +111,12 @@
 
   {#if error}<p class="pb-2 text-sm text-danger" role="alert">{error}</p>{/if}
 
-  <div bind:this={list} class="group" style="--row-inset: 60px">
+  <div bind:this={list} class="list" style="--mark-ring: rgb(var(--c-surface))">
     {#each fixed as s (s.bucket.id)}
-      <div class="group-row flex items-center gap-3 py-2.5 pl-3 pr-2">
-        <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] text-white" style="background:{s.bucket.color}">
-          <Icon name={envelopeIcon(s.bucket.name)} size={19} strokeWidth={2.2} />
-        </span>
+      <div class="row">
+        <IconMark icon={envelopeIcon(s.bucket.name)} size={40} dot={s.bucket.color} />
         <span class="min-w-0 flex-1">
-          <label for="assign-{s.bucket.id}" class="block truncate text-[16px] font-medium text-label">{s.bucket.name}</label>
+          <label for="assign-{s.bucket.id}" class="t-row block truncate">{s.bucket.name}</label>
           {#if left !== null && left > 0}
             <button type="button" class="text-[13px] font-medium text-tint" on:click={() => addRest(s.bucket.id)}>+ rest</button>
           {:else}
@@ -143,12 +141,10 @@
       </div>
     {/each}
     {#each derived as s (s.bucket.id)}
-      <div class="group-row flex items-center gap-3 py-2.5 pl-3 pr-4">
-        <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] text-white" style="background:{s.bucket.color}">
-          <Icon name={envelopeIcon(s.bucket.name)} size={19} strokeWidth={2.2} />
-        </span>
+      <div class="row">
+        <IconMark icon={envelopeIcon(s.bucket.name)} size={40} dot={s.bucket.color} />
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-[16px] font-medium text-label">{s.bucket.name}</span>
+          <span class="t-row block truncate">{s.bucket.name}</span>
           <span class="block text-[13px] text-label-2">{s.bucket.percentageAmount}% of income</span>
         </span>
         <span class="money amt text-[16px] text-label-2">{formatCurrency(s.allocated)}</span>

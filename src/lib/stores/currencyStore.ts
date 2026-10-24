@@ -36,6 +36,13 @@ export function currencyAnsweredElsewhere(confirmed: boolean, dialogOpen: boolea
   return dialogOpen;
 }
 
+// A reset or import rebuilds the app shell while loading, and the prompt
+// the old shell opened closes with it. True when the new shell should open
+// it again: asked, still unanswered, and not open.
+export function promptToReopen(confirmed: boolean, open: boolean): boolean {
+  return promptShown && !confirmed && !open;
+}
+
 export function resetCurrencyPrompt(): void {
   prompted = false;
 }

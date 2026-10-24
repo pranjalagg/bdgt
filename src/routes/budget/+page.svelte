@@ -3,6 +3,8 @@
   // then the envelopes in three groups, then bills, goals and notes.
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
+  import SectionHeading from '$lib/components/ui/SectionHeading.svelte';
   import { base } from '$app/paths';
   import { bucketStatuses, unsortedTransactions } from '$lib/stores/budgetStore';
   import MonthMenu from '$lib/components/layout/MonthMenu.svelte';
@@ -34,13 +36,14 @@
   </svelte:fragment>
 </NavBar>
 
-<div class="space-y-6">
+<div class="space-y-9">
   <BudgetSummary />
 
   {#each sections as section (section.title)}
     <section aria-label={section.title}>
-      <h2 class="settings-label">{section.title}{#if section.note}<span class="font-normal">{' · '}{section.note}</span>{/if}</h2>
-      <div class="group">
+      <SectionHeading strong={section.title} soft="envelopes" />
+      {#if section.note}<p class="-mt-2 pb-2 text-[13px] text-label-2">{section.note}</p>{/if}
+      <div class="list">
         {#each section.rows as status (status.bucket.id)}
           <EnvelopeRow {status} href="{base}/budget/{status.bucket.id}" />
         {/each}
@@ -50,30 +53,30 @@
 
   {#if $unsortedTransactions.length > 0 && groups.unsorted}
     <section aria-label="Needs an envelope">
-      <h2 class="settings-label">Needs an envelope</h2>
-      <div class="group">
+      <SectionHeading strong="Needs an" soft="envelope" />
+      <div class="list">
         <EnvelopeRow status={groups.unsorted} href="{base}/activity?bucket=unsorted" />
       </div>
     </section>
   {/if}
 
   <section aria-label="More">
-    <h2 class="settings-label">More</h2>
-    <div class="group">
-      <a href="{base}/budget/bills" class="group-row flex min-h-[56px] items-center gap-3 px-4 py-2.5 text-label hover:bg-fill">
-        <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="calendar" size={19} /></span>
-        <span class="min-w-0 flex-1 text-[16px] font-medium">Bills and subscriptions</span>
-        <span class="text-label-2/60"><Icon name="chevron-right" size={18} /></span>
+    <SectionHeading strong="More" />
+    <div class="list">
+      <a href="{base}/budget/bills" class="row row-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-tint">
+        <IconMark icon="calendar" />
+        <span class="t-row min-w-0 flex-1">Bills and subscriptions</span>
+        <span class="text-label-2" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
       </a>
-      <button type="button" on:click={() => openModal('notes')} class="group-row flex min-h-[56px] w-full items-center gap-3 px-4 py-2.5 text-left text-label hover:bg-fill">
-        <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="list" size={19} /></span>
-        <span class="min-w-0 flex-1 text-[16px] font-medium">Month notes</span>
-        <span class="text-label-2/60"><Icon name="chevron-right" size={18} /></span>
+      <button type="button" on:click={() => openModal('notes')} class="row row-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-tint">
+        <IconMark icon="list" />
+        <span class="t-row min-w-0 flex-1">Month notes</span>
+        <span class="text-label-2" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
       </button>
-      <button type="button" on:click={newEnvelope} class="group-row flex min-h-[56px] w-full items-center gap-3 px-4 py-2.5 text-left text-label hover:bg-fill">
-        <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#8e8e93] text-white"><Icon name="plus" size={19} /></span>
-        <span class="min-w-0 flex-1 text-[16px] font-medium">New envelope</span>
-        <span class="text-label-2/60"><Icon name="chevron-right" size={18} /></span>
+      <button type="button" on:click={newEnvelope} class="row row-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-tint">
+        <IconMark icon="plus" />
+        <span class="t-row min-w-0 flex-1">New envelope</span>
+        <span class="text-label-2" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
       </button>
     </div>
   </section>

@@ -1,8 +1,9 @@
 <script lang="ts">
-  // Same object as an envelope row: the card is the meter, filled with the
-  // linked bucket's own color, so a goal and its bucket read as one family
-  // instead of two different widgets.
+  // A goal as an open row (as in the owner's references): a ring in the
+  // linked envelope's colour shows how far along it is, around a neutral
+  // icon; what is saved and the share on the right.
   import { formatCurrency } from '$lib/utils/currency';
+  import Icon from '$lib/components/ui/Icon.svelte';
   import type { GoalStatusInfo } from '$lib/stores/goalsStore';
 
   export let status: GoalStatusInfo;
@@ -10,6 +11,8 @@
 
   $: color = status.bucket?.color ?? '#94a3b8';
   $: pct = Math.min(Math.max(status.progress, 0), 1) * 100;
+  const R = 20;
+  const C = 2 * Math.PI * R;
 
   $: statusLabel = {
     completed: 'Completed',
@@ -31,38 +34,22 @@
   type="button"
   on:click={onClick}
   disabled={!onClick}
-  class="group relative w-full overflow-hidden rounded-card border border-transparent bg-surface px-4 py-3
-         text-left transition-colors enabled:hover:bg-fill focus:outline-none focus-visible:ring-2
-         focus-visible:ring-tint disabled:cursor-default"
-  style="box-shadow: var(--shadow-card)"
+  class="row row-tap w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-tint disabled:cursor-default disabled:hover:bg-transparent"
 >
-  <span
-    class="pointer-events-none absolute inset-y-0 left-0 transition-[width] duration-500 ease-out"
-    style="width:{pct}%;
-           background:linear-gradient(90deg,{color} 0%,{color} 72%,transparent 100%);
-           opacity:.16"
-    aria-hidden="true"
-  ></span>
-
-  <span class="relative grid grid-cols-[1fr_auto_2.6rem] items-center gap-x-3 gap-y-0.5">
-    <span class="flex items-center gap-2.5 text-[13.5px] font-medium text-label">
-      <span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{color}"></span>
-      {status.goal.name}
+  <span class="relative flex h-11 w-11 flex-none items-center justify-center text-label" aria-hidden="true">
+    <svg viewBox="0 0 44 44" class="absolute inset-0 -rotate-90">
+      <circle cx="22" cy="22" r={R} fill="none" stroke="rgb(var(--c-fill) / var(--fill-alpha))" stroke-width="3" />
+      <circle cx="22" cy="22" r={R} fill="none" stroke={color} stroke-width="3" stroke-linecap="round" stroke-dasharray="{(pct / 100) * C} {C}" />
+    </svg>
+    <Icon name="piggy" size={18} strokeWidth={1.75} />
+  </span>
+  <span class="min-w-0 flex-1">
+    <span class="t-row block truncate">{status.goal.name}</span>
+    <span class="block text-[13px] text-label-2">
+      <span class="font-medium {statusColor}">{statusLabel}</span> · of <span class="money amt">{formatCurrency(status.goal.targetAmount)}</span>
     </span>
-    <span class="money text-right text-[13px] font-medium text-label amt">
-      {formatCurrency(status.currentAmount)}
-    </span>
-    <span class="text-[11.5px] text-label-2">saved</span>
-
-    <span class="text-[11.5px] text-label-2">
-      <span class="font-medium {statusColor}">{statusLabel}</span>
-      &middot; of <span class="money amt">{formatCurrency(status.goal.targetAmount)}</span>
-    </span>
-    <span class="money text-right text-[11.5px] text-label-2">{Math.round(pct)}%</span>
-    <span aria-hidden="true"></span>
-
     {#if status.status !== 'completed' && (status.goal.targetDate || status.projectedDate)}
-      <span class="col-span-3 text-[11.5px] text-label-2">
+      <span class="block text-[12px] text-label-2">
         {#if status.goal.targetDate}
           Need <span class="money amt">{formatCurrency(status.monthlyNeeded)}</span>/month to reach it by {formatDate(status.goal.targetDate)}
         {:else if status.projectedDate}
@@ -70,5 +57,9 @@
         {/if}
       </span>
     {/if}
+  </span>
+  <span class="flex-none text-right">
+    <span class="money amt block text-[16px] font-semibold text-label">{formatCurrency(status.currentAmount)}</span>
+    <span class="block text-[12px] text-label-2">{Math.round(pct)}% saved</span>
   </span>
 </button>

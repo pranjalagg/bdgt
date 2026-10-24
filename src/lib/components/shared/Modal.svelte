@@ -28,6 +28,14 @@
   // behind a sheet never clips or moves it.
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
+    // A moved element is outside its block's own DOM range, so when the
+    // page or block around this sheet goes away (an envelope deleted from
+    // its own page) nothing else would remove it.
+    return {
+      destroy() {
+        node.remove();
+      },
+    };
   }
 
   let panel: HTMLDivElement | undefined;

@@ -10,37 +10,46 @@
 
   $: real = $bucketStatuses.filter((s) => !s.bucket.isSystem && s.allocated > 0);
   $: left = $unallocated;
+  // The label over the figure, in two weights.
+  $: heading =
+    $currentMonthIncome === 0
+      ? ['Left to', 'assign', 'Add income to start the month']
+      : left < 0
+        ? ['Assigned', 'beyond income', 'Take some back from an envelope']
+        : left === 0
+          ? ['Every dollar', 'has a job', '']
+          : ['Left to', 'assign', ''];
 </script>
 
-<section class="card grid gap-3 p-4" aria-label="This month's plan">
-  <button type="button" class="-mx-1 flex items-center justify-between gap-3 rounded-xl px-1 py-1 text-left hover:bg-fill focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => openModal('income')}>
-    <span class="text-[15px] text-label-2">Income this month</span>
-    <span class="flex items-center gap-1 text-[15px] font-semibold text-label"><span class="money amt">{formatCurrency($currentMonthIncome)}</span><span class="text-label-2"><Icon name="chevron-right" size={16} /></span></span>
-  </button>
+<section class="grid gap-4 pt-2" aria-label="This month's plan">
+  <div>
+    <p class="text-[17px] font-semibold text-label">{heading[0]} <span class="font-medium text-label-2">{heading[1]}</span></p>
+    <p class="t-figure amt mt-3 {left < 0 ? 'text-danger' : 'text-label'}" use:fitText={{ text: formatCurrency(Math.abs(left)), max: 52, min: 28 }}>
+      {formatCurrency(Math.abs(left))}
+    </p>
+    {#if heading[2]}<p class="mt-2 text-[15px] text-label-2">{heading[2]}</p>{/if}
+  </div>
 
-  <div class="flex h-3 gap-0.5 overflow-hidden rounded-full bg-fill" aria-hidden="true">
+  <div class="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-fill" aria-hidden="true">
     {#each real as s (s.bucket.id)}
       <span class="h-full" style="flex-grow:{s.allocated}; background:{s.bucket.color}"></span>
     {/each}
     {#if left > 0}<span class="hatched h-full" style="flex-grow:{left}"></span>{/if}
   </div>
 
-  <div class="flex items-end justify-between gap-3">
-    <div class="min-w-0 flex-1">
-      <p class="figure amt text-[28px] {left < 0 ? 'text-danger' : left === 0 ? 'text-success' : 'text-label'}" use:fitText={{ text: left === 0 && $currentMonthIncome > 0 ? 'All assigned' : formatCurrency(Math.abs(left)), max: 28, min: 18 }}>
-        {left === 0 && $currentMonthIncome > 0 ? 'All assigned' : formatCurrency(Math.abs(left))}
-      </p>
-      <p class="mt-1 text-[13px] text-label-2">
-        {#if $currentMonthIncome === 0}add income to start the month{:else if left > 0}left to assign{:else if left < 0}assigned beyond your income{:else}Every dollar has a job{/if}
-      </p>
-    </div>
+  <div class="flex items-center justify-between gap-3">
+    <button type="button" class="-mx-2 flex min-w-0 items-center gap-1 rounded-full px-2 py-2 text-left text-[15px] focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => openModal('income')}>
+      <span class="text-label-2">Income this month</span>
+      <span class="money amt font-semibold text-label">{formatCurrency($currentMonthIncome)}</span>
+      <span class="text-label-2" aria-hidden="true"><Icon name="chevron-right" size={16} /></span>
+    </button>
     <button type="button" class="btn-primary !min-h-[40px] flex-none" on:click={() => openModal($currentMonthIncome === 0 ? 'income' : 'assign')}>
       {$currentMonthIncome === 0 ? 'Add income' : 'Assign'}
     </button>
   </div>
 
   {#if $totalPercentage > 100}
-    <p class="rounded-xl bg-danger/10 px-3 py-2 text-[13px] font-medium text-label" role="alert">
+    <p class="rounded-2xl bg-danger/10 px-4 py-3 text-[13px] font-medium text-label" role="alert">
       Percentage envelopes add up to {$totalPercentage}% of income, more than all of it.
     </p>
   {/if}

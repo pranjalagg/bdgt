@@ -484,6 +484,24 @@ async function smoke(browser, errors) {
     await page.mouse.move(60, 402, { steps: 4 }); await page.mouse.move(260, 404, { steps: 8 }); await page.mouse.up();
     await page.waitForURL((u) => new URL(u).pathname === '/budget', { timeout: 3000 });
   });
+  await step(results, 'a long envelope name never overflows its row or page title', async () => {
+    await page.goto(BASE + '/budget'); await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'New envelope' }).first().click();
+    await page.locator('#name').fill('Groceries and household supplies for the whole family');
+    await page.getByRole('dialog').getByRole('button', { name: 'Add envelope' }).click(); await page.waitForTimeout(600);
+    const row = page.locator('a.row', { hasText: 'Groceries and household' }).first();
+    const over = await row.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    if (over) throw new Error('Budget row overflows');
+    await row.click(); await page.waitForURL(/\/budget\/(?!bills)[^/]+$/);
+    await page.waitForTimeout(400);
+    const titleOver = await page.locator('main .t-title').evaluate((el) => el.getBoundingClientRect().right > window.innerWidth);
+    if (titleOver) throw new Error('envelope page title overflows');
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete envelope' }).click();
+    await page.waitForURL((u) => new URL(u).pathname === '/budget', { timeout: 3000 });
+    await page.waitForTimeout(500);
+    if (await page.getByRole('dialog').count()) throw new Error('a sheet stayed open after deleting');
+  });
   await step(results, 'add an envelope, then delete it from its page', async () => {
     await page.getByRole('button', { name: 'New envelope' }).first().click();
     await page.locator('#name').fill('Smoke bucket');

@@ -4,6 +4,8 @@
   import { base } from '$app/paths';
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
+  import SectionHeading from '$lib/components/ui/SectionHeading.svelte';
   import TransactionSheet from '$lib/components/activity/TransactionSheet.svelte';
   import GoalCard from '$lib/components/shared/GoalCard.svelte';
   import EnvelopeRing from '$lib/components/budget/EnvelopeRing.svelte';
@@ -41,38 +43,36 @@
 <NavBar title={status?.bucket.name ?? 'Envelope'} large={false} back={{ href: `${base}/budget`, label: 'Budget' }} />
 
 {#if status}
-  <div class="space-y-6">
-    <div class="grid justify-items-center gap-2 pt-1 text-center">
-      <span class="flex h-14 w-14 items-center justify-center rounded-[17px] text-white" style="background:{status.bucket.color}">
-        <Icon name={envelopeIcon(status.bucket.name, status.bucket.isSystem)} size={30} strokeWidth={2.1} />
-      </span>
-      <p class="text-[22px] font-bold text-label">{status.bucket.name}</p>
+  <div class="space-y-9">
+    <div class="grid justify-items-center gap-3 pt-2 text-center">
+      <IconMark icon={envelopeIcon(status.bucket.name, status.bucket.isSystem)} size={56} dot={status.bucket.isSystem ? null : status.bucket.color} />
+      <p class="t-title max-w-full truncate text-label">{status.bucket.name}</p>
       <EnvelopeRing {status} />
     </div>
 
-    <div class="card grid grid-cols-3 divide-x divide-sep text-center">
-      <div class="px-2 py-3"><p class="text-[12px] text-label-2">Assigned</p><p class="money amt text-[16px] font-semibold text-label">{whole(status.allocated)}</p></div>
-      <div class="px-2 py-3"><p class="text-[12px] text-label-2">{status.bucket.isSavings ? 'Saved' : 'Spent'}</p><p class="money amt text-[16px] font-semibold text-label">{whole(status.spent)}</p></div>
-      <div class="px-2 py-3"><p class="text-[12px] text-label-2">Carried in</p><p class="money amt text-[16px] font-semibold text-label">{whole(status.rollover)}</p></div>
+    <div class="grid grid-cols-3 gap-3 text-center">
+      <div><p class="text-[13px] text-label-2">Assigned</p><p class="money amt mt-0.5 text-[17px] font-semibold text-label">{whole(status.allocated)}</p></div>
+      <div><p class="text-[13px] text-label-2">{status.bucket.isSavings ? 'Saved' : 'Spent'}</p><p class="money amt mt-0.5 text-[17px] font-semibold text-label">{whole(status.spent)}</p></div>
+      <div><p class="text-[13px] text-label-2">Carried in</p><p class="money amt mt-0.5 text-[17px] font-semibold text-label">{whole(status.rollover)}</p></div>
     </div>
 
     <div class="grid grid-cols-3 gap-2">
-      <button type="button" class="btn-secondary !px-2 !text-tint" on:click={() => openLog(status?.bucket.id)}><Icon name="plus" size={18} />Log here</button>
-      <button type="button" class="btn-secondary !px-2 !text-tint" on:click={() => openModal('assign')}>Assign more</button>
-      <button type="button" class="btn-secondary !px-2 !text-tint" on:click={() => openModal('bucket-form')}>Edit</button>
+      <button type="button" class="btn-primary !px-2" on:click={() => openLog(status?.bucket.id)}><Icon name="plus" size={18} />Log here</button>
+      <button type="button" class="btn-secondary !px-2" on:click={() => openModal('assign')}>Assign more</button>
+      <button type="button" class="btn-secondary !px-2" on:click={() => openModal('bucket-form')}>Edit</button>
     </div>
 
     {#if goals.length}
       <section aria-label="Goal">
-        <h2 class="settings-label">Goal</h2>
-        <div class="grid gap-1.5">{#each goals as g}<GoalCard status={g} />{/each}</div>
+        <SectionHeading strong="Goal" />
+        <div class="list">{#each goals as g}<GoalCard status={g} />{/each}</div>
       </section>
     {/if}
 
     {#if recurring.length}
       <section aria-label="Coming up">
-        <h2 class="settings-label">Coming up</h2>
-        <div class="group">
+        <SectionHeading strong="Coming" soft="up" />
+        <div class="list">
           {#each recurring as item (item.id)}
             <RecurringRow {item} onClick={() => { editingRec = item; openModal('recurring-form'); }} />
           {/each}
@@ -81,15 +81,15 @@
     {/if}
 
     <section aria-label="This month">
-      <h2 class="settings-label">This month</h2>
+      <SectionHeading strong="This" soft="month" />
       {#if txs.length === 0}
-        <div class="card px-4 py-6 text-center text-[15px] text-label-2">Nothing yet this month.</div>
+        <p class="text-[15px] text-label-2">Nothing yet this month.</p>
       {:else}
-        <div class="group">
+        <div class="list">
           {#each txs as t (t.id)}
-            <button type="button" data-row class="group-row flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-fill focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint" style="--row-inset: 16px" on:click={() => { editingTx = t; openModal('edit-transaction'); }}>
+            <button type="button" data-row class="row row-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" style="min-height: 56px" on:click={() => { editingTx = t; openModal('edit-transaction'); }}>
               <span class="min-w-0 flex-1">
-                <span class="block truncate text-[16px] font-medium text-label">{t.note || status.bucket.name}</span>
+                <span class="t-row block truncate">{t.note || status.bucket.name}</span>
                 <span class="block text-[13px] text-label-2">{day(t.date)}</span>
               </span>
               <span class="money amt flex-none text-[16px] font-semibold {status.bucket.isSavings ? 'text-success' : 'text-label'}">{formatCurrency(t.amount)}</span>

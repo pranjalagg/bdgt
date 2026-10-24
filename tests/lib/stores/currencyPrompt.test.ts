@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { takeCurrencyPrompt, resetCurrencyPrompt, currencyAnsweredElsewhere } from '$lib/stores/currencyStore';
+import { takeCurrencyPrompt, resetCurrencyPrompt, currencyAnsweredElsewhere, promptToReopen } from '$lib/stores/currencyStore';
 
 describe('currency confirm prompt', () => {
   beforeEach(() => resetCurrencyPrompt());
@@ -40,5 +40,24 @@ describe('currency prompt answered by a sync', () => {
 
   it('never closes a dialog the person opened to change the currency', () => {
     expect(currencyAnsweredElsewhere(true, true)).toBe(false);
+  });
+});
+
+describe('currency prompt after the app shell is rebuilt', () => {
+  beforeEach(() => {
+    resetCurrencyPrompt();
+    currencyAnsweredElsewhere(true, false);
+  });
+
+  it('reopens a prompt that a reset or import closed by rebuilding the shell', () => {
+    expect(takeCurrencyPrompt(false)).toBe(true);
+    expect(promptToReopen(false, false)).toBe(true);
+  });
+
+  it('leaves it alone when it is open, answered, or was never asked', () => {
+    expect(promptToReopen(false, false)).toBe(false);
+    takeCurrencyPrompt(false);
+    expect(promptToReopen(false, true)).toBe(false);
+    expect(promptToReopen(true, false)).toBe(false);
   });
 });

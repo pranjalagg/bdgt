@@ -26,12 +26,12 @@
   </svelte:fragment>
 </NavBar>
 
-<div class="space-y-3">
-  <p class="px-1 text-[13px] text-label-2">Logged for you on the day they are due.</p>
+<div class="space-y-4">
+  <p class="text-[15px] text-label-2">Logged for you on the day they are due.</p>
   {#if sorted.length === 0}
-    <div class="card px-5 py-12 text-center text-[15px] text-label-2">No bills or subscriptions yet. Add one with +.</div>
+    <p class="py-10 text-center text-[15px] text-label-2">No bills or subscriptions yet. Add one with +.</p>
   {:else}
-    <div class="group">
+    <div class="list">
       {#each sorted as item (item.id)}
         <RecurringRow {item} onClick={() => open(item)} />
       {/each}
