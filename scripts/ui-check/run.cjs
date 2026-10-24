@@ -449,7 +449,7 @@ async function smoke(browser, errors) {
   await step(results, 'Approved list shows Back to review', async () => {
     const before = await left();
     await page.getByRole('tab', { name: 'Approved' }).click(); await page.waitForTimeout(300);
-    const row = page.locator('.group-row').filter({ hasText: 'CRED' });
+    const row = page.locator('.row').filter({ hasText: 'CRED' });
     await row.getByRole('button', { name: 'Back to review' }).click(); await settle();
     await page.getByRole('tab', { name: /^To review/ }).click(); await page.waitForTimeout(300);
     if ((await left()) !== before + 1) throw new Error('left ' + before + ' -> ' + (await left()));

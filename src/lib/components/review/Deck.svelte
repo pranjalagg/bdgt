@@ -175,11 +175,11 @@
 
     <div class="mt-9 flex items-start justify-center gap-7">
       <div class="grid justify-items-center gap-1.5">
-        <button type="button" class="action pressable bg-surface text-danger" aria-label="Dismiss" on:click={() => dispatch('dismissAsk', top)}><Icon name="x" size={28} strokeWidth={2.4} /></button>
+        <button type="button" class="action pressable bg-fill text-danger" aria-label="Dismiss" on:click={() => dispatch('dismissAsk', top)}><Icon name="x" size={28} strokeWidth={2.4} /></button>
         <span class="text-[13px] font-medium text-label-2" aria-hidden="true">Dismiss</span>
       </div>
       <div class="grid justify-items-center gap-1.5 pt-2">
-        <button type="button" class="action small pressable bg-surface text-label" aria-label="Edit" on:click={() => dispatch('edit', top)}><Icon name="pencil" size={20} /></button>
+        <button type="button" class="action small pressable bg-fill text-label" aria-label="Edit" on:click={() => dispatch('edit', top)}><Icon name="pencil" size={20} /></button>
         <span class="text-[13px] font-medium text-label-2" aria-hidden="true">Edit</span>
       </div>
       <div class="grid justify-items-center gap-1.5">
@@ -233,7 +233,6 @@
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    box-shadow: var(--shadow-card), 0 6px 18px rgb(0 0 0 / 0.08);
   }
 
   .action.small {

@@ -29,17 +29,16 @@
   <p class="px-1 text-[13px] text-label-2">The last 7 days. Older ones are in Activity like any other expense.</p>
 {/if}
 {#if captures.length === 0}
-  <div class="card px-5 py-12 text-center text-[15px] text-label-2">Nothing here.</div>
+  <p class="py-12 text-center text-[15px] text-label-2">Nothing here.</p>
 {:else}
-  <div class="group">
+  <div class="list">
     {#each captures as c (c.id)}
-      <div class="group-row flex items-center gap-3 px-4 py-3" style="--row-inset: 16px">
+      <div class="row">
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-[16px] font-medium text-label">{c.merchant}</span>
-          <span class="amt block truncate text-[13px] text-label-2">{status === 'approved' ? approvedText(c) : 'Dismissed'}</span>
+          <span class="t-row block truncate">{c.merchant}</span>
+          <span class="amt block truncate text-[13px] text-label-2">{status === 'approved' ? approvedText(c) : 'Dismissed'} · {formatMoney(c.amount, c.currency)}</span>
         </span>
-        <span class="money amt flex-none text-[16px] font-semibold text-label">{formatMoney(c.amount, c.currency)}</span>
-        <button type="button" class="flex-none rounded-full bg-fill px-3 py-1.5 text-[13px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => dispatch('reopen', c.id)}>Back to review</button>
+        <button type="button" class="flex-none rounded-full bg-fill px-3.5 py-2 text-[13px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => dispatch('reopen', c.id)}>Back to review</button>
       </div>
     {/each}
   </div>
