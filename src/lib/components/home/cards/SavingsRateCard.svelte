@@ -11,10 +11,10 @@
   $: prevName = prev ? formatMonthYear(prev.month).split(' ')[0] : '';
 </script>
 
-<section aria-labelledby="home-rate" class="card grid gap-1 p-4">
-  <h2 id="home-rate" class="text-[15px] font-semibold text-label-2">Savings rate</h2>
-  <p class="flex items-baseline gap-2">
-    <span class="figure amt text-[32px] text-label">{$savingsRate !== null ? `${$savingsRate}%` : '—'}</span>
+<section aria-labelledby="home-rate" class="card grid gap-1.5 p-5">
+  <h2 id="home-rate" class="text-[15px] font-semibold text-label">Savings <span class="font-medium text-label-2">rate</span></h2>
+  <p class="flex items-baseline gap-2.5">
+    <span class="figure amt text-[36px] text-label">{$savingsRate !== null ? `${$savingsRate}%` : '—'}</span>
     {#if delta !== null && delta !== 0}
       <span class="pill {delta > 0 ? 'pill-good' : 'pill-bad'}">
         <Icon name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={13} strokeWidth={2.4} />{Math.abs(delta)} pts

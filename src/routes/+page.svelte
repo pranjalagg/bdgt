@@ -7,6 +7,8 @@
   import InfoPopover from '$lib/components/shared/InfoPopover.svelte';
   import TransactionSheet from '$lib/components/activity/TransactionSheet.svelte';
   import HomeHero from '$lib/components/home/HomeHero.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
+  import Icon from '$lib/components/ui/Icon.svelte';
   import PaceChart from '$lib/components/home/PaceChart.svelte';
   import EditHomeSheet from '$lib/components/home/EditHomeSheet.svelte';
   import ReviewCard from '$lib/components/home/cards/ReviewCard.svelte';
@@ -61,30 +63,34 @@
   // Pressing on the pace chart reads out that day instead.
   let scrubDay = 0;
 
-  let hero: { label: string; amount: number; pill: { good: boolean; text: string } | null; sub: string };
+  let hero: { label: string; soft: string; amount: number; pill: { good: boolean; text: string } | null; sub: string };
   $: hero = scrubDay
     ? {
-        label: `Spent on everyday envelopes by ${monthShort} ${scrubDay}`,
+        label: 'Spent on everyday envelopes by',
+        soft: `${monthShort} ${scrubDay}`,
         amount: cumulative[scrubDay - 1] ?? 0,
         pill: pillAt(scrubDay),
         sub: `Plan by then ${formatCurrency(Math.round((planTotal * scrubDay) / daysInMonth))}`,
       }
     : mode === 'today'
       ? {
-          label: 'Safe to spend today',
+          label: 'Safe to spend',
+          soft: 'today',
           amount: $safeToSpendWithPending ?? 0,
           pill: pillAt(upto),
           sub: `${formatCurrency(everydayLeft)} left · ${plural(daysLeft, 'day')}`,
         }
       : mode === 'past'
         ? {
-            label: `Left in ${monthLong}`,
+            label: 'Left in',
+            soft: monthLong,
             amount: everydayRemaining,
             pill: pillAt(upto),
             sub: 'In everyday envelopes when the month ended',
           }
         : {
-            label: `Everyday money in ${monthLong}`,
+            label: 'Everyday money in',
+            soft: monthLong,
             amount: everydayPool,
             pill: null,
             sub: 'Assigned to everyday envelopes so far',
@@ -105,9 +111,9 @@
   <svelte:fragment slot="trailing"><PrivacyToggle /><AvatarButton /></svelte:fragment>
 </NavBar>
 
-<div class="space-y-6">
+<div class="space-y-9">
   <div>
-    <HomeHero label={hero.label} amount={hero.amount} pill={hero.pill} sub={hero.sub}>
+    <HomeHero label={hero.label} soft={hero.soft} amount={hero.amount} pill={hero.pill} sub={hero.sub}>
       <svelte:fragment slot="info">
         {#if !scrubDay && mode === 'today'}
           <InfoPopover label="How safe to spend is calculated">
@@ -133,7 +139,7 @@
     </HomeHero>
 
     {#if upto > 0}
-      <div class="mt-4">
+      <div class="mt-6">
         <PaceChart
           {cumulative}
           {planTotal}
@@ -148,7 +154,8 @@
 
   {#if $currentMonthIncome === 0 && mode !== 'past'}
     <!-- First run reads as an invitation, not a row of empty envelopes. -->
-    <a href="{base}/budget" class="card flex items-center gap-3 p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint">
+    <a href="{base}/budget" class="card flex items-center gap-3.5 p-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint">
+      <IconMark icon="wallet" />
       <span class="min-w-0 flex-1 text-[15px] text-label">Add this month's income and every envelope has something to hold.</span>
       <span class="flex-none text-[15px] font-semibold text-tint">Add income</span>
     </a>
@@ -168,8 +175,8 @@
   {/each}
 
   <div class="flex justify-center pb-2">
-    <button type="button" class="rounded-full bg-fill px-5 py-2.5 text-[15px] font-semibold text-label focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => openModal('edit-home')}>
-      Edit Home
+    <button type="button" class="flex h-11 items-center gap-1.5 rounded-full px-4 text-[15px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => openModal('edit-home')}>
+      <Icon name="settings" size={17} />Edit Home
     </button>
   </div>
 </div>

@@ -3,10 +3,11 @@
   import { transactions, buckets } from '$lib/stores/budgetStore';
   import { formatCurrency } from '$lib/utils/currency';
   import { envelopeIcon } from '$lib/ui/icons';
-  import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
+  import SectionHeading from '$lib/components/ui/SectionHeading.svelte';
   import type { Transaction } from '$lib/types';
 
-  // The last few expenses; tapping one edits it.
+  // The last few expenses as open rows; tapping one edits it.
 
   export let onOpen: (t: Transaction) => void;
 
@@ -19,18 +20,17 @@
 
 {#if recent.length}
   <section aria-labelledby="home-recent">
-    <div class="flex items-baseline justify-between px-1 pb-2.5 pt-1">
-      <h2 id="home-recent" class="text-[21px] font-bold tracking-tight text-label">Recent</h2>
-      <a href="{base}/activity" class="text-[15px] font-medium text-tint">See all</a>
-    </div>
-    <div class="group">
+    <SectionHeading strong="Recent" soft="activity" id="home-recent">
+      <a slot="action" href="{base}/activity" class="text-[15px] font-medium text-tint">See all</a>
+    </SectionHeading>
+    <div class="list">
       {#each recent as t (t.id)}
         {@const b = byId.get(t.bucketId)}
-        <button type="button" data-row class="group-row flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-fill focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint" on:click={() => onOpen(t)}>
-          <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] text-white" style="background:{b?.color ?? '#8e8e93'}"><Icon name={b ? envelopeIcon(b.name, b.isSystem) : 'tag'} size={19} strokeWidth={2.2} /></span>
+        <button type="button" data-row class="row row-tap w-[calc(100%+20px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => onOpen(t)}>
+          <IconMark icon={b ? envelopeIcon(b.name, b.isSystem) : 'tag'} />
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[16px] font-medium text-label">{t.note || b?.name || 'Expense'}</span>
-            <span class="block truncate text-[13px] text-label-2">{day(t.date)} · {b?.name ?? 'Unknown'}</span>
+            <span class="t-row block truncate">{t.note || b?.name || 'Expense'}</span>
+            <span class="block truncate text-[13px] text-label-2">{b?.name ?? 'Unknown'} · {day(t.date)}</span>
           </span>
           <span class="money amt flex-none text-[16px] font-semibold {b?.isSavings ? 'text-success' : 'text-label'}">{formatCurrency(t.amount)}</span>
         </button>
