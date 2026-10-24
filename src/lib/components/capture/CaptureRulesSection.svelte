@@ -18,11 +18,11 @@
   Learned from the payments you approved or dismissed. The next payment to the same payee arrives with this suggestion.
 </p>
 {#if sorted.length === 0}
-  <div class="card px-5 py-10 text-center text-[15px] text-label-2">No rules yet. Approve or dismiss a payment in Review and one appears here.</div>
+  <p class="py-10 text-center text-[15px] text-label-2">No rules yet. Approve or dismiss a payment in Review and one appears here.</p>
 {:else}
-  <div class="group">
+  <div class="list">
     {#each sorted as rule (rule.id)}
-      <div class="group-row flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3" style="--row-inset: 16px">
+      <div class="row flex-wrap gap-y-2">
         <span class="min-w-0 flex-1 truncate text-[16px] text-label">{rule.merchant}</span>
         <select
           class="select-base !w-auto max-w-[180px]"

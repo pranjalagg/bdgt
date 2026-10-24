@@ -4,6 +4,7 @@
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import CloseButton from '$lib/components/layout/CloseButton.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
   import Switch from '$lib/components/ui/Switch.svelte';
   import EditHomeSheet from '$lib/components/home/EditHomeSheet.svelte';
   import { segmentedPill } from '$lib/actions/segmentedPill';
@@ -101,7 +102,6 @@
   ];
 
   const row = 'group-row flex min-h-[52px] w-full items-center gap-3 px-4 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint';
-  const tile = (color: string) => `flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[8px] text-white ${color}`;
 </script>
 
 <NavBar title="Settings">
@@ -114,7 +114,7 @@
       <h2 id="s-account" class="settings-label">Account</h2>
       <div class="group">
         <a href="{base}/settings/sync" class={row} style="--row-inset: 58px">
-          <span class={tile('bg-[#3b82f6]')} aria-hidden="true"><Icon name="repeat" size={17} strokeWidth={2.2} /></span>
+          <IconMark icon="repeat" size={34} />
           <span class="min-w-0 flex-1">
             <span class="block text-[16px] text-label">{$account ? 'Sync' : 'Sign in to sync'}</span>
             <span class="block truncate text-[13px] text-label-2">{syncLine}</span>
@@ -130,13 +130,13 @@
     <div class="group">
       {#if androidApp}
         <a href="{base}/settings/capture" class={row} style="--row-inset: 58px">
-          <span class={tile('bg-[#ff9500]')} aria-hidden="true"><Icon name="inbox" size={17} strokeWidth={2.2} /></span>
+          <IconMark icon="inbox" size={34} />
           <span class="min-w-0 flex-1 text-[16px] text-label">Automatic capture</span>
           <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
         </a>
       {/if}
       <a href="{base}/settings/rules" class={row} style="--row-inset: 58px">
-        <span class={tile('bg-[#8e8e93]')} aria-hidden="true"><Icon name="list" size={17} strokeWidth={2.2} /></span>
+        <IconMark icon="list" size={34} />
         <span class="min-w-0 flex-1 text-[16px] text-label">Capture rules</span>
         <span class="text-[15px] text-label-2">{$captureRules.length || 'None yet'}</span>
         <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
@@ -149,7 +149,7 @@
     <div class="group">
       <div class="group-row flex flex-wrap items-center justify-between gap-3 px-4 py-2.5" style="--row-inset: 58px">
         <span class="flex items-center gap-3">
-          <span class={tile('bg-[#5856d6]')} aria-hidden="true"><Icon name="settings" size={17} strokeWidth={2.2} /></span>
+          <IconMark icon="settings" size={34} />
           <span id="theme-label" class="text-[16px] text-label">Appearance</span>
         </span>
         <div id="theme" class="segmented !w-auto" role="group" aria-labelledby="theme-label" use:segmentedPill>
@@ -159,17 +159,17 @@
         </div>
       </div>
       <div class="group-row flex min-h-[52px] items-center gap-3 px-4 py-2" style="--row-inset: 58px">
-        <span class={tile('bg-[#34c759]')} aria-hidden="true"><Icon name="eye-off" size={17} strokeWidth={2.2} /></span>
+        <IconMark icon="eye-off" size={34} />
         <label for="hide-amounts" class="min-w-0 flex-1 text-[16px] text-label">Hide amounts</label>
         <Switch id="hide-amounts" bind:checked={$hideAmounts} label="Hide amounts" />
       </div>
       <button type="button" class={row} style="--row-inset: 58px" on:click={() => openModal('edit-home')}>
-        <span class={tile('bg-[#ff2d55]')} aria-hidden="true"><Icon name="house" size={17} strokeWidth={2.2} /></span>
+        <IconMark icon="house" size={34} />
         <span class="min-w-0 flex-1 text-[16px] text-label">Home screen</span>
         <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
       </button>
       <button type="button" class={row} style="--row-inset: 58px" on:click={() => openModal('currency')}>
-        <span class={tile('bg-[#1d9a4f]')} aria-hidden="true"><Icon name="wallet" size={17} strokeWidth={2.2} /></span>
+        <IconMark icon="wallet" size={34} />
         <span class="min-w-0 flex-1">
           <span class="block text-[16px] text-label">Currency</span>
           <span class="block text-[13px] text-label-2">Changing it relabels amounts; it does not convert them.</span>
@@ -184,21 +184,21 @@
     <h2 id="s-data" class="settings-label">Data</h2>
     <div class="group">
       <button type="button" class={row} style="--row-inset: 58px" disabled={isExporting} on:click={exportJson}>
-        <span class={tile('bg-[#007aff]')} aria-hidden="true"><Icon name="arrow-up" size={17} strokeWidth={2.2} /></span>
+        <IconMark icon="arrow-up" size={34} />
         <span class="min-w-0 flex-1">
           <span class="block text-[16px] text-tint">Export JSON</span>
           <span class="block text-[13px] text-label-2">A full backup you can import later</span>
         </span>
       </button>
       <button type="button" class={row} style="--row-inset: 58px" disabled={isExporting} on:click={exportCsv}>
-        <span class={tile('bg-[#007aff]')} aria-hidden="true"><Icon name="list" size={17} strokeWidth={2.2} /></span>
+        <IconMark icon="list" size={34} />
         <span class="min-w-0 flex-1">
           <span class="block text-[16px] text-tint">Export CSV</span>
           <span class="block text-[13px] text-label-2">Your expenses, for a spreadsheet</span>
         </span>
       </button>
       <button type="button" class={row} style="--row-inset: 58px" disabled={isImporting} on:click={() => fileInput.click()}>
-        <span class={tile('bg-[#5ac8fa]')} aria-hidden="true"><Icon name="arrow-down" size={17} strokeWidth={2.2} /></span>
+        <IconMark icon="arrow-down" size={34} />
         <span class="min-w-0 flex-1">
           <span class="block text-[16px] text-tint">{isImporting ? 'Importing…' : 'Import a backup'}</span>
           <span class="block text-[13px] text-label-2">Replaces everything with a JSON backup</span>

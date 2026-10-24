@@ -71,7 +71,7 @@
     <div class="-mx-4 -mb-4">
       {#each group as g (g.id)}
         {@const on = !hidden.has(g.id)}
-        <button type="button" class="leg group-row flex min-h-[50px] w-full items-center gap-2.5 px-4 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint" class:off={!on} style="--row-inset: 40px; --c: {g.bucket.color}" aria-pressed={on} on:click={() => toggle(g.id)}>
+        <button type="button" class="leg flex min-h-[50px] w-full items-center gap-2.5 px-4 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint" class:off={!on} style="--c: {g.bucket.color}" aria-pressed={on} on:click={() => toggle(g.id)}>
           <span class="dot h-3 w-3 flex-none rounded-full" aria-hidden="true"></span>
           <span class="min-w-0 flex-1">
             <span class="block truncate text-[15px] text-label">{g.bucket.name}</span>

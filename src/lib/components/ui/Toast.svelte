@@ -1,8 +1,6 @@
 <script lang="ts">
   import { toast, dismissToast } from '$lib/stores/toastStore';
   import { buckets } from '$lib/stores/budgetStore';
-  import { envelopeIcon } from '$lib/ui/icons';
-  import Icon from './Icon.svelte';
   import { backOut } from 'svelte/easing';
 
   // The message drops in from the top like a notification; under reduced
@@ -30,9 +28,7 @@
       out:drop
     >
       {#if bucket}
-        <span class="flex h-7 w-7 flex-none items-center justify-center rounded-[9px] text-white" style="background:{bucket.color}">
-          <Icon name={envelopeIcon(bucket.name, bucket.isSystem)} size={16} strokeWidth={2.2} />
-        </span>
+        <span class="ml-1.5 h-2.5 w-2.5 flex-none rounded-full" style="background:{bucket.color}" aria-hidden="true"></span>
       {/if}
       <span class="amt min-w-0 truncate pl-1 pr-2">{$toast.message}</span>
       {#if $toast.action}

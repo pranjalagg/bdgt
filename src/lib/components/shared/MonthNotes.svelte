@@ -60,7 +60,7 @@
     : 'text-label-2';
 </script>
 
-<section class="rounded-xl border border-sep bg-surface">
+<section class="card">
   <button
     type="button"
     class="flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-colors
