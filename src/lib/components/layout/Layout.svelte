@@ -63,10 +63,17 @@
     '/budget': 'Budget',
     '/budget/bills': 'Bills',
     '/activity': 'Activity',
-    '/review': 'Review payments',
+    '/review': 'To review',
     '/insights': 'Insights',
+    '/insights/spending': 'Monthly spending',
+    '/insights/income': 'Income and spending',
+    '/insights/envelopes': 'Spending by envelope',
+    '/insights/savings-rate': 'Savings rate',
     '/insights/investments': 'Investments',
     '/settings': 'Settings',
+    '/settings/sync': 'Sync',
+    '/settings/capture': 'Automatic capture',
+    '/settings/rules': 'Capture rules',
   };
   $: path = $page.url.pathname.slice(base.length).replace(/(.)\/$/, '$1') || '/';
   $: title = TITLES[path] ? `${TITLES[path]} · bdgt` : path.startsWith('/budget/') ? 'Envelope · bdgt' : 'bdgt';

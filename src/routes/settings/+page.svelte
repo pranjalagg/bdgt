@@ -1,76 +1,87 @@
 <script lang="ts">
-  import NavBar from '$lib/components/layout/NavBar.svelte';
   import { base } from '$app/paths';
+  import { browser } from '$app/environment';
+  import NavBar from '$lib/components/layout/NavBar.svelte';
+  import CloseButton from '$lib/components/layout/CloseButton.svelte';
+  import Icon from '$lib/components/ui/Icon.svelte';
+  import Switch from '$lib/components/ui/Switch.svelte';
+  import EditHomeSheet from '$lib/components/home/EditHomeSheet.svelte';
   import { segmentedPill } from '$lib/actions/segmentedPill';
   import { exportToJson, exportToCsv, importFromJson, resetAllData, downloadFile } from '$lib/utils/export';
   import { loadData } from '$lib/stores/budgetStore';
   import { loadRecurring } from '$lib/stores/recurringStore';
   import { loadGoals } from '$lib/stores/goalsStore';
-  import { loadCaptures } from '$lib/stores/captureStore';
+  import { loadCaptures, captureRules } from '$lib/stores/captureStore';
   import { loadInvestments } from '$lib/stores/investmentStore';
+  import { loadHomeLayout } from '$lib/stores/homeLayoutStore';
   import { themePreference, setTheme, type ThemePreference } from '$lib/stores/themeStore';
-  import { loadCurrency } from '$lib/stores/currencyStore';
-  import CurrencyChip from '$lib/components/shared/CurrencyChip.svelte';
-  import SyncSection from '$lib/components/sync/SyncSection.svelte';
-  import CaptureSection from '$lib/components/capture/CaptureSection.svelte';
-  import CaptureRulesSection from '$lib/components/capture/CaptureRulesSection.svelte';
+  import { hideAmounts } from '$lib/stores/privacyStore';
+  import { baseCurrency, loadCurrency } from '$lib/stores/currencyStore';
+  import { currencyInfo } from '$lib/currency/currencies';
+  import { openModal } from '$lib/stores/uiStore';
   import { syncEnabled, getSyncApp } from '$lib/sync/browser';
+  import { describeSync } from '$lib/sync/statusText';
   import { isAndroidApp } from '$lib/capture/native';
-  import { browser } from '$app/environment';
+  import type { IconName } from '$lib/ui/icons';
+
+  // Settings slides up over the app. Sync, automatic capture and capture
+  // rules each open a page of their own; everything else is here.
 
   const androidApp = browser && isAndroidApp();
-
+  const app = getSyncApp();
   // Signed in, import and reset reach the account on every device.
-  const linked = getSyncApp().linked;
+  const { linked, account, status } = app;
+
+  $: syncLine = !$account ? 'Back up and use more than one device' : ($status && describeSync($status, Date.now()).label) || $account.email;
 
   let fileInput: HTMLInputElement;
   let isExporting = false;
   let isImporting = false;
 
-  async function handleExportJson() {
+  const today = () => new Date().toISOString().split('T')[0];
+
+  async function exportJson() {
     isExporting = true;
     try {
-      const json = await exportToJson();
-      const date = new Date().toISOString().split('T')[0];
-      downloadFile(json, `budget-backup-${date}.json`, 'application/json');
+      downloadFile(await exportToJson(), `budget-backup-${today()}.json`, 'application/json');
     } finally {
       isExporting = false;
     }
   }
 
-  async function handleExportCsv() {
+  async function exportCsv() {
     isExporting = true;
     try {
-      const csv = await exportToCsv();
-      const date = new Date().toISOString().split('T')[0];
-      downloadFile(csv, `transactions-${date}.csv`, 'text/csv');
+      downloadFile(await exportToCsv(), `transactions-${today()}.csv`, 'text/csv');
     } finally {
       isExporting = false;
     }
+  }
+
+  async function reloadAll() {
+    await loadCurrency();
+    await loadData();
+    await loadRecurring();
+    await loadGoals();
+    await loadCaptures();
+    await loadInvestments();
+    await loadHomeLayout();
   }
 
   async function handleImport() {
     const file = fileInput?.files?.[0];
     if (!file) return;
-
     if (!confirm($linked ? 'This replaces all data on this device and in your account, on every device that syncs. Continue?' : 'This will replace all existing data. Continue?')) return;
-
     isImporting = true;
     try {
-      const text = await file.text();
-      await importFromJson(text);
-      await loadCurrency();
-      await loadData();
-      await loadRecurring();
-      await loadGoals();
-      await loadCaptures();
-      await loadInvestments();
+      await importFromJson(await file.text());
+      await reloadAll();
       alert('Data imported successfully!');
     } catch (e) {
       alert('Import failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
     } finally {
       isImporting = false;
-      // loadData remounts the page after a successful import, so the input is gone.
+      // loadData remounts the page after a successful import, so the input may be gone.
       if (fileInput) fileInput.value = '';
     }
   }
@@ -78,14 +89,8 @@
   async function handleReset() {
     if (!confirm($linked ? 'Delete ALL data, including your synced data in your account on every device? This cannot be undone!' : 'Delete ALL data? This cannot be undone!')) return;
     if (!confirm('Are you really sure?')) return;
-
     await resetAllData();
-    await loadCurrency();
-    await loadData();
-    await loadRecurring();
-    await loadGoals();
-    await loadCaptures();
-    await loadInvestments();
+    await reloadAll();
     alert('All data has been reset.');
   }
 
@@ -94,100 +99,124 @@
     ['light', 'Light'],
     ['dark', 'Dark'],
   ];
+
+  const row = 'group-row flex min-h-[52px] w-full items-center gap-3 px-4 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint';
+  const tile = (color: string) => `flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[8px] text-white ${color}`;
 </script>
 
-<NavBar title="Settings" back={{ href: base || '/', label: 'Home' }} />
+<NavBar title="Settings">
+  <svelte:fragment slot="leading"><CloseButton label="Done" /></svelte:fragment>
+</NavBar>
 
-<div class="space-y-6">
-
-  <section>
-    <h2 class="settings-label">Appearance</h2>
-    <div class="card">
-    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-      <span id="theme-label" class="text-[15px] font-medium text-gray-900 dark:text-gray-100">Theme</span>
-      <div id="theme" class="segmented !w-auto" role="group" aria-labelledby="theme-label" use:segmentedPill>
-        {#each THEMES as [value, label]}
-          <button type="button" class="segment" aria-pressed={$themePreference === value} on:click={() => setTheme(value)}>{label}</button>
-        {/each}
-      </div>
-    </div>
-    </div>
-  </section>
-
-  <section>
-    <h2 class="settings-label">Currency</h2>
-    <div class="card">
-    <div class="flex flex-wrap items-center gap-4 px-5 py-4">
-      <CurrencyChip />
-      <p class="text-sm text-muted dark:text-muted-dark">Changing it only relabels amounts; it does not convert them.</p>
-    </div>
-    </div>
-  </section>
-
+<div class="mx-auto max-w-2xl space-y-6 pb-8">
   {#if syncEnabled}
-    <SyncSection />
+    <section aria-labelledby="s-account">
+      <h2 id="s-account" class="settings-label">Account</h2>
+      <div class="group">
+        <a href="{base}/settings/sync" class={row} style="--row-inset: 58px">
+          <span class={tile('bg-[#3b82f6]')} aria-hidden="true"><Icon name="repeat" size={17} strokeWidth={2.2} /></span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-[16px] text-label">{$account ? 'Sync' : 'Sign in to sync'}</span>
+            <span class="block truncate text-[13px] text-label-2">{syncLine}</span>
+          </span>
+          <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
+        </a>
+      </div>
+    </section>
   {/if}
 
-  {#if androidApp}
-    <CaptureSection />
-  {/if}
-
-  <CaptureRulesSection />
-
-  <section>
-    <h2 class="settings-label">Export data</h2>
-    <div class="card">
-    <div class="flex flex-wrap gap-3 px-5 py-4">
-      <button
-        class="btn-primary"
-        on:click={handleExportJson}
-        disabled={isExporting}
-      >
-        Export JSON (Full Backup)
-      </button>
-      <button
-        class="btn-secondary"
-        on:click={handleExportCsv}
-        disabled={isExporting}
-      >
-        Export CSV (Transactions)
-      </button>
-    </div>
+  <section aria-labelledby="s-payments">
+    <h2 id="s-payments" class="settings-label">Payments</h2>
+    <div class="group">
+      {#if androidApp}
+        <a href="{base}/settings/capture" class={row} style="--row-inset: 58px">
+          <span class={tile('bg-[#ff9500]')} aria-hidden="true"><Icon name="inbox" size={17} strokeWidth={2.2} /></span>
+          <span class="min-w-0 flex-1 text-[16px] text-label">Automatic capture</span>
+          <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
+        </a>
+      {/if}
+      <a href="{base}/settings/rules" class={row} style="--row-inset: 58px">
+        <span class={tile('bg-[#8e8e93]')} aria-hidden="true"><Icon name="list" size={17} strokeWidth={2.2} /></span>
+        <span class="min-w-0 flex-1 text-[16px] text-label">Capture rules</span>
+        <span class="text-[15px] text-label-2">{$captureRules.length || 'None yet'}</span>
+        <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
+      </a>
     </div>
   </section>
 
-  <section>
-    <h2 class="settings-label">Import data</h2>
-    <div class="card">
-    <div class="px-5 py-4">
-      <input
-        type="file"
-        accept=".json"
-        bind:this={fileInput}
-        on:change={handleImport}
-        class="hidden"
-      />
-      <button
-        class="btn-secondary"
-        on:click={() => fileInput.click()}
-        disabled={isImporting}
-      >
-        {isImporting ? 'Importing...' : 'Import JSON Backup'}
+  <section aria-labelledby="s-display">
+    <h2 id="s-display" class="settings-label">Display</h2>
+    <div class="group">
+      <div class="group-row flex flex-wrap items-center justify-between gap-3 px-4 py-2.5" style="--row-inset: 58px">
+        <span class="flex items-center gap-3">
+          <span class={tile('bg-[#5856d6]')} aria-hidden="true"><Icon name="settings" size={17} strokeWidth={2.2} /></span>
+          <span id="theme-label" class="text-[16px] text-label">Appearance</span>
+        </span>
+        <div id="theme" class="segmented !w-auto" role="group" aria-labelledby="theme-label" use:segmentedPill>
+          {#each THEMES as [value, label]}
+            <button type="button" class="segment" aria-pressed={$themePreference === value} on:click={() => setTheme(value)}>{label}</button>
+          {/each}
+        </div>
+      </div>
+      <div class="group-row flex min-h-[52px] items-center gap-3 px-4 py-2" style="--row-inset: 58px">
+        <span class={tile('bg-[#34c759]')} aria-hidden="true"><Icon name="eye-off" size={17} strokeWidth={2.2} /></span>
+        <label for="hide-amounts" class="min-w-0 flex-1 text-[16px] text-label">Hide amounts</label>
+        <Switch id="hide-amounts" bind:checked={$hideAmounts} label="Hide amounts" />
+      </div>
+      <button type="button" class={row} style="--row-inset: 58px" on:click={() => openModal('edit-home')}>
+        <span class={tile('bg-[#ff2d55]')} aria-hidden="true"><Icon name="house" size={17} strokeWidth={2.2} /></span>
+        <span class="min-w-0 flex-1 text-[16px] text-label">Home screen</span>
+        <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
       </button>
-      <p class="mt-2 text-sm text-muted dark:text-muted-dark">Import a previously exported JSON backup file.</p>
-    </div>
+      <button type="button" class={row} style="--row-inset: 58px" on:click={() => openModal('currency')}>
+        <span class={tile('bg-[#1d9a4f]')} aria-hidden="true"><Icon name="wallet" size={17} strokeWidth={2.2} /></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-[16px] text-label">Currency</span>
+          <span class="block text-[13px] text-label-2">Changing it relabels amounts; it does not convert them.</span>
+        </span>
+        <span class="flex-none text-[15px] text-label-2">{currencyInfo($baseCurrency).code} ({currencyInfo($baseCurrency).symbol})</span>
+        <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
+      </button>
     </div>
   </section>
 
-  <section>
-    <h2 class="settings-label">Danger zone</h2>
-    <div class="card">
-    <div class="px-5 py-4">
-      <button class="btn-danger" on:click={handleReset}>
-        Reset All Data
+  <section aria-labelledby="s-data">
+    <h2 id="s-data" class="settings-label">Data</h2>
+    <div class="group">
+      <button type="button" class={row} style="--row-inset: 58px" disabled={isExporting} on:click={exportJson}>
+        <span class={tile('bg-[#007aff]')} aria-hidden="true"><Icon name="arrow-up" size={17} strokeWidth={2.2} /></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-[16px] text-tint">Export JSON</span>
+          <span class="block text-[13px] text-label-2">A full backup you can import later</span>
+        </span>
       </button>
-      <p class="mt-2 text-sm text-muted dark:text-muted-dark">Permanently delete all your data. This cannot be undone.</p>
+      <button type="button" class={row} style="--row-inset: 58px" disabled={isExporting} on:click={exportCsv}>
+        <span class={tile('bg-[#007aff]')} aria-hidden="true"><Icon name="list" size={17} strokeWidth={2.2} /></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-[16px] text-tint">Export CSV</span>
+          <span class="block text-[13px] text-label-2">Your expenses, for a spreadsheet</span>
+        </span>
+      </button>
+      <button type="button" class={row} style="--row-inset: 58px" disabled={isImporting} on:click={() => fileInput.click()}>
+        <span class={tile('bg-[#5ac8fa]')} aria-hidden="true"><Icon name="arrow-down" size={17} strokeWidth={2.2} /></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-[16px] text-tint">{isImporting ? 'Importing…' : 'Import a backup'}</span>
+          <span class="block text-[13px] text-label-2">Replaces everything with a JSON backup</span>
+        </span>
+      </button>
     </div>
+    <input type="file" accept=".json" bind:this={fileInput} on:change={handleImport} class="hidden" aria-label="Backup file" />
+  </section>
+
+  <section aria-labelledby="s-reset">
+    <h2 id="s-reset" class="sr-only">Reset</h2>
+    <div class="group">
+      <button type="button" class="{row} justify-center" on:click={handleReset}>
+        <span class="text-[16px] font-medium text-danger">Reset all data</span>
+      </button>
     </div>
+    <p class="px-4 pt-1.5 text-[13px] text-label-2">Deletes everything on this device{$linked ? ' and in your account' : ''}. Asks first; it cannot be undone.</p>
   </section>
 </div>
+
+<EditHomeSheet />

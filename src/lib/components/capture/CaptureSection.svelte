@@ -136,44 +136,43 @@
   });
 </script>
 
-<section>
-  <h2 class="settings-label">Automatic capture</h2>
-  <div class="card">
+<!-- The Automatic capture page under Settings. -->
+<div class="card">
 
   <div class="space-y-4 px-5 py-4">
-    <p class="text-sm text-gray-600 dark:text-gray-300">
+    <p class="text-sm text-label-2">
       Reads payment notifications from Google Wallet, UPI apps and bank SMS on this phone, and puts each payment in Review for you to approve. Every other notification is ignored and never stored.
     </p>
 
     {#if status}
       <dl class="space-y-2 text-sm">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <dt class="text-muted">Notification access</dt>
+          <dt class="text-label-2">Notification access</dt>
           <dd class="flex items-center gap-3">
-            <span class="font-medium {status.accessGranted ? 'text-success dark:text-success-light' : 'text-warning'}">{status.accessGranted ? 'On' : 'Off'}</span>
+            <span class="font-medium {status.accessGranted ? 'text-success' : 'text-warning'}">{status.accessGranted ? 'On' : 'Off'}</span>
             {#if !status.accessGranted}
               <button type="button" class="btn-secondary" on:click={() => plugin && run(() => plugin!.openAccessSettings())}>Open settings</button>
             {/if}
           </dd>
         </div>
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <dt class="text-muted">Capture</dt>
-          <dd class="font-medium text-gray-900 dark:text-gray-100">{status.enabled ? 'On' : 'Off'}</dd>
+          <dt class="text-label-2">Capture</dt>
+          <dd class="font-medium text-label">{status.enabled ? 'On' : 'Off'}</dd>
         </div>
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <dt class="text-muted">Last payment notification</dt>
-          <dd class="text-gray-900 dark:text-gray-100">{status.lastKeptAt ? when(status.lastKeptAt) : 'None yet'}</dd>
+          <dt class="text-label-2">Last payment notification</dt>
+          <dd class="text-label">{status.lastKeptAt ? when(status.lastKeptAt) : 'None yet'}</dd>
         </div>
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <dt class="text-muted">Build</dt>
-          <dd class="font-mono text-gray-900 dark:text-gray-100">{status.appVersion}</dd>
+          <dt class="text-label-2">Build</dt>
+          <dd class="font-mono text-label">{status.appVersion}</dd>
         </div>
       </dl>
 
       {#if notRunning}
         <div class="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-          <p class="font-medium text-gray-800 dark:text-gray-100">Capture is on but not running.</p>
-          <p class="mt-1 text-gray-700 dark:text-gray-200">The phone may have stopped it to save battery. Reconnect it, and let the app run in the background in battery settings.</p>
+          <p class="font-medium text-label">Capture is on but not running.</p>
+          <p class="mt-1 text-label">The phone may have stopped it to save battery. Reconnect it, and let the app run in the background in battery settings.</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class="btn-secondary" on:click={() => plugin && run(() => plugin!.requestRebind())}>Reconnect</button>
             <button type="button" class="btn-secondary" on:click={() => plugin && run(() => plugin!.openBatterySettings())}>Battery settings</button>
@@ -182,7 +181,7 @@
       {/if}
 
       {#if status.enabled && !queueing}
-        <div class="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-gray-800 dark:text-gray-100">
+        <div class="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-label">
           Sign in under <span class="font-medium">Sync</span> to send payments to Review. Until then they wait on this phone{status.waiting ? ` (${status.waiting} so far)` : ''}.
         </div>
       {/if}
@@ -191,15 +190,15 @@
 
       {#if appSources.length || smsApps.length}
         <fieldset class="space-y-2">
-          <legend class="text-sm font-medium text-gray-900 dark:text-gray-100">Read from</legend>
+          <legend class="text-sm font-medium text-label">Read from</legend>
           {#each appSources as s (s.packageName)}
-            <label class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-100">
+            <label class="flex items-center gap-2 text-sm text-label">
               <input type="checkbox" checked={appOn(s)} on:change={(e) => setApp(s.packageName, e.currentTarget.checked)} />
               {s.label}
             </label>
           {/each}
           {#if smsApps.length}
-            <label class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-100">
+            <label class="flex items-center gap-2 text-sm text-label">
               <input type="checkbox" checked={status.sms} on:change={(e) => setSms(e.currentTarget.checked)} />
               Bank SMS (in {smsApps.map((s) => s.label).join(', ')})
             </label>
@@ -207,47 +206,46 @@
         </fieldset>
       {/if}
 
-      <p class="text-sm text-muted">
+      <p class="text-sm text-label-2">
         Keep notifications on for these apps: the phone can only pass on what it shows. The full message text stays on this phone; the amount, date, merchant and card digits sync to your account, which the app's owner can see.
       </p>
 
       <details class="rounded-lg border border-border dark:border-border-dark">
-        <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100">Recorded notifications ({status.count})</summary>
+        <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-label">Recorded notifications ({status.count})</summary>
         <div class="space-y-3 border-t border-border px-3 py-3 dark:border-border-dark">
           {#if items.length === 0}
-            <p class="text-sm text-muted">Nothing yet. Pay with Google Wallet or a UPI app, or wait for a bank SMS.</p>
+            <p class="text-sm text-label-2">Nothing yet. Pay with Google Wallet or a UPI app, or wait for a bank SMS.</p>
           {:else}
-            <ul class="divide-y divide-gray-100 dark:divide-border-dark">
+            <ul class="divide-y divide-sep">
               {#each items as item (item.id)}
                 {@const outcome = describe(item)}
                 <li class="py-3">
-                  <p class="text-xs text-muted">
+                  <p class="text-xs text-label-2">
                     {labels.get(item.packageName) ?? item.packageName} · {when(item.postedAt)}{#if item.sender} · {item.sender}{/if}
                   </p>
                   {#if item.title && item.title !== item.sender}
-                    <p class="amt mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{item.title}</p>
+                    <p class="amt mt-1 text-sm font-medium text-label">{item.title}</p>
                   {/if}
-                  <p class="amt mt-1 whitespace-pre-wrap break-words text-sm text-gray-700 dark:text-gray-200">{item.text}</p>
-                  <p class="amt mt-1 text-xs font-medium {outcome.startsWith('Payment') ? 'text-success dark:text-success-light' : 'text-muted'}">{outcome}</p>
+                  <p class="amt mt-1 whitespace-pre-wrap break-words text-sm text-label">{item.text}</p>
+                  <p class="amt mt-1 text-xs font-medium {outcome.startsWith('Payment') ? 'text-success' : 'text-label-2'}">{outcome}</p>
                 </li>
               {/each}
             </ul>
             {#if status.count > items.length}
-              <p class="text-sm text-muted">Showing the latest {items.length}; sharing includes all of them.</p>
+              <p class="text-sm text-label-2">Showing the latest {items.length}; sharing includes all of them.</p>
             {/if}
           {/if}
           <div class="flex flex-wrap gap-3">
             <button type="button" class="btn-secondary" disabled={sharing || status.count === 0} on:click={shareLog}>{sharing ? 'Preparing…' : 'Share log'}</button>
             <button type="button" class="btn-danger" disabled={status.count === 0} on:click={clearLog}>Clear log</button>
           </div>
-          <p class="text-sm text-muted">
+          <p class="text-sm text-label-2">
             If a payment was read wrongly or missed, share the log and say which one. Long numbers are masked; names are not, so look through the file first.{#if syncEnabled} Only this account's recordings are shown: they are hidden while signed out and come back when you sign in.{/if}
           </p>
         </div>
       </details>
     {/if}
 
-    {#if error}<p class="text-sm text-danger dark:text-danger-light" role="alert">{error}</p>{/if}
+    {#if error}<p class="text-sm text-danger" role="alert">{error}</p>{/if}
   </div>
 </div>
-</section>

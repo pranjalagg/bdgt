@@ -14,7 +14,7 @@ const OUT = process.argv[3] || path.join(__dirname, 'out');
 const BASE = process.env.UI_CHECK_URL || 'http://localhost:5174';
 const CHROME = process.env.UI_CHECK_CHROME || path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell');
 const SEED = path.join(__dirname, 'sample-backup.json');
-const ROUTES = ['/', '/activity', '/review', '/insights', '/insights/spending', '/insights/income', '/insights/envelopes', '/insights/savings-rate', '/insights/investments', '/budget', '/budget/bills', '/settings'];
+const ROUTES = ['/', '/activity', '/review', '/insights', '/insights/spending', '/insights/income', '/insights/envelopes', '/insights/savings-rate', '/insights/investments', '/budget', '/budget/bills', '/settings', '/settings/rules', '/settings/capture'];
 const CONFIGS = [
   { name: 'phone-light', viewport: { width: 390, height: 844 }, theme: 'light', mobile: true },
   { name: 'phone-dark', viewport: { width: 390, height: 844 }, theme: 'dark', mobile: true },
@@ -644,6 +644,31 @@ async function smoke(browser, errors) {
     if (await page.evaluate(() => document.documentElement.classList.contains('dark'))) throw new Error('still dark');
     if (await page.evaluate(() => document.querySelectorAll('head style').length && [...document.querySelectorAll('head style')].some((s) => s.textContent.includes('transition:none')))) throw new Error('transition pause left behind');
   });
+  await step(results, 'export JSON downloads a file', async () => {
+    await page.goto(BASE + '/settings'); await page.waitForLoadState('networkidle');
+    const [download] = await Promise.all([page.waitForEvent('download', { timeout: 5000 }), page.getByRole('button', { name: /^Export JSON/ }).click()]);
+    if (!/^budget-backup-\d{4}-\d{2}-\d{2}\.json$/.test(download.suggestedFilename())) throw new Error('file ' + download.suggestedFilename());
+  });
+  await step(results, 'Home screen row opens Edit Home', async () => {
+    await page.getByRole('button', { name: /^Home screen/ }).click();
+    await page.getByRole('dialog', { name: 'Edit Home' }).waitFor({ timeout: 2000 });
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+  });
+  await step(results, 'back from Capture rules returns to Settings', async () => {
+    await page.getByRole('link', { name: /^Capture rules/ }).click();
+    await page.waitForURL('**/settings/rules', { timeout: 3000 });
+    await page.getByText('Learned from the payments you approved or dismissed.', { exact: false }).waitFor({ timeout: 2000 });
+    await page.getByRole('link', { name: 'Settings' }).first().click();
+    await page.waitForURL((u) => new URL(u).pathname === '/settings', { timeout: 3000 });
+  });
+  await step(results, 'Done on Settings goes back where it was opened from', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    await page.getByRole('link', { name: /Settings/ }).first().click();
+    await page.waitForURL('**/settings', { timeout: 3000 }); await page.waitForTimeout(400);
+    if (await page.getByRole('navigation', { name: 'Tabs' }).count()) throw new Error('tab bar shows over Settings');
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.waitForURL((u) => new URL(u).pathname === '/', { timeout: 3000 });
+  });
   await step(results, 'new page starts at the top; Back returns to the same place', async () => {
     await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.querySelector('main').scrollTo(0, 1200));
@@ -725,6 +750,13 @@ async function smoke(browser, errors) {
       if (bad.length) throw new Error(r + ': ' + bad.join(', '));
       if (r === '/insights' && !(await page.getByText('Nothing spent this month yet.').count())) throw new Error('data was not reset');
     }
+  });
+  await step(results, 'import the sample backup from Settings', async () => {
+    await page.goto(BASE + '/settings'); await page.waitForLoadState('networkidle');
+    await page.locator('input[type=file]').setInputFiles(SEED);
+    await page.waitForTimeout(1500);
+    await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
+    await page.locator('[data-row]').filter({ hasText: 'Trader Joe’s' }).first().waitFor({ timeout: 3000 });
   });
   await page.context().close();
   return results;
