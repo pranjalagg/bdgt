@@ -1,5 +1,6 @@
 <script lang="ts">
-  import UpdateBanner from './UpdateBanner.svelte';
+  import { onMount } from 'svelte';
+  import { startUpdateChecks } from '$lib/stores/updateStore';
   import Nav from './Nav.svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import LogEntry from '$lib/components/shared/LogEntry.svelte';
@@ -86,6 +87,9 @@
 
   const edgeBack = () => goBack();
 
+  // Android: look for a newer test build (the navigation bar shows it).
+  onMount(startUpdateChecks);
+
   // The Log sheet's date lives here so the chip in its header and the form
   // share it; the form resets it each time the sheet opens.
   let logDate = new Date();
@@ -115,15 +119,9 @@
 <!-- While a sheet is open the app behind it is inert: no focus, no reading. -->
 <div id="stage" inert={$modalStack.length > 0} class:scaled={$scaledBack} class="flex h-screen bg-page supports-[height:100dvh]:h-[100dvh]">
   <Nav />
-  <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path) && !isModalRoot(path) && edgeBack} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
-    <!-- The app draws under the status bar; this strip keeps content that
-         scrolls up from running into the clock and icons. -->
-    <div
-      class="pointer-events-none fixed inset-x-0 top-0 z-30 [view-transition-name:status-strip] bg-page/85 backdrop-blur-xl md:hidden"
-      style="height: var(--safe-top)"
-      aria-hidden="true"
-    ></div>
-    <UpdateBanner />
+  <!-- The app draws under the status bar: each page's navigation bar
+       reaches up under it (see NavBar), so nothing else pads the top. -->
+  <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path) && !isModalRoot(path) && edgeBack} class="relative flex-1 overflow-auto overscroll-contain">
     <div class="mx-auto max-w-5xl px-4 pb-[calc(110px+var(--safe-bottom))] pt-4 sm:px-6 md:pb-24 md:pt-8">
       <slot />
     </div>

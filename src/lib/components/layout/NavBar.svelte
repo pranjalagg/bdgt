@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { goBack, appPathOf } from '$lib/ui/goBack';
+  import UpdateBanner from './UpdateBanner.svelte';
 
   // An iOS navigation bar: clear at the top of the page, glass once content
   // slides under it. A large title collapses into the bar as you scroll: it
@@ -88,6 +89,7 @@
       </div>
     </div>
   </div>
+  <UpdateBanner />
 </header>
 {#if large}
   <h1 bind:this={heading} class="ltitle px-1 pb-2 pt-1" style:opacity={fade}>{title}</h1>
@@ -96,8 +98,11 @@
 {/if}
 
 <style>
+  /* The bar reaches up under the status bar (Android draws edge to edge),
+     so when content scrolls under it there is no gap above the bar. */
   .navbar {
-    top: var(--safe-top);
+    top: 0;
+    padding-top: var(--safe-top);
     transition: background-color 200ms ease-out, box-shadow 200ms ease-out;
   }
 

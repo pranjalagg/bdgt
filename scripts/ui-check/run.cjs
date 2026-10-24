@@ -762,6 +762,22 @@ async function smoke(browser, errors) {
     const top = await page.evaluate(() => document.querySelector('main').scrollTop);
     if (top !== 0) throw new Error('scrollTop ' + top);
   });
+  await step(results, 'with a status bar (Android), the bar fills the top edge and covers nothing at rest', async () => {
+    for (const r of ['/', '/budget', '/settings']) {
+      await page.goto(BASE + r); await page.waitForLoadState('networkidle');
+      await page.addStyleTag({ content: ':root { --safe-area-inset-top: 40px !important; }' }); await page.waitForTimeout(300);
+      const atRest = await page.evaluate(() => {
+        const h = document.querySelector('header.navbar').getBoundingClientRect();
+        const content = document.querySelector('main h1:not(.sr-only), main section, main .card, main .group');
+        return { top: Math.round(h.top), bottom: Math.round(h.bottom), content: Math.round(content.getBoundingClientRect().top) };
+      });
+      if (atRest.top !== 0) throw new Error(r + ': bar starts ' + atRest.top + 'px below the top');
+      if (atRest.content < atRest.bottom) throw new Error(r + ': bar covers the page by ' + (atRest.bottom - atRest.content) + 'px');
+      await page.evaluate(() => document.querySelector('main').scrollTo(0, 200)); await page.waitForTimeout(250);
+      const scrolled = await page.evaluate(() => Math.round(document.querySelector('header.navbar').getBoundingClientRect().top));
+      if (scrolled !== 0) throw new Error(r + ': scrolled bar floats ' + scrolled + 'px below the top');
+    }
+  });
   await step(results, 'large title fades as it slides under the bar, so it never shows behind the bar buttons', async () => {
     for (const r of ['/budget', '/settings']) {
       await page.goto(BASE + r); await page.waitForLoadState('networkidle'); await page.waitForTimeout(300);
