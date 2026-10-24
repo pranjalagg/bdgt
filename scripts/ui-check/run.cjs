@@ -580,6 +580,9 @@ async function smoke(browser, errors) {
     await sheet.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(400);
     const after = await split();
     if (after === before) throw new Error('split unchanged: ' + after);
+    // The figure in the donut's middle stays inside its hole (108px across).
+    const mid = await page.locator('[aria-label*="purchases by envelope"] .figure, [aria-label*="purchases by envelope"] .money').first().boundingBox();
+    if (mid.width > 108) throw new Error('donut figure is ' + Math.round(mid.width) + 'px wide');
     const rent = page.locator('button[aria-pressed]').filter({ hasText: 'Rent/Mortgage' }).filter({ hasText: '% of big' });
     const total = () => page.locator('[aria-label*="purchases by envelope"]').getAttribute('aria-label');
     const t0 = await total();
@@ -673,6 +676,41 @@ async function smoke(browser, errors) {
     await page.getByRole('button', { name: 'Done' }).click();
     await page.waitForURL((u) => new URL(u).pathname === '/', { timeout: 3000 });
   });
+  await step(results, 'Done after visiting a Settings page returns to the tab, not the page', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    await page.getByRole('link', { name: /Settings/ }).first().click(); await page.waitForURL('**/settings');
+    await page.getByRole('link', { name: /^Capture rules/ }).click(); await page.waitForURL('**/settings/rules');
+    await page.getByRole('link', { name: 'Settings' }).first().click();
+    await page.waitForURL((u) => new URL(u).pathname === '/settings', { timeout: 3000 }); await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.waitForURL((u) => new URL(u).pathname === '/', { timeout: 3000 });
+  });
+  await step(results, 'Back from a page goes back; Android back afterwards does not return to it', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    await page.getByRole('navigation', { name: 'Tabs' }).getByRole('link', { name: /^Budget/ }).click(); await page.waitForURL('**/budget');
+    await page.getByRole('region', { name: 'Everyday' }).getByRole('link', { name: /^Grocery/ }).click(); await page.waitForURL('**/budget/groc');
+    await page.locator('header.navbar a', { hasText: 'Budget' }).click();
+    await page.waitForURL((u) => new URL(u).pathname === '/budget', { timeout: 3000 }); await page.waitForTimeout(300);
+    await page.goBack(); await page.waitForTimeout(500);
+    const after = new URL(page.url()).pathname;
+    if (after !== '/') throw new Error('browser back from Budget landed on ' + after);
+  });
+  await step(results, 'tapping the current tab from a page inside it pops back to the tab', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    const tab = page.getByRole('navigation', { name: 'Tabs' }).getByRole('link', { name: /^Budget/ });
+    await tab.click(); await page.waitForURL('**/budget');
+    await page.getByRole('region', { name: 'Everyday' }).getByRole('link', { name: /^Grocery/ }).click(); await page.waitForURL('**/budget/groc');
+    await tab.click();
+    await page.waitForURL((u) => new URL(u).pathname === '/budget', { timeout: 3000 }); await page.waitForTimeout(300);
+    await page.goBack(); await page.waitForTimeout(500);
+    const after = new URL(page.url()).pathname;
+    if (after !== '/') throw new Error('browser back after the tab tap landed on ' + after);
+  });
+  await step(results, 'Close on Review opened directly lands on Activity', async () => {
+    await page.goto(BASE + '/review'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Close' }).click();
+    await page.waitForURL((u) => new URL(u).pathname === '/activity', { timeout: 3000 });
+  });
   await step(results, 'new page starts at the top; Back returns to the same place', async () => {
     await page.goto(BASE + '/activity'); await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.querySelector('main').scrollTo(0, 1200));
@@ -723,6 +761,36 @@ async function smoke(browser, errors) {
     await page.waitForTimeout(900);
     const top = await page.evaluate(() => document.querySelector('main').scrollTop);
     if (top !== 0) throw new Error('scrollTop ' + top);
+  });
+  await step(results, 'large title fades as it slides under the bar, so it never shows behind the bar buttons', async () => {
+    for (const r of ['/budget', '/settings']) {
+      await page.goto(BASE + r); await page.waitForLoadState('networkidle'); await page.waitForTimeout(300);
+      await page.evaluate(() => document.querySelector('main').scrollTo(0, 34)); await page.waitForTimeout(300);
+      const o = await page.evaluate(() => {
+        const h = document.querySelector('h1.ltitle'); const bar = document.querySelector('header.navbar').getBoundingClientRect();
+        const t = h.getBoundingClientRect();
+        return { opacity: Number(getComputedStyle(h).opacity), under: t.top < bar.bottom };
+      });
+      if (o.under && o.opacity > 0.35) throw new Error(r + ': title under the bar at opacity ' + o.opacity);
+    }
+  });
+  await step(results, 'the small title in the bar never overlaps the bar buttons', async () => {
+    for (const r of ['/', '/budget', '/activity', '/insights', '/settings', '/budget/groc']) {
+      await page.goto(BASE + r); await page.waitForLoadState('networkidle'); await page.waitForTimeout(300);
+      // The longest month name makes the widest month button.
+      if (r === '/') { await page.getByRole('button', { name: /^October/ }).first().click(); await page.getByRole('menuitemradio', { name: 'September 2026' }).click(); await page.waitForTimeout(300); }
+      await page.evaluate(() => document.querySelector('main').scrollTo(0, 400)); await page.waitForTimeout(350);
+      const hit = await page.evaluate(() => {
+        const bar = document.querySelector('header.navbar');
+        const title = bar.querySelector('.title.show');
+        if (!title) return 'no title';
+        const t = title.getBoundingClientRect();
+        const parts = [...bar.querySelectorAll('a, button')].map((el) => el.getBoundingClientRect()).filter((b) => b.width > 0);
+        return parts.some((b) => b.left < t.right - 1 && b.right > t.left + 1 && b.top < t.bottom && b.bottom > t.top) ? `overlap: title ${Math.round(t.left)}–${Math.round(t.right)}` : '';
+      });
+      if (hit) throw new Error(r + ' ' + hit);
+      if (r === '/') { await page.keyboard.press('t'); await page.waitForTimeout(200); }
+    }
   });
   await step(results, 'navigation bar turns glass and shows the title after scrolling', async () => {
     await page.evaluate(() => document.querySelector('main').scrollTo(0, 0));
