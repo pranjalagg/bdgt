@@ -115,7 +115,7 @@
       />
     </div>
 
-    <div class="flex justify-end gap-3 pt-2">
+    <div class="flex flex-col-reverse gap-2 pt-2">
       <button type="button" class="btn-secondary" on:click={() => closeModal()}>
         Cancel
       </button>

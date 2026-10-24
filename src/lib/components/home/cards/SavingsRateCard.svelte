@@ -16,7 +16,7 @@
   <p class="flex items-baseline gap-2">
     <span class="figure amt text-[32px] text-label">{$savingsRate !== null ? `${$savingsRate}%` : '—'}</span>
     {#if delta !== null && delta !== 0}
-      <span class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[13px] font-semibold {delta > 0 ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}">
+      <span class="pill {delta > 0 ? 'pill-good' : 'pill-bad'}">
         <Icon name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={13} strokeWidth={2.4} />{Math.abs(delta)} pts
       </span>
     {/if}

@@ -12,7 +12,7 @@
   $: barTop = Math.max(1, ...bars);
   $: pairTop = Math.max(1, ...pairs.flat());
   $: lineVals = lines.flatMap((l) => l.values.filter((v): v is number => v !== null));
-  $: lineLo = kind === 'lines' && lines.length === 1 ? Math.min(...lineVals) * 0.9 : 0;
+  $: lineLo = kind === 'lines' && lines.length === 1 && lineVals.length ? Math.min(...lineVals) * 0.9 : 0;
   $: lineHi = Math.max(...lineVals, lineLo + 1);
   $: lx = (i: number, n: number) => (i / Math.max(1, n - 1)) * (W - 6) + 3;
   $: ly = (v: number) => 4 + (1 - (v - lineLo) / (lineHi - lineLo || 1)) * (H - 8);

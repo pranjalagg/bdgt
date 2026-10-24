@@ -24,7 +24,7 @@
   </p>
   <p class="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] text-label-2">
     {#if pill}
-      <span class="amt inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13px] font-semibold {pill.good ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}">
+      <span class="amt pill {pill.good ? 'pill-good' : 'pill-bad'}">
         <Icon name={pill.good ? 'arrow-down' : 'arrow-up'} size={14} strokeWidth={2.4} />{pill.text}
       </span>
     {/if}

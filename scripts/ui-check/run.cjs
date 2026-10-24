@@ -14,7 +14,7 @@ const OUT = process.argv[3] || path.join(__dirname, 'out');
 const BASE = process.env.UI_CHECK_URL || 'http://localhost:5174';
 const CHROME = process.env.UI_CHECK_CHROME || path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell');
 const SEED = path.join(__dirname, 'sample-backup.json');
-const ROUTES = ['/', '/activity', '/review', '/insights', '/insights/investments', '/budget', '/budget/bills', '/settings'];
+const ROUTES = ['/', '/activity', '/review', '/insights', '/insights/spending', '/insights/income', '/insights/envelopes', '/insights/savings-rate', '/insights/investments', '/budget', '/budget/bills', '/settings'];
 const CONFIGS = [
   { name: 'phone-light', viewport: { width: 390, height: 844 }, theme: 'light', mobile: true },
   { name: 'phone-dark', viewport: { width: 390, height: 844 }, theme: 'dark', mobile: true },
@@ -541,13 +541,98 @@ async function smoke(browser, errors) {
     await page.waitForTimeout(400);
     if (await page.locator('[data-row]').filter({ hasText: 'Paused' }).count()) throw new Error('still paused');
   });
-  await step(results, 'investments lists a holding', async () => {
+  const scrubAt = async (chart, fraction) => {
+    const b = await chart.boundingBox();
+    const y = b.y + b.height / 2;
+    await page.mouse.move(b.x + b.width * fraction, y); await page.mouse.down();
+    await page.mouse.move(b.x + b.width * fraction + 2, y, { steps: 2 });
+    await page.waitForTimeout(150);
+  };
+  const periodPill = () => page.getByRole('tablist', { name: 'Period' }).locator('.segmented-pill').evaluate((el) => el.style.transform);
+  await step(results, 'period switches Week / Month / 6 months and the pill slides', async () => {
+    await page.goto(BASE + '/insights'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(400);
+    const seen = new Set();
+    for (const [tab, label] of [['Week', 'Spent in the last 7 days'], ['6 months', 'Average per month'], ['Month', 'Spent in October']]) {
+      await page.getByRole('tablist', { name: 'Period' }).getByRole('tab', { name: tab, exact: true }).click(); await page.waitForTimeout(450);
+      await text(label).waitFor({ timeout: 2000 });
+      seen.add(await periodPill());
+    }
+    if (seen.size !== 3) throw new Error('pill positions ' + [...seen].join(' | '));
+  });
+  await step(results, 'scrubbing the period chart reads a day', async () => {
+    await scrubAt(page.locator('[aria-label^="Spending on each day"]'), 0.25);
+    await page.getByText(/^[A-Z][a-z]{2}, Oct \d+$/).first().waitFor({ timeout: 2000 });
+    await page.mouse.up(); await page.waitForTimeout(200);
+    await text('Spent in October').waitFor({ timeout: 2000 });
+  });
+  await step(results, 'threshold $50 changes the split; legend hides Rent', async () => {
+    const split = () => page.getByText(/^Big \d+% ·/).first().textContent();
+    const before = await split();
+    await page.getByRole('button', { name: /or more$/ }).click();
+    const sheet = page.getByRole('dialog', { name: 'Big purchases' });
+    await sheet.waitFor({ timeout: 2000 }); await page.waitForTimeout(300);
+    await sheet.getByText('Envelopes whose spending this month reaches this amount count as big.').waitFor({ timeout: 1000 });
+    await sheet.getByRole('button', { name: '$50', exact: true }).click();
+    await sheet.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(400);
+    const after = await split();
+    if (after === before) throw new Error('split unchanged: ' + after);
+    const rent = page.locator('button[aria-pressed]').filter({ hasText: 'Rent/Mortgage' }).filter({ hasText: '% of big' });
+    const total = () => page.locator('[aria-label*="purchases by envelope"]').getAttribute('aria-label');
+    const t0 = await total();
+    await rent.click(); await page.waitForTimeout(200);
+    if ((await rent.getAttribute('aria-pressed')) !== 'false') throw new Error('Rent still shown');
+    if ((await total()) === t0) throw new Error('donut total unchanged');
+  });
+  await step(results, 'patterns section renders', async () => {
+    await page.locator('[data-patterns]').waitFor({ timeout: 2000 });
+    await page.getByRole('button', { name: 'How these work' }).click();
+    await page.getByRole('dialog', { name: 'How patterns work' }).waitFor({ timeout: 2000 });
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+  });
+  await step(results, 'Insights hides every amount with the eye on', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Hide amounts' }).first().click();
+    try {
+      for (const r of ['/insights', '/insights/income']) {
+        await page.goto(BASE + r); await page.waitForLoadState('networkidle'); await page.waitForTimeout(500);
+        await assertAmountsHidden(page);
+      }
+    } finally {
+      await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+      await page.getByRole('button', { name: 'Hide amounts' }).first().click();
+    }
+  });
+  await step(results, 'each trend page opens, scrubs to August and returns', async () => {
+    await page.goto(BASE + '/insights'); await page.waitForLoadState('networkidle');
+    for (const [card, path] of [['Monthly spending', '/insights/spending'], ['Income and spending', '/insights/income'], ['Spending by envelope', '/insights/envelopes'], ['Savings rate', '/insights/savings-rate']]) {
+      await page.getByRole('link', { name: new RegExp('^' + card) }).click();
+      await page.waitForURL('**' + path, { timeout: 3000 }); await page.waitForTimeout(900);
+      await scrubAt(page.locator('main [role=img][aria-label*="per month"]').first(), 3.5 / 6);
+      const label = (await page.locator('main p').first().textContent()).trim();
+      if (!label.startsWith('August')) throw new Error(card + ' reads ' + label);
+      await page.mouse.up(); await page.waitForTimeout(200);
+      await page.getByRole('link', { name: 'Insights' }).first().click();
+      await page.waitForURL((u) => new URL(u).pathname === '/insights', { timeout: 3000 }); await page.waitForTimeout(300);
+    }
+    await page.goto(BASE + '/insights/nope'); await page.waitForLoadState('networkidle');
+    if (new URL(page.url()).pathname !== '/insights') throw new Error('unknown chart landed on ' + new URL(page.url()).pathname);
+  });
+  await step(results, 'envelopes page: Rent hidden, toggling it on redraws', async () => {
+    await page.goto(BASE + '/insights/envelopes'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(400);
+    const chip = page.getByRole('group', { name: 'Envelopes' }).getByRole('button', { name: /Rent\/Mortgage/ });
+    if ((await chip.getAttribute('aria-pressed')) !== 'false') throw new Error('Rent shown at first');
+    const lines = () => page.locator('main [role=img][aria-label*="per month"] path').count();
+    const before = await lines();
+    await chip.click(); await page.waitForTimeout(300);
+    if ((await chip.getAttribute('aria-pressed')) !== 'true') throw new Error('Rent not shown after tap');
+    if ((await lines()) <= before) throw new Error('lines ' + before + ' -> ' + (await lines()));
+  });
+  await step(results, 'investments page lists VTI and opens Add purchase', async () => {
     await page.goto(BASE + '/insights/investments'); await page.waitForLoadState('networkidle');
     await text('VTI').waitFor({ timeout: 3000 });
-  });
-  await step(results, 'analytics draws charts', async () => {
-    await page.goto(BASE + '/insights'); await page.waitForLoadState('networkidle');
-    await page.locator('canvas').first().waitFor({ timeout: 4000 });
+    await page.getByRole('button', { name: 'Add purchase' }).click();
+    await page.getByRole('dialog', { name: 'Add Purchase' }).waitFor({ timeout: 2000 });
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
   });
   await step(results, 'settings switches theme', async () => {
     await page.goto(BASE + '/settings'); await page.waitForLoadState('networkidle');
@@ -620,6 +705,27 @@ async function smoke(browser, errors) {
     const state = await page.evaluate(() => ({ glass: document.querySelector('header.navbar').classList.contains('scrolled'), title: !!document.querySelector('header.navbar .title.show') }));
     if (!state.glass || !state.title) throw new Error(JSON.stringify(state));
   });
+  await step(results, 'fresh profile: Insights renders with no NaN or Infinity anywhere', async () => {
+    await page.goto(BASE + '/settings'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(500);
+    await page.getByRole('button', { name: /^Reset all data$/i }).click({ timeout: 5000 });
+    await page.waitForTimeout(1200);
+    // A fresh profile asks for its currency first.
+    const confirm = page.locator('[role=dialog] button[type=submit], [role=dialog] .btn-primary').first();
+    if (await confirm.count()) { await confirm.click(); await page.waitForTimeout(400); }
+    for (const r of ['/', '/insights', '/insights/spending', '/insights/income', '/insights/envelopes', '/insights/savings-rate', '/budget']) {
+      await page.goto(BASE + r); await page.waitForLoadState('networkidle'); await page.waitForTimeout(500);
+      for (const t of ['Week', '6 months']) {
+        if (r === '/insights') { await page.getByRole('tab', { name: t, exact: true }).click({ timeout: 5000 }); await page.waitForTimeout(200); }
+      }
+      const bad = await page.evaluate(() => {
+        const txt = document.body.innerText;
+        const attrs = [...document.querySelectorAll('svg *')].flatMap((el) => [...el.attributes].map((a) => a.value)).filter((v) => /NaN|Infinity/.test(v));
+        return [/NaN|Infinity/.test(txt) ? 'text' : '', attrs.length ? 'svg ' + attrs.slice(0, 2).join(' ') : ''].filter(Boolean);
+      });
+      if (bad.length) throw new Error(r + ': ' + bad.join(', '));
+      if (r === '/insights' && !(await page.getByText('Nothing spent this month yet.').count())) throw new Error('data was not reset');
+    }
+  });
   await page.context().close();
   return results;
 }
@@ -672,6 +778,10 @@ async function a11y(browser, errors) {
     await page.keyboard.press('Escape'); await page.waitForTimeout(400);
     await page.getByRole('button', { name: 'Edit', exact: true }).click(); await page.waitForTimeout(500);
     await run(page, `${theme} review-edit-sheet`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.goto(BASE + '/insights'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(400);
+    await page.getByRole('button', { name: /or more$/ }).click(); await page.waitForTimeout(500);
+    await run(page, `${theme} threshold-sheet`);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.context().close();
   }

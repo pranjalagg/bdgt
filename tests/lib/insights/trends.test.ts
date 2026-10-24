@@ -9,6 +9,7 @@ import {
   bigSmall,
   cumulativeByDay,
   weekWindow,
+  dailySpending,
 } from '$lib/insights/trends';
 
 // The sample month the UI checks use (scripts/ui-check/sample-backup.json).
@@ -41,6 +42,12 @@ describe('trend math', () => {
     expect(averageOfComplete([99], ['2026-10'], new Date(2026, 9, 23))).toBeNull();
   });
 
+  it('leaves months with nothing logged out of the average', () => {
+    const m = ['2026-06', '2026-07', '2026-08', '2026-09', '2026-10'];
+    expect(averageOfComplete([0, 0, 600, 400, 99], m, new Date(2026, 9, 23))).toBe(500);
+    expect(averageOfComplete([0, 0, 0, 0, 99], m, new Date(2026, 9, 23))).toBeNull();
+  });
+
   it('splits envelopes into big and small by their month total', () => {
     const oct = new Map<string, number>();
     for (const t of txs) if (t.date.getMonth() === 9 && !savingsIds.has(t.bucketId)) oct.set(t.bucketId, (oct.get(t.bucketId) ?? 0) + t.amount);
@@ -59,5 +66,14 @@ describe('trend math', () => {
   it('a past month’s week is its last seven days', () => {
     expect(weekWindow('2026-09', new Date(2026, 9, 23)).map((d) => d.getDate())).toEqual([24, 25, 26, 27, 28, 29, 30]);
     expect(weekWindow('2026-10', new Date(2026, 9, 23)).map((d) => d.getDate())).toEqual([17, 18, 19, 20, 21, 22, 23]);
+  });
+});
+
+describe('dailySpending', () => {
+  const tx = (bucketId: string, amount: number, y: number, m: number, d: number) => ({ bucketId, amount, date: new Date(y, m, d, 13) });
+  it('adds up each day, leaving out savings and days outside the list', () => {
+    const days = [new Date(2026, 8, 30), new Date(2026, 9, 1), new Date(2026, 9, 2)];
+    const txs = [tx('food', 500, 2026, 8, 30), tx('food', 250, 2026, 9, 1), tx('save', 9000, 2026, 9, 1), tx('food', 100, 2026, 9, 1), tx('food', 7, 2026, 9, 5)];
+    expect(dailySpending(txs, new Set(['save']), days)).toEqual([500, 350, 0]);
   });
 });

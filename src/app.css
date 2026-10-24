@@ -29,6 +29,10 @@
   --color-success: 39 116 77; /* #27744d */
   --color-warning: 143 95 28; /* #8f5f1c */
   --color-danger: 184 58 38; /* #b83a26 */
+  /* Text on a good/bad pill: a step darker than the meaning colour, so it
+     holds 4.5:1 on the tinted pill over grey (5.1:1 at worst). */
+  --pill-good-text: 31 99 64; /* #1f6340 */
+  --pill-bad-text: 154 47 31; /* #9a2f1f */
 
   /* Depth comes from a 1px ring plus soft lift, not from borders. */
   --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -63,6 +67,8 @@
   --color-success: 99 197 146; /* #63c592 */
   --color-warning: 219 164 90; /* #dba45a */
   --color-danger: 240 131 108; /* #f0836c */
+  --pill-good-text: 99 197 146;
+  --pill-bad-text: 240 131 108;
 
   /* Shadows vanish on black: one faint white ring instead. */
   --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -232,6 +238,22 @@
 
 
 @layer components {
+  /* An up/down pill beside a figure: under or over plan, above or below
+     average. */
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13px] font-semibold;
+  }
+
+  .pill-good {
+    background-color: rgb(var(--color-success) / 0.12);
+    color: rgb(var(--pill-good-text));
+  }
+
+  .pill-bad {
+    background-color: rgb(var(--color-danger) / 0.12);
+    color: rgb(var(--pill-bad-text));
+  }
+
   /* Amounts use tabular figures, so they share a decimal column and a
      ledger can be scanned. Every figure in the app goes through this class. */
   .money {

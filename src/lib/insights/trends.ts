@@ -35,10 +35,12 @@ export function ratesByMonth(income: number[], spent: number[]): (number | null)
   return income.map((inc, i) => (inc > 0 ? (inc - spent[i]) / inc : null));
 }
 
-// The average over months that are over (the current one is still filling).
+// The average over months that are over (the current one is still filling)
+// and have anything logged: a month before the app was in use is no data,
+// not a month of zero.
 export function averageOfComplete(values: number[], months: string[], now: Date): number | null {
   const current = getMonthKey(now);
-  const done = values.filter((_, i) => months[i] < current);
+  const done = values.filter((v, i) => months[i] < current && v !== 0);
   return done.length ? Math.round(done.reduce((s, v) => s + v, 0) / done.length) : null;
 }
 
@@ -71,4 +73,17 @@ export function weekWindow(monthKey: string, today: Date): Date[] {
   const first = parseMonthKey(monthKey);
   const end = getMonthKey(today) === monthKey ? today.getDate() : getDaysInMonth(monthKey);
   return Array.from({ length: 7 }, (_, i) => new Date(first.getFullYear(), first.getMonth(), end - 6 + i));
+}
+
+// Spending (savings left out) on each of the given days, as the Week and
+// Month views draw it.
+export function dailySpending(txs: Tx[], savingsIds: Set<string>, days: Date[]): number[] {
+  const key = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const byDay = new Map(days.map((d) => [key(d), 0]));
+  for (const t of txs) {
+    if (savingsIds.has(t.bucketId)) continue;
+    const k = key(new Date(t.date));
+    if (byDay.has(k)) byDay.set(k, (byDay.get(k) ?? 0) + t.amount);
+  }
+  return days.map((d) => byDay.get(key(d)) ?? 0);
 }

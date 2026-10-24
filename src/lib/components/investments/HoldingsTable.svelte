@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatCurrency, parseCurrency, isValidCurrency } from '$lib/utils/currency';
   import { setPrice, type Holding } from '$lib/stores/investmentStore';
+  import Icon from '$lib/components/ui/Icon.svelte';
 
   export let holdings: Holding[];
   export let onAddPurchase: () => void;
@@ -49,106 +50,79 @@
   }
 
   function gainClass(n: number | null): string {
-    if (n === null || n === 0) return 'text-muted';
+    if (n === null || n === 0) return 'text-label-2';
     return n > 0 ? 'text-success' : 'text-danger';
   }
 </script>
 
-<div class="card">
-  <div class="flex items-center justify-between px-5 pb-1 pt-5">
-    <h2 class="section-title">Holdings</h2>
-    <button class="btn-primary text-sm" on:click={onAddPurchase}>
-      + Add Purchase
+<section aria-labelledby="inv-holdings">
+  <div class="flex items-center justify-between px-1 pb-1.5">
+    <h2 id="inv-holdings" class="text-[13px] font-medium uppercase tracking-wide text-label-2">Holdings</h2>
+    <button type="button" class="flex items-center gap-1 rounded-full px-1 text-[15px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={onAddPurchase}>
+      <Icon name="plus" size={16} strokeWidth={2.4} />Add purchase
     </button>
   </div>
 
   {#if holdings.length === 0}
-    <div class="px-5 py-8 text-center text-muted">
-      No holdings yet. Add your first purchase to get started.
-    </div>
+    <div class="card px-5 py-8 text-center text-[15px] text-label-2">No holdings yet. Add your first purchase to get started.</div>
   {:else}
-    <div class="divide-y divide-gray-100 dark:divide-border-dark">
-      {#each holdings as holding}
-        <div>
-          <div class="flex w-full items-center gap-4 px-5 py-4">
-            <button
-              class="flex flex-1 items-center gap-3 text-left"
-              on:click={() => toggleExpand(holding.symbol)}
-            >
-              <svg
-                class="h-4 w-4 flex-shrink-0 text-gray-400 transition-transform {expandedSymbol === holding.symbol ? 'rotate-180' : ''}"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-              <span class="font-semibold text-gray-800 dark:text-gray-100">{holding.symbol}</span>
-              <span class="text-sm text-muted">{formatShares(holding.totalShares)} sh</span>
+    <div class="group">
+      {#each holdings as holding (holding.symbol)}
+        {@const open = expandedSymbol === holding.symbol}
+        <div class="group-row" style="--row-inset: 64px">
+          <div class="flex items-center gap-3 px-4 py-3">
+            <button type="button" class="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" aria-expanded={open} on:click={() => toggleExpand(holding.symbol)}>
+              <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[#3b82f6] text-white" aria-hidden="true"><Icon name="trend" size={19} strokeWidth={2.2} /></span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-1 text-[16px] font-semibold text-label">{holding.symbol}<span class="chev text-label-2" class:open aria-hidden="true"><Icon name="chevron-down" size={14} strokeWidth={2.4} /></span></span>
+                <span class="block text-[13px] text-label-2">{formatShares(holding.totalShares)} shares · <span class="amt">{formatCurrency(holding.totalCost)}</span> cost</span>
+              </span>
             </button>
-
-            <div class="hidden text-right sm:block">
-              <p class="text-xs text-muted">Cost</p>
-              <p class="money text-sm font-medium text-gray-700 dark:text-gray-200 amt">{formatCurrency(holding.totalCost)}</p>
-            </div>
-
-            <div class="text-right">
-              <p class="text-xs text-muted">Price</p>
-              {#if editingPriceSymbol === holding.symbol}
+            <span class="flex-none text-right">
+              <span class="money amt block text-[16px] font-semibold text-label">{holding.marketValue != null ? formatCurrency(holding.marketValue) : '—'}</span>
+              {#if holding.unrealizedGain != null}
+                <span class="money amt block text-[12px] {gainClass(holding.unrealizedGain)}">{holding.unrealizedGain > 0 ? '+' : ''}{formatCurrency(holding.unrealizedGain)}{#if holding.unrealizedGainPct != null} · {holding.unrealizedGainPct > 0 ? '+' : ''}{holding.unrealizedGainPct}%{/if}</span>
+              {/if}
+            </span>
+          </div>
+          <div class="flex items-center justify-between gap-3 px-4 pb-3 pl-[64px] text-[13px]">
+            <span class="text-label-2">Price</span>
+            {#if editingPriceSymbol === holding.symbol}
+              <span class="text-right">
                 <!-- svelte-ignore a11y_autofocus -->
                 <input
                   type="text"
                   inputmode="decimal"
+                  aria-label="Price of {holding.symbol}"
                   bind:value={priceDraft}
                   autofocus
                   on:blur={() => commitPrice(holding.symbol)}
                   on:keydown={(e) => { if (e.key === 'Enter') commitPrice(holding.symbol); if (e.key === 'Escape') cancelEditPrice(); }}
-                  class="w-20 rounded border {priceError ? 'border-danger' : 'border-gray-300'} px-1.5 py-0.5 text-right text-sm dark:border-border-dark dark:bg-gray-800"
+                  class="money h-8 w-28 rounded-[10px] bg-fill px-2.5 text-right text-[15px] text-label focus:outline-none focus:ring-2 {priceError ? 'focus:ring-danger' : 'focus:ring-tint'}"
                   placeholder="0.00"
                 />
-                {#if priceError}
-                  <p class="mt-0.5 text-xs text-danger">{priceError}</p>
-                {/if}
-              {:else}
-                <button class="money text-sm font-medium text-primary hover:underline amt" on:click={() => startEditPrice(holding)}>
-                  {holding.currentPrice != null ? formatCurrency(holding.currentPrice) : 'Set'}
-                </button>
-              {/if}
-            </div>
-
-            <div class="w-24 text-right">
-              <p class="text-xs text-muted">Value</p>
-              <p class="money text-sm font-medium text-gray-800 dark:text-gray-100 amt">
-                {holding.marketValue != null ? formatCurrency(holding.marketValue) : '—'}
-              </p>
-              {#if holding.unrealizedGain != null}
-                <p class="text-xs money {gainClass(holding.unrealizedGain)} amt">
-                  {holding.unrealizedGain > 0 ? '+' : ''}{formatCurrency(holding.unrealizedGain)}{#if holding.unrealizedGainPct != null} ({holding.unrealizedGainPct > 0 ? '+' : ''}{holding.unrealizedGainPct}%){/if}
-                </p>
-              {/if}
-            </div>
+                {#if priceError}<span class="mt-0.5 block text-[12px] text-danger">{priceError}</span>{/if}
+              </span>
+            {:else}
+              <button type="button" class="money amt rounded-full bg-fill px-3 py-1 text-[13px] font-semibold text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => startEditPrice(holding)}>
+                {holding.currentPrice != null ? `${formatCurrency(holding.currentPrice)} each` : 'Set price'}
+              </button>
+            {/if}
           </div>
 
-          {#if expandedSymbol === holding.symbol}
-            <div class="border-t border-gray-100 bg-gray-50/50 px-5 py-3 dark:border-border-dark dark:bg-gray-800/30">
-              <p class="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Lots</p>
-              <div class="space-y-2">
-                {#each holding.lots as lot}
+          {#if open}
+            <div class="px-4 pb-3 pl-[64px]">
+              <p class="pb-1.5 text-[12px] font-medium uppercase tracking-wide text-label-2">Lots</p>
+              <div class="grid gap-1.5">
+                {#each holding.lots as lot (lot.id)}
                   {@const remainingShares = lot.shares - lot.soldShares}
-                  <div class="flex items-center justify-between rounded-lg bg-white p-3 dark:bg-surface-dark">
-                    <div>
-                      <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
-                        {formatShares(remainingShares)} shares @ <span class="amt">{formatCurrency(lot.pricePerShare)}</span>
-                      </p>
-                      <p class="text-xs text-muted">
-                        Purchased {new Date(lot.purchaseDate).toLocaleDateString()}
-                      </p>
-                    </div>
+                  <div class="flex items-center justify-between gap-3 rounded-[12px] bg-fill px-3 py-2">
+                    <span class="min-w-0">
+                      <span class="block text-[15px] text-label">{formatShares(remainingShares)} shares at <span class="amt">{formatCurrency(lot.pricePerShare)}</span></span>
+                      <span class="block text-[12px] text-label-2">Bought {new Date(lot.purchaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </span>
                     {#if remainingShares > 0}
-                      <button
-                        class="btn-secondary text-xs"
-                        on:click|stopPropagation={() => onSellFromLot(lot.id)}
-                      >
-                        Sell
-                      </button>
+                      <button type="button" class="flex-none rounded-full bg-surface px-3 py-1 text-[13px] font-semibold text-tint dark:bg-raised" on:click|stopPropagation={() => onSellFromLot(lot.id)}>Sell</button>
                     {/if}
                   </div>
                 {/each}
@@ -159,4 +133,14 @@
       {/each}
     </div>
   {/if}
-</div>
+</section>
+
+<style>
+  .chev {
+    transition: transform var(--ms-smooth, 300ms) var(--ease-smooth, ease-out);
+  }
+
+  .chev.open {
+    transform: rotate(180deg);
+  }
+</style>

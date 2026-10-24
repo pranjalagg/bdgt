@@ -61,8 +61,8 @@
         <p class="text-sm text-danger">{error}</p>
       {/if}
 
-      <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
-        <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
+      <div class="rounded-[12px] bg-fill p-3">
+        <p class="text-[15px] font-medium text-label">
           {lot.symbol} · {availableShares} shares available
         </p>
         <p class="text-xs text-muted">
@@ -73,7 +73,7 @@
       <div>
         <div class="flex items-center justify-between">
           <label for="sell-shares" class="label">Shares to Sell</label>
-          <button type="button" class="text-xs text-primary hover:underline" on:click={sellAll}>
+          <button type="button" class="text-[13px] font-medium text-tint" on:click={sellAll}>
             Sell all
           </button>
         </div>
@@ -127,7 +127,7 @@
         />
       </div>
 
-      <div class="flex justify-end gap-3 pt-2">
+      <div class="flex flex-col-reverse gap-2 pt-2">
         <button type="button" class="btn-secondary" on:click={() => closeModal()}>
           Cancel
         </button>

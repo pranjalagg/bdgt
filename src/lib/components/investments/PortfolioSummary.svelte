@@ -1,70 +1,45 @@
 <script lang="ts">
+  import Figure from '$lib/components/insights/Figure.svelte';
   import { formatCurrency } from '$lib/utils/currency';
   import type { PortfolioSummary } from '$lib/stores/investmentStore';
 
+  // What the portfolio is worth, what went in, and the gains so far.
+
   export let summary: PortfolioSummary;
 
-  function gainClass(n: number | null): string {
-    if (n === null || n === 0) return '';
-    return n > 0 ? '!text-success' : '!text-danger';
-  }
+  const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatCurrency(Math.abs(n))}`;
+  const tone = (n: number | null) => (n === null || n === 0 ? 'text-label' : n > 0 ? 'text-success' : 'text-danger');
 
-  function signed(n: number): string {
-    return (n > 0 ? '+' : '') + formatCurrency(n);
-  }
+  $: gain = summary.totalUnrealizedGain;
+  $: pill =
+    gain !== null && gain !== 0
+      ? { good: gain > 0, up: gain > 0, text: `${formatCurrency(Math.abs(gain))}${summary.totalUnrealizedGainPct !== null ? ` · ${Math.abs(summary.totalUnrealizedGainPct)}%` : ''}` }
+      : null;
 </script>
 
-<div class="card p-5">
-  <h2 class="section-title mb-4">Portfolio Summary</h2>
-  <div class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-    <div>
-      <p class="metric-label">Cost Basis</p>
-      <p class="metric-value amt">
-        {formatCurrency(summary.totalInvested)}
-      </p>
+<div class="space-y-4">
+  {#if summary.totalMarketValue !== null}
+    <Figure label="Market value" cents={summary.totalMarketValue} {pill} sub="on {formatCurrency(summary.totalInvested)} invested{summary.pricedHoldings < summary.holdingsCount ? ` · ${summary.pricedHoldings} of ${summary.holdingsCount} priced` : ''}" />
+  {:else}
+    <Figure label="Invested" cents={summary.totalInvested} sub={summary.holdingsCount ? 'Set a price on a holding to see its value' : ''} />
+  {/if}
+
+  <div class="card grid grid-cols-3 divide-x divide-sep py-3.5">
+    <div class="min-w-0 px-3.5">
+      <p class="text-[13px] font-medium text-label-2">Invested</p>
+      <p class="money amt mt-0.5 truncate text-[17px] font-semibold text-label">{formatCurrency(summary.totalInvested)}</p>
     </div>
-    <div>
-      <p class="metric-label">Market Value</p>
-      <p class="metric-value amt">
-        {summary.totalMarketValue === null ? '—' : formatCurrency(summary.totalMarketValue)}
-      </p>
-      {#if summary.totalMarketValue !== null && summary.pricedHoldings < summary.holdingsCount}
-        <p class="text-xs text-muted">{summary.pricedHoldings} of {summary.holdingsCount} priced</p>
-      {/if}
+    <div class="min-w-0 px-3.5">
+      <p class="text-[13px] font-medium text-label-2">Unrealised</p>
+      <p class="money amt mt-0.5 truncate text-[17px] font-semibold {tone(gain)}">{gain === null ? '—' : signed(gain)}</p>
     </div>
-    <div>
-      <p class="metric-label">Unrealised</p>
-      {#if summary.totalUnrealizedGain === null}
-        <p class="metric-value !text-muted">—</p>
-      {:else}
-        <p class="metric-value amt {gainClass(summary.totalUnrealizedGain)}">
-          {signed(summary.totalUnrealizedGain)}
-        </p>
-        {#if summary.totalUnrealizedGainPct !== null}
-          <p class="text-xs {gainClass(summary.totalUnrealizedGain)}">
-            {summary.totalUnrealizedGainPct > 0 ? '+' : ''}{summary.totalUnrealizedGainPct}%
-          </p>
-        {/if}
-      {/if}
-    </div>
-    <div>
-      <p class="metric-label">Realised</p>
-      <p class="metric-value amt {gainClass(summary.realizedGain)}">
-        {summary.realizedGain === 0 ? formatCurrency(0) : signed(summary.realizedGain)}
-      </p>
+    <div class="min-w-0 px-3.5">
+      <p class="text-[13px] font-medium text-label-2">Realised</p>
+      <p class="money amt mt-0.5 truncate text-[17px] font-semibold {tone(summary.realizedGain)}">{summary.realizedGain === 0 ? formatCurrency(0) : signed(summary.realizedGain)}</p>
     </div>
   </div>
 
-  {#if summary.topHoldings.length > 0}
-    <div class="mt-4">
-      <p class="metric-label mb-2">Top Holdings</p>
-      <div class="flex flex-wrap gap-2">
-        {#each summary.topHoldings.slice(0, 3) as holding}
-          <span class="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-            {holding.symbol}
-          </span>
-        {/each}
-      </div>
-    </div>
+  {#if summary.topHoldings.length > 1}
+    <p class="px-1 text-[13px] text-label-2">Largest: {summary.topHoldings.slice(0, 3).map((h) => h.symbol).join(', ')}</p>
   {/if}
 </div>

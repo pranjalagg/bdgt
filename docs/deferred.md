@@ -150,6 +150,11 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 
 ---
 
+## Mobile-first redesign (branch `claude/native-ui`, plan: `docs/superpowers/plans/2026-10-23-mobile-first-redesign.md`)
+- **Add purchase (Investments) starts on tomorrow's date in the evening** in time zones west of UTC: `AddLotModal.svelte` takes the date from `toISOString()` (UTC). Found while restyling; not changed because it is behaviour. Fix: `getLocalDateKey(new Date())` in both places it is set. Size S.
+
+---
+
 ## Product and UI
 - **Should the bucket delete button be allowed for default buckets?** It is restricted by `isDefault` today. Open question rather than a bug.
 - **Amounts in `aria-label`s and tooltips are not marked `.amt`**, so the hide-amounts toggle does not blur them for screen-reader users or on hover. Size S–M.
