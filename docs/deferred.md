@@ -150,7 +150,6 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 ## Mobile-first redesign (branch `claude/native-ui`, plan: `docs/superpowers/plans/2026-10-23-mobile-first-redesign.md`)
 - **Only Activity's rows swipe.** The envelope page's transaction list and the Bills list open their sheets on tap (Delete and Move live there) but do not swipe. `SwipeRow.svelte` can wrap them. Size S.
 - **The Review deck has no arrow keys on desktop**; Approve, Edit and Dismiss are buttons, so the keyboard works, but → / ← as shortcuts would be quicker. `Deck.svelte`. Size S.
-- **Close after opening Review or Settings directly counts as a step back** (`goto(..., { replaceState: true })` still increments the history depth in `src/lib/ui/history.ts`), so a later Android back on that tab may leave the app one step early. Size S.
 - **The Sync page was checked only without sync** (the dev server runs with sync off); its content is unchanged apart from colours, but sign-in, Sync now and Sign out under `/settings/sync` want a look on a synced build. Not code; a check.
 - **Investments' Add purchase and Sell sheets keep the older form layout** (labels over outlined fields), restyled only in colour and button order. Size S.
 - **Review minors from the redesign's final pass (not fixed):**
@@ -170,6 +169,7 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 ---
 
 ## Resolved
+- Close after opening Review or Settings directly counted as a step back (fixed: the app keeps a record of the pages behind the current one, and replacing navigations do not add to it; `src/lib/ui/history.ts`).
 - Editing a paused recurring item resumed it (fixed in the redesign: the form's data shaping is `recurringFormData()` in `src/lib/budget/recurringForm.ts`, tested).
 - Insights drew spending in red and income in green (fixed in the redesign: spending is the tint, income grey; the charts are the app's own SVG components with theme tokens).
 - Review's per-card buttons without swipe or haptics (replaced by the swipe deck, with `haptic()` on decisions).
