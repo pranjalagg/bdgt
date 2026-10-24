@@ -21,6 +21,7 @@
   import Modal from './Modal.svelte';
   import ForeignCurrencyField from './ForeignCurrencyField.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import { fitText } from '$lib/ui/fit';
 
   export let preselectedBucketId: string | undefined = undefined;
   export let onComplete: (() => void) | undefined = undefined;
@@ -66,7 +67,8 @@
   $: hasOp = isExpression(settled) || /[+\-*/]/.test(expr);
   $: expressionLine = hasOp ? expr.replace(/[+\-*/]/g, (o) => OPS[o]) : '';
   $: figure = !expr ? `${symbol}0` : hasOp ? formatMoney(typedMinor, currency) : symbol + groupWhole(expr);
-  $: figureSize = figure.length <= 7 ? 'text-[56px]' : figure.length <= 10 ? 'text-[44px]' : 'text-[34px]';
+  // The currency symbol sits smaller and grey before the number, as Apple Cash shows it.
+  $: [lead, rest] = figure.startsWith(symbol) ? [symbol, figure.slice(symbol.length)] : ['', figure];
 
   function groupWhole(s: string) {
     const [whole, rest] = s.split('.');
@@ -149,30 +151,34 @@
 
 <div class="flex min-h-full flex-col gap-3 pb-2">
   <output
-    class="amt flex min-h-[112px] flex-col items-center justify-end rounded-xl text-center focus:outline-none"
+    class="amt flex min-h-[132px] flex-col items-center justify-center text-center focus:outline-none"
     tabindex="-1"
     data-autofocus
     aria-live="polite"
     aria-label="Amount {figure}"
   >
     <span class="money h-6 text-[17px] text-label-2">{expressionLine}</span>
-    <span class="figure money {figureSize} leading-[1.1] {shaking ? 'text-danger' : expr ? 'text-label' : 'text-label-2'}" class:shake={shaking}>{figure}</span>
-    {#if isForeign && typedMinor}
-      <span class="money mt-1 text-[15px] text-label-2">{rateValid ? `≈ ${formatCurrency(baseCents)}` : 'Add a rate to convert'}</span>
-    {/if}
+    <span
+      class="figure money block w-full leading-[1.1] {shaking ? 'text-danger' : expr ? 'text-label' : 'text-label-2'}"
+      class:shake={shaking}
+      style="letter-spacing: -0.03em"
+      use:fitText={{ text: figure, max: 64, min: 30 }}
+    >{#if lead}<span class="symbol">{lead}</span>{/if}{rest}</span>
+    <button type="button" class="mt-2 flex h-8 items-center gap-1 rounded-full px-3 text-[15px] font-medium text-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => openModal('paid-in')}>
+      {#if isForeign && typedMinor}<span class="money text-label-2">{rateValid ? `≈ ${formatCurrency(baseCents)} ·` : 'Rate needed ·'}</span>{/if}
+      Paid in {currency}<Icon name="chevron-down" size={14} strokeWidth={2.4} />
+    </button>
   </output>
 
   <EnvelopeChips bind:this={chipsRef} {chips} bind:selected />
 
-  <div class="flex items-center gap-2">
-    <label for="log-note" class="sr-only">Note</label>
-    <input id="log-note" type="text" bind:value={note} placeholder="Add a note" autocomplete="off" class="h-11 min-w-0 flex-1 rounded-[12px] bg-fill px-3.5 text-[16px] text-label placeholder:text-label-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" />
-    <button type="button" class="flex h-11 flex-none items-center gap-1 rounded-full bg-fill px-3.5 text-[15px] font-semibold text-label focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => openModal('paid-in')}>
-      Paid in {currency}<Icon name="chevron-right" size={14} strokeWidth={2.4} />
-    </button>
-  </div>
+  <label class="flex h-11 items-center gap-2.5 rounded-[12px] bg-fill px-3.5 focus-within:ring-2 focus-within:ring-tint">
+    <span class="text-label-2" aria-hidden="true"><Icon name="pencil" size={17} /></span>
+    <span class="sr-only">Note</span>
+    <input id="log-note" type="text" bind:value={note} placeholder="Add a note" autocomplete="off" class="h-full min-w-0 flex-1 bg-transparent text-[16px] text-label placeholder:text-label-2 focus:outline-none" />
+  </label>
 
-  <div class="mt-auto grid gap-3">
+  <div class="mt-auto grid gap-2">
     <Keypad on:key={(e) => press(e.detail)} />
     <button type="button" data-save class="btn-primary h-[52px] w-full rounded-full text-[17px]" disabled={!canSave} on:click={save}>
       {#if !typedMinor}
@@ -199,6 +205,14 @@
     .shake {
       animation: shake 360ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
     }
+  }
+
+  .symbol {
+    margin-right: 0.04em;
+    font-size: 0.55em;
+    vertical-align: 0.62em;
+    color: rgb(var(--c-label-2));
+    font-weight: 600;
   }
 
   @keyframes shake {
