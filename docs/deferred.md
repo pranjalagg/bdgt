@@ -153,6 +153,10 @@ Changing the base currency only relabels today; amounts are not converted. Step 
 - **Close after opening Review or Settings directly counts as a step back** (`goto(..., { replaceState: true })` still increments the history depth in `src/lib/ui/history.ts`), so a later Android back on that tab may leave the app one step early. Size S.
 - **The Sync page was checked only without sync** (the dev server runs with sync off); its content is unchanged apart from colours, but sign-in, Sync now and Sign out under `/settings/sync` want a look on a synced build. Not code; a check.
 - **Investments' Add purchase and Sell sheets keep the older form layout** (labels over outlined fields), restyled only in colour and button order. Size S.
+- **Review minors from the redesign's final pass (not fixed):**
+  - The deck resets a card that flew off one tick after the decision is sent; if the save were slow enough, the card could start sliding back before it disappears. Not seen even at 8× CPU throttling. Fix: keep it off until the top card changes, with a timeout for a failed save. `Deck.svelte` `decide`. Size S.
+  - Edit Home: a drag that ends without a click leaves the `moved` flag set, so the next tap on that handle is ignored once. `EditHomeSheet.svelte`. Size S.
+  - Settings' Sync row reads the sync status time once per render, not every 30 seconds as the Sync page does. Size S.
 - **Add purchase (Investments) starts on tomorrow's date in the evening** in time zones west of UTC: `AddLotModal.svelte` takes the date from `toISOString()` (UTC). Found while restyling; not changed because it is behaviour. Fix: `getLocalDateKey(new Date())` in both places it is set. Size S.
 
 ---
