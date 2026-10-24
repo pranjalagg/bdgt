@@ -22,12 +22,12 @@
   {#if kind === 'bars'}
     {#each bars as v, i}
       {@const slot = W / bars.length}
-      <rect x={i * slot + slot * 0.22} width={slot * 0.56} y={H - (Math.max(0, v) / barTop) * H} height={(Math.max(0, v) / barTop) * H} rx="2.5" fill="rgb(var(--c-tint))" opacity={i === bars.length - 1 ? 1 : 0.45} />
+      <rect x={i * slot + slot * 0.22} width={slot * 0.56} y={H - (Math.max(0, v) / barTop) * H} height={(Math.max(0, v) / barTop) * H} rx="2.5" fill={i === bars.length - 1 ? 'rgb(var(--c-tint))' : 'rgb(var(--c-label-2) / 0.25)'} />
     {/each}
   {:else if kind === 'pairs'}
     {#each pairs as [a, b], i}
       {@const slot = W / pairs.length}
-      <rect x={i * slot + slot * 0.14} width={slot * 0.32} y={H - (a / pairTop) * H} height={(a / pairTop) * H} rx="2" fill="rgb(var(--c-label-2))" />
+      <rect x={i * slot + slot * 0.14} width={slot * 0.32} y={H - (a / pairTop) * H} height={(a / pairTop) * H} rx="2" fill="rgb(var(--c-label-2) / 0.35)" />
       <rect x={i * slot + slot * 0.52} width={slot * 0.32} y={H - (b / pairTop) * H} height={(b / pairTop) * H} rx="2" fill="rgb(var(--c-tint))" />
     {/each}
   {:else}

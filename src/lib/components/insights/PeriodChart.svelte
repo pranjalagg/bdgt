@@ -103,5 +103,5 @@
     {/each}
   </div>
   <Figure label={view.label} cents={view.cents} pill={view.pill} sub={view.sub} />
-  <ScrubBars values={view.values} axis={view.axis} avg={view.avg} futureFrom={view.futureFrom} label={view.chartLabel} on:scrub={(e) => (hot = e.detail.index)} on:scrubend={() => (hot = -1)} />
+  <ScrubBars values={view.values} axis={view.axis} avg={view.avg} futureFrom={view.futureFrom} label={view.chartLabel} format={(v) => formatCurrency(Math.round(v / 100) * 100).replace(/\.00$/, '')} on:scrub={(e) => (hot = e.detail.index)} on:scrubend={() => (hot = -1)} />
 </div>

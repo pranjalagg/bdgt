@@ -134,7 +134,7 @@
 
   <div class="pt-2">
     {#if kind === 'spending'}
-      <ScrubBars values={spend} axis={[shortNames[0], shortNames[5]]} avg={average} label="Spending per month, {shortNames[0]} to {shortNames[5]}" height={196} on:scrub={(e) => (hot = e.detail.index)} on:scrubend={() => (hot = -1)} />
+      <ScrubBars values={spend} axis={[shortNames[0], shortNames[5]]} avg={average} format={(v) => whole(v)} label="Spending per month, {shortNames[0]} to {shortNames[5]}" height={196} on:scrub={(e) => (hot = e.detail.index)} on:scrubend={() => (hot = -1)} />
     {:else if kind === 'income'}
       <PairedBars a={{ color: INCOME_COLOR, values: income }} b={{ color: 'rgb(var(--c-tint))', values: spend }} months={shortNames} label="Income and spending per month" on:scrub={(e) => (hot = e.detail.index)} on:scrubend={() => (hot = -1)} />
       <div class="mt-3 flex justify-center gap-4 text-[13px] text-label-2">

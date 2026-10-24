@@ -148,11 +148,14 @@ async function smoke(browser, errors) {
   });
   const heroFigure = () => page.locator('section[aria-label="Safe to spend"] [role=img]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')).join(''));
   const homeHeadings = () => page.locator('main h2').allTextContents();
-  await step(results, 'Home shows safe to spend $234.47 and the plan pill', async () => {
+  await step(results, 'Home shows safe to spend and the plan pill', async () => {
     await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
     await text('Safe to spend today').waitFor({ timeout: 4000 });
+    // The figure depends on today's date (days left), so it is checked
+    // against the bar's own "$X today" title rather than a fixed amount.
     const fig = await heroFigure();
-    if (fig !== '$234.47') throw new Error('hero reads ' + fig);
+    const compact = (await page.locator('header.navbar .title').textContent()).trim();
+    if (!/^\$[\d,]+\.\d\d$/.test(fig) || compact !== fig + ' today') throw new Error('hero reads ' + fig + ', bar reads ' + compact);
     await page.getByText(/\$[\d,.]+ (under|over) plan/).first().waitFor({ timeout: 2000 });
     await text('Grocery').waitFor({ timeout: 4000 });
   });

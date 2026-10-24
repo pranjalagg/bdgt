@@ -28,8 +28,8 @@
 >
   {#each months as _, i}
     <div class="flex h-full flex-1 items-end justify-center gap-[3px]" class:dim={hot >= 0 && hot !== i}>
-      <span class="bar w-[40%] rounded-t-[5px]" style:background={a.color} style:height="100%" style:transform="scaleY({h(a.values[i])})" style:transition-delay="{i * 50}ms"></span>
-      <span class="bar w-[40%] rounded-t-[5px]" style:background={b.color} style:height="100%" style:transform="scaleY({h(b.values[i])})" style:transition-delay="{i * 50 + 25}ms"></span>
+      <span class="bar w-[40%] rounded-full" style:background={a.color} style:height="100%" style:transform="scaleY({h(a.values[i])})" style:transition-delay="{i * 50}ms"></span>
+      <span class="bar w-[40%] rounded-full" style:background={b.color} style:height="100%" style:transform="scaleY({h(b.values[i])})" style:transition-delay="{i * 50 + 25}ms"></span>
     </div>
   {/each}
 </div>
