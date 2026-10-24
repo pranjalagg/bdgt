@@ -18,7 +18,8 @@
   --c-tint: 88 86 214; /* #5856d6 */
   --c-tint-text: 88 86 214;
   --c-glass: 250 250 252;
-  --glass-alpha: 0.72;
+  /* Opaque enough that text behind a bar reads as blur, not words. */
+  --glass-alpha: 0.86;
   --glass-edge: rgba(255, 255, 255, 0.75);
 
   /* Older names, now pointing at the values above. */
@@ -57,7 +58,7 @@
   --c-tint: 94 92 230; /* #5e5ce6: white on it 5.06:1 */
   --c-tint-text: 155 153 255; /* #9b99ff: 6.8:1 on a card */
   --c-glass: 36 36 40;
-  --glass-alpha: 0.62;
+  --glass-alpha: 0.8;
   --glass-edge: rgba(255, 255, 255, 0.12);
 
   --color-ctl: 94 92 230;

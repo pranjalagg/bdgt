@@ -12,11 +12,11 @@
   import Toast from '$lib/components/ui/Toast.svelte';
   import TabBar from './TabBar.svelte';
   import LogButton from './LogButton.svelte';
-  import { goto } from '$app/navigation';
   import { onNavigate, beforeNavigate, afterNavigate } from '$app/navigation';
   import { navDirection } from '$lib/ui/navDirection';
   import { edgeSwipeBack } from '$lib/ui/edgeSwipe';
   import { isTabRoot, isModalRoot, inModal } from '$lib/ui/routes';
+  import { goBack, popToTab } from '$lib/ui/goBack';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
 
@@ -80,9 +80,11 @@
 
   // Tapping the tab you are on goes back to its first page, then to the top.
   function reselect(tab: string) {
-    if (path !== tab) return void goto(tab === '/' ? base || '/' : base + tab);
+    if (path !== tab) return popToTab(tab);
     main?.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
+
+  const edgeBack = () => goBack();
 
   // The Log sheet's date lives here so the chip in its header and the form
   // share it; the form resets it each time the sheet opens.
@@ -113,7 +115,7 @@
 <!-- While a sheet is open the app behind it is inert: no focus, no reading. -->
 <div id="stage" inert={$modalStack.length > 0} class:scaled={$scaledBack} class="flex h-screen bg-page supports-[height:100dvh]:h-[100dvh]">
   <Nav />
-  <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path) && !isModalRoot(path)} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
+  <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path) && !isModalRoot(path) && edgeBack} class="relative flex-1 overflow-auto overscroll-contain" style="padding-top: var(--safe-top)">
     <!-- The app draws under the status bar; this strip keeps content that
          scrolls up from running into the clock and icons. -->
     <div

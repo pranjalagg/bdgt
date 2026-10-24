@@ -1,6 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import { goto } from '$app/navigation';
+  import { replaceTo } from '$lib/ui/goBack';
   import { onMount } from 'svelte';
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import SyncSection from '$lib/components/sync/SyncSection.svelte';
@@ -8,7 +8,7 @@
 
   // A build without sync has no Sync page.
   onMount(() => {
-    if (!syncEnabled) void goto(`${base}/settings`, { replaceState: true });
+    if (!syncEnabled) replaceTo('/settings');
   });
 </script>
 

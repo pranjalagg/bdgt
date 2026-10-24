@@ -7,8 +7,9 @@ export function edgeSwipeDecision(dx: number, width: number, velocity: number): 
   return dx > 0.35 * width || velocity > 0.6;
 }
 
-export function edgeSwipeBack(node: HTMLElement, enabled: boolean) {
-  let on = enabled;
+// `back` is what going back does here, or false where there is no back.
+export function edgeSwipeBack(node: HTMLElement, back: false | (() => void)) {
+  let on = back;
   let start: { x: number; y: number; t: number; id: number } | null = null;
   let dx = 0;
   let tracking = false;
@@ -46,7 +47,7 @@ export function edgeSwipeBack(node: HTMLElement, enabled: boolean) {
     if (!wasTracking) return;
     if (edgeSwipeDecision(dx, node.clientWidth, velocity)) {
       reset();
-      history.back();
+      if (on) on();
     } else {
       node.style.transition = 'transform var(--ms-snappy, 300ms) var(--ease-snappy, ease-out)';
       node.style.transform = '';
@@ -59,7 +60,7 @@ export function edgeSwipeBack(node: HTMLElement, enabled: boolean) {
   node.addEventListener('pointerup', up);
   node.addEventListener('pointercancel', up);
   return {
-    update(next: boolean) {
+    update(next: false | (() => void)) {
       on = next;
     },
     destroy() {

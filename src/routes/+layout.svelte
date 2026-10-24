@@ -9,11 +9,12 @@
 	import { installMotion } from '$lib/ui/motion';
 	import { installBackButton } from '$lib/ui/backButton';
 	import { isTabRoot, tabRootOf } from '$lib/ui/routes';
-	import { afterNavigate, goto } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { get } from 'svelte/store';
 	import { modalStack, closeModal } from '$lib/stores/uiStore';
-	import { historyDepth } from '$lib/ui/history';
+	import { historyDepth, recordNavigation } from '$lib/ui/history';
+	import { appPathOf, replaceTo } from '$lib/ui/goBack';
 	import { loadData, isLoading } from '$lib/stores/budgetStore';
 	import { loadRecurring, processRecurring } from '$lib/stores/recurringStore';
 	import { loadGoals } from '$lib/stores/goalsStore';
@@ -27,11 +28,11 @@
 
 	let { children } = $props();
 
-	// How many pages back this app can go (Android back from a page opened
-	// directly has nowhere to go back to, so it returns to the tab instead).
-	afterNavigate(({ type }) => {
-		if (type === 'link' || type === 'goto') historyDepth.update((d) => d + 1);
-		else if (type === 'popstate') historyDepth.update((d) => Math.max(0, d - 1));
+	// The app's record of the pages behind this one (see ui/history.ts): Back,
+	// Close and Android back read it. A page opened directly has nothing
+	// behind it, so Android back returns to its tab instead of leaving.
+	afterNavigate(({ type, to }) => {
+		if (to) recordNavigation(type, appPathOf(to.url.href));
 	});
 	const appPath = () => location.pathname.slice(base.length) || '/';
 
@@ -53,7 +54,7 @@
 			state: () => ({ openSheets: get(modalStack).length, atTabRoot: isTabRoot(appPath()), canGoBack: get(historyDepth) > 0 }),
 			closeSheet: () => closeModal(),
 			back: () => history.back(),
-			toRoot: () => void goto(base + tabRootOf(appPath()), { replaceState: true }),
+			toRoot: () => replaceTo(tabRootOf(appPath())),
 		});
 		void init();
 		return () => {

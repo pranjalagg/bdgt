@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { replaceTo } from '$lib/ui/goBack';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
-  import { goto } from '$app/navigation';
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
   import TransactionSheet from '$lib/components/activity/TransactionSheet.svelte';
@@ -26,7 +26,7 @@
   $: status = $bucketStatuses.find((s) => s.bucket.id === id);
   // An envelope that no longer exists (deleted, or a stale link) sends you
   // back to Budget once the data has loaded.
-  $: if (!$isLoading && $bucketStatuses.length > 0 && !status) void goto(`${base}/budget`, { replaceState: true });
+  $: if (!$isLoading && $bucketStatuses.length > 0 && !status) replaceTo('/budget');
 
   $: goals = $goalStatuses.filter((g) => g.goal.bucketId === id);
   $: recurring = $recurringTransactions.filter((r) => r.bucketId === id).sort((a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime());
