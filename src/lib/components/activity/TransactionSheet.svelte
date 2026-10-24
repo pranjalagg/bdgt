@@ -1,7 +1,7 @@
 <script lang="ts">
   import Modal from '$lib/components/shared/Modal.svelte';
   import EditTransaction from '$lib/components/shared/EditTransaction.svelte';
-  import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
   import { buckets } from '$lib/stores/budgetStore';
   import { captures } from '$lib/stores/captureStore';
   import { baseCurrency } from '$lib/stores/currencyStore';
@@ -27,9 +27,7 @@
   {#if transaction}
     {#key transaction.id}
       <div class="mb-4 flex items-center gap-3">
-        <span class="flex h-12 w-12 flex-none items-center justify-center rounded-[14px] text-white" style="background:{bucket?.color ?? '#8e8e93'}" aria-hidden="true">
-          <Icon name={bucket ? envelopeIcon(bucket.name, bucket.isSystem) : 'tag'} size={24} strokeWidth={2.2} />
-        </span>
+        <IconMark icon={bucket ? envelopeIcon(bucket.name, bucket.isSystem) : 'tag'} size={48} dot={bucket && !bucket.isSystem ? bucket.color : null} />
         <span class="min-w-0 flex-1">
           <span class="flex items-center gap-1.5">
             <span class="truncate text-[17px] font-semibold text-label">{transaction.note || bucket?.name || 'Expense'}</span>

@@ -20,7 +20,7 @@
   }
 </script>
 
-<div class="relative overflow-hidden">
+<div class="relative -mx-5 overflow-hidden sm:-mx-6">
   {#if offset > 0}
     <div class="absolute inset-y-0 left-0 flex items-center justify-start bg-tint text-white" style:width="{offset}px">
       <button type="button" tabindex="-1" class="flex h-full min-w-[88px] flex-col items-center justify-center gap-0.5 text-[13px] font-semibold" on:click={() => act(onMove)}>
@@ -34,7 +34,7 @@
       </button>
     </div>
   {/if}
-  <div class="face relative bg-surface" use:swipeActions={{ onDelete, onMove, reset }} on:swipe={(e) => (offset = e.detail)}>
+  <div class="face relative bg-page px-5 sm:px-6" use:swipeActions={{ onDelete, onMove, reset }} on:swipe={(e) => (offset = e.detail)}>
     <slot />
     <div class="hover-actions absolute inset-y-0 right-0 items-center gap-1 pl-10 pr-3">
       <button type="button" class="btn-icon" aria-label="Move {label}" on:click|stopPropagation={onMove}><Icon name="move" size={18} /></button>
@@ -46,14 +46,14 @@
 <style>
   .hover-actions {
     display: none;
-    background: linear-gradient(to right, rgb(var(--c-surface) / 0), rgb(var(--c-surface)) 32px);
+    background: linear-gradient(to right, rgb(var(--c-page) / 0), rgb(var(--c-page)) 32px);
   }
 
   /* Matches the row's own hover tint, which sits over the surface. */
   .face:hover .hover-actions {
     background:
       linear-gradient(to right, transparent, rgb(var(--c-fill) / var(--fill-alpha)) 32px),
-      linear-gradient(to right, rgb(var(--c-surface) / 0), rgb(var(--c-surface)) 32px);
+      linear-gradient(to right, rgb(var(--c-page) / 0), rgb(var(--c-page)) 32px);
   }
 
   /* Only where there is a pointer that hovers; touch swipes instead. */

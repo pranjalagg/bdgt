@@ -3,7 +3,7 @@
   import { envelopeIcon } from '$lib/ui/icons';
   import { baseCurrency } from '$lib/stores/currencyStore';
   import { shouldShowForeignNote } from '$lib/currency/conversion';
-  import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
   import type { Bucket, Transaction } from '$lib/types';
 
   // One expense: its envelope's icon, what it was, and the amount.
@@ -22,15 +22,13 @@
 <button
   type="button"
   data-row
-  class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-fill focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tint"
+  class="row row-tap w-[calc(100%+20px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-tint"
   on:click={onOpen}
 >
-  <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] text-white" style="background:{bucket?.color ?? '#8e8e93'}" aria-hidden="true">
-    <Icon name={bucket ? envelopeIcon(bucket.name, bucket.isSystem) : 'tag'} size={19} strokeWidth={2.2} />
-  </span>
+  <IconMark icon={bucket ? envelopeIcon(bucket.name, bucket.isSystem) : 'tag'} />
   <span class="min-w-0 flex-1">
     <span class="flex min-w-0 items-center gap-1.5">
-      <span class="truncate text-[16px] font-medium text-label">{transaction.note || bucket?.name || 'Expense'}</span>
+      <span class="t-row truncate">{transaction.note || bucket?.name || 'Expense'}</span>
       {#if tag}<span class="flex-none rounded-full bg-fill px-1.5 text-[11px] font-semibold leading-[18px] text-label-2">{tag}</span>{/if}
     </span>
     <span class="block truncate text-[13px] text-label-2">

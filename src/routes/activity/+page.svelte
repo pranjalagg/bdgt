@@ -5,6 +5,7 @@
   import NavBar from '$lib/components/layout/NavBar.svelte';
   import MonthMenu from '$lib/components/layout/MonthMenu.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import IconMark from '$lib/components/ui/IconMark.svelte';
   import SwipeRow from '$lib/components/activity/SwipeRow.svelte';
   import TransactionRow from '$lib/components/activity/TransactionRow.svelte';
   import TransactionSheet from '$lib/components/activity/TransactionSheet.svelte';
@@ -101,41 +102,41 @@
   <svelte:fragment slot="leading"><MonthMenu /></svelte:fragment>
 </NavBar>
 
-<div class="space-y-3">
+<div class="space-y-5">
   <div class="relative">
-    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-label-2"><Icon name="search" size={18} /></span>
-    <input type="search" bind:value={query} placeholder="Search" aria-label="Search expenses" class="h-10 w-full rounded-[12px] bg-fill pl-10 pr-3 text-[17px] text-label placeholder:text-label-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" />
+    <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-label-2"><Icon name="search" size={18} /></span>
+    <input type="search" bind:value={query} placeholder="Search" aria-label="Search expenses" class="h-11 w-full rounded-full bg-fill pl-10 pr-4 text-[16px] text-label placeholder:text-label-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" />
   </div>
 
   <FilterChips selected={filter} {envelopes} {hasUnsorted} on:change={(e) => (filter = e.detail)} />
 
   {#if $pendingCaptures.length > 0}
-    <a href="{base}/review" class="group flex min-h-[56px] items-center gap-3 px-4 py-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-tint">
-      <span class="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-label text-page" aria-hidden="true"><Icon name="inbox" size={19} /></span>
-      <span class="min-w-0 flex-1 text-[16px] font-semibold text-label">{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} to review</span>
-      <span class="text-label-2/60" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
+    <a href="{base}/review" class="row row-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-tint">
+      <IconMark icon="inbox" />
+      <span class="t-row min-w-0 flex-1">{$pendingCaptures.length} {$pendingCaptures.length === 1 ? 'payment' : 'payments'} <span class="font-medium text-label-2">to review</span></span>
+      <span class="text-label-2" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
     </a>
   {/if}
 
   {#if days.length === 0}
-    <div class="card px-5 py-12 text-center text-[15px] text-label-2">
+    <p class="py-12 text-center text-[15px] text-label-2">
       {query || filter ? 'Nothing matches.' : `No expenses in ${monthName} yet. Log one with +.`}
-    </div>
+    </p>
   {:else}
-    <p class="px-1 pt-1 text-[13px] text-label-2">
+    <p class="text-[13px] text-label-2">
       {filtered.length} {filtered.length === 1 ? 'expense' : 'expenses'}{filter === UNSORTED_BUCKET_ID ? ', all months' : ` in ${monthName}`} ·
       <span class="money amt">{formatCurrency(spent)}</span> spent{#if setAside > 0}{' · '}<span class="money amt text-success">{formatCurrency(setAside)}</span> set aside{/if}
     </p>
 
     {#each days as day (day.key)}
-      <section aria-labelledby="day-{day.key}">
-        <div class="flex items-baseline justify-between gap-4 px-1 pb-1.5 pt-3">
+      <section aria-labelledby="day-{day.key}" class="pt-2">
+        <div class="flex items-baseline justify-between gap-4 pb-1">
           <h2 id="day-{day.key}" class="text-[15px] font-semibold text-label">{dayLabel(day.date, $today)}</h2>
           <span class="money amt text-[13px] text-label-2">{formatCurrency(day.total)}</span>
         </div>
-        <div class="group">
+        <div class="list">
           {#each day.transactions as t (t.id)}
-            <div class="group-row" style="--row-inset: 64px" out:slide={{ duration: reduced() ? 0 : 220 }}>
+            <div out:slide={{ duration: reduced() ? 0 : 220 }}>
               <SwipeRow label={t.note || bucketById.get(t.bucketId)?.name || 'expense'} onDelete={() => remove(t)} onMove={() => move(t)}>
                 <TransactionRow transaction={t} bucket={bucketById.get(t.bucketId)} tag={tagOf(t)} partOf={partOf(t)} onOpen={() => open(t)} />
               </SwipeRow>
