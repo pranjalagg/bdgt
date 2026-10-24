@@ -17,7 +17,7 @@
     </svelte:fragment>
   </SectionHeading>
   {#if $goalStatuses.length === 0}
-    <button type="button" class="row row-tap w-full text-[15px] font-medium text-tint" on:click={() => openModal('add-goal')}>
+    <button type="button" class="row row-tap text-[15px] font-medium text-tint" on:click={() => openModal('add-goal')}>
       <IconMark icon="plus" />Create your first savings goal
     </button>
   {:else}

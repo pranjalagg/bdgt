@@ -34,7 +34,7 @@
   type="button"
   on:click={onClick}
   disabled={!onClick}
-  class="row row-tap w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-tint disabled:cursor-default disabled:hover:bg-transparent"
+  class="row row-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-tint disabled:cursor-default disabled:hover:bg-transparent"
 >
   <span class="relative flex h-11 w-11 flex-none items-center justify-center text-label" aria-hidden="true">
     <svg viewBox="0 0 44 44" class="absolute inset-0 -rotate-90">
