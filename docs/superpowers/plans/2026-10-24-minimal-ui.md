@@ -214,3 +214,7 @@ Copied from the executor's ledger when the plan finished (2026-10-24).
 - Task 6: complete (commits 6e22bd9..a3c8265, tests: npx vitest run →    Duration  8.67s (transform 5.64s, setup 0ms, import 11.39s, tests 19.25s, environment 61.45s))
 - Task 7: complete (commits a3c8265..15b2fae, tests: npx vitest run →    Duration  10.62s (transform 7.37s, setup 0ms, import 13.27s, tests 22.98s, environment 78.67s))
 - Task 8: complete (commits 15b2fae..265474b, tests: npx vitest run →    Duration  8.28s (transform 5.88s, setup 0ms, import 11.50s, tests 22.34s, environment 55.43s))
+
+### Final review
+
+- Self-review (agents are spawned only on the owner's request). Fixed: goal rows were 20px short of the other open rows. No other Critical or Important findings.
