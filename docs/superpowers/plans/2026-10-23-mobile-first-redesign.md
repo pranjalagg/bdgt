@@ -427,3 +427,99 @@ Screen: account row (sync state; opens `/settings/sync`); Payments: Automatic ca
 - [ ] **Step 3:** Run `npm run ui:smoke`, `npm run ui:a11y` (both themes, 390 and 320 wide, reduced motion: only opacity animates), `npm run ui:shots`. Expected: all pass; axe "no findings".
 - [ ] **Step 4:** Walk the spec's "Where every feature goes" table row by row against the running app; note anything missing and fix it before finishing.
 - [ ] **Step 5:** Commit: `chore(ui): remove Chart.js and dead components; docs`. Push; confirm the `android-preview` release updates and `android-latest` is unchanged.
+
+---
+
+## Execution record
+
+Copied from the executor's ledger when the plan finished (2026-10-24). Every decision made on the owner's behalf, with what it costs if wrong, then the task results and the final review.
+
+### Rulings
+
+- T4 backButton (tab roots inline) vs T5 navDirection (TAB_ROOTS): duplicate list. Ruling: T4 creates src/lib/ui/routes.ts with TAB_ROOTS, MODAL_ROOTS, tabRootOf; T5's navDirection imports them — one source of truth — cost if wrong: one import move.
+- T9 "AssignSheet focused on this envelope" vs T8 AssignSheet interface (no focus input). Ruling: AssignSheet takes prop `focusEnvelopeId: string | null = null` and focuses that field on open — spec asks for "Assign more" from the envelope page — cost if wrong: a prop rename.
+- Task 2: Ruling: light good #2b7a52 measures 4.33:1 on the new raised #e9e9ee — use #27744d (4.70 raised, 5.10 page, 5.69 card) — cost if wrong: one hex.
+- Task 2: Ruling: brief's `text-tint` must differ from `bg-tint` in dark (#9b99ff vs #5e5ce6) — `colors.tint` is the fill, `extend.textColor.tint` reads --c-tint-text — cost if wrong: one config key.
+- Task 2: Ruling: button hover tint in dark #5452dc (white 5.81:1); light hover #4b49c9 (6.78:1); white text on tint in both themes (5.65 / 5.06) — cost if wrong: two hexes.
+- Task 2: Ruling: older screens' text-primary measured 3.36:1 in dark (fill indigo as text) — textColor.primary also reads --c-tint-text — cost if wrong: none, alias goes in Task 16.
+- Task 4: Ruling: tabRootOf maps modal routes to the tab they open from — /review → /activity, /settings → / — Android back from a directly opened Review lands on Activity — cost if wrong: one map entry.
+- Task 4: Ruling: the smoke step 'Escape closes only the top sheet' needs a sheet that opens over another; none exists until Task 11 (Paid in over Log) — the step moves to Task 11; the stack itself is unit-tested here — cost if wrong: a late-found Escape bug in stacked sheets.
+- Task 4: Ruling: .btn-danger's red tint measured 4.44:1 on the new grey sheets (any tint fails on raised) — destructive buttons become red text on a plain cell (surface; raised in dark: 5.72 / 5.42) — cost if wrong: one class.
+- Task 7: Ruling: chart component props refined for typing and screen readers — ScrubBars takes `axis: [string, string]` (plan: `labels`) plus `label` (aria summary); every chart takes `label`; Sparkline takes `bars` / `pairs` / `lines` props instead of one union `data`; Donut takes its centre figure as a slot; PairedBars has `interactive` (patterns use it non-scrubbable) — later tasks use these names — cost if wrong: prop renames at call sites.
+- Task 8: Ruling: the plan's AssignSheet omitted two features of today's AssignPanel — 'Copy last month's assignments' and a '+ rest' per envelope — both kept alongside the new 'Put the rest in {first savings envelope}' (anti-goal: no feature lost) — cost if wrong: two extra buttons.
+- Task 9: Ruling: the plan put the paused-recurring test in the store, but the bug lives in the form (it always sent isActive: true) — the form's data shaping becomes recurringFormData() in src/lib/budget/recurringForm.ts and is tested there — cost if wrong: none; the store's merge was never the problem.
+- Task 9: Ruling: '/budget/<id> with an unknown id lands on /budget' is done in the page once data has loaded, not in +page.ts (load runs before the stores have data) — cost if wrong: a brief flash of an empty page before the redirect.
+- Task 10: Ruling: ReviewBanner stays until Task 12 — Activity still uses it; the plan deleted it here — cost if wrong: one file lives two tasks longer.
+- Task 10: Ruling: Edit Home reorders by drag on the handle, by ←/↑/↓ keys on it, and by tapping it for Move up / Move down — the anti-goal forbids drag as the only way — cost if wrong: a small menu nobody uses.
+- Task 10: Ruling: NavBar gains `compactTitle` so Home's bar can read "$234.47 today" (blurred with Hide amounts) while its heading stays "Home" — cost if wrong: one prop.
+- Task 10: Ruling: the layout loads from +layout's init and reload.ts right after loadData, not inside budgetStore.loadData — keeps budgetStore free of a Home concern; the reload test pins the order — cost if wrong: one call moves.
+- Task 10: Ruling: added moveCard(layout, from, to) to src/lib/home/layout.ts (tested) and a `change` event on Switch — Edit Home needs both; neither was in the brief — cost if wrong: none.
+- Task 10: Ruling: a future month's hero reads "Everyday money in November" (assigned plus carried over), no pill, no chart — spec covers today and past only — cost if wrong: one label.
+- Task 10: Ruling: the Android update banner stays global in Layout (every page), which satisfies "shown regardless of layout" — cost if wrong: none.
+- Task 10: Ruling: axe now also runs on the Edit Home sheet with its tap menu open — cost if wrong: none.
+- Task 11: Ruling: "most-used first" needs a rule — orderByUse(ids, txs) in src/lib/log/envelopeOrder.ts counts expenses per envelope, ties keep budget order (tested) — cost if wrong: chip order.
+- Task 11: Ruling: a preselected envelope (Log here) is selected among all chips rather than the only chip — the person can still change it — cost if wrong: one filter.
+- Task 11: Ruling: operators need a number first, so a refund is typed 0 − 5 on the keypad; Edit still takes a negative amount directly — cost if wrong: two extra keys for a refund.
+- Task 11: Ruling: Modal honours [data-autofocus]; Log starts focus on its amount (an <output>) so typing and Enter work at once and Enter never lands on Cancel — cost if wrong: none.
+- Task 11: Ruling: axe flagged the hero pill seen through the dimmed, scaled-back app behind the Log sheet — #stage is now inert while any sheet is open, and Modal restores focus after the update that lifts it — cost if wrong: a sheet rendered inside #stage would be unusable (all sheets portal to body today).
+- Task 11: Ruling: Paid in converts in LogEntry (parseRate / convertToBase) because ForeignCurrencyField lives in the Paid in sheet and unmounts when it closes — cost if wrong: three duplicated lines.
+- Task 11: Ruling: keypad numbers cap at nine whole digits; 'x' types × — cost if wrong: none.
+- Task 12: Ruling: a flick only counts toward the side the row is already pulled (swipeOutcome(50, w, −1.2) closes) — the brief's rule alone would delete a row flicked back from Move — cost if wrong: one guard.
+- Task 12: Ruling: Undo after a swipe delete needs the same id (Review links and sync use it) — added restoreTransaction(t) to budgetStore, and updateTransaction recreates Unsorted when a move is undone into it (both tested) — cost if wrong: none.
+- Task 12: Ruling: the envelope picker for swipe-right is its own MoveSheet.svelte (not in the brief's file list) — cost if wrong: one file.
+- Task 12: Ruling: the Auto chip means approved from Review (the rows tagged Auto); recurring rows keep their Recurring tag — cost if wrong: one filter rule.
+- Task 12: Ruling: the Unsorted chip also shows while a link has chosen it, so ?bucket=unsorted always shows a selected chip — cost if wrong: an empty Unsorted chip.
+- Task 12: Ruling: Home and the envelope page use TransactionSheet too (one expense sheet everywhere); the form's "Bucket" label reads "Envelope" — cost if wrong: none.
+- Task 12: Ruling: the month summary stays on Activity as one line (count, spent, set aside) — it had the only "set aside" total — cost if wrong: one line.
+- Task 12: Ruling: hairlines in grouped lists sit above row backgrounds (z-index 1) so swipe rows keep them — cost if wrong: none.
+- Task 13: Ruling: task-start printed BASE b31e2fc, which the Task 12 amend replaced — BASE is 5f27990 — cost if wrong: none.
+- Task 13: Ruling: the brief's smoke line has a ₹ card showing "About $3.00" while Approve reads "Add rate" — impossible together (an estimate needs a rate). With no rate the card reads "Rate needed" and Approve reads "Add rate"; once a rate is used, the next ₹ card reads "About $150.01" — both are smoke steps — cost if wrong: one label.
+- Task 13: Ruling: a swipe left dismisses at once (with Undo); the Dismiss button opens the sheet with "Always ignore payments to …" — cost if wrong: the ignore option is one tap further for swipers.
+- Task 13: Ruling: the envelope pill and "Choose envelope" open a shared EnvelopePicker (MoveSheet now uses it too); picking approves into it, or opens the edit form with it chosen when a rate is still needed — cost if wrong: none.
+- Task 13: Ruling: Close needs the app's history depth — moved from +layout into a store (src/lib/ui/history.ts, closeTarget tested) and CloseButton.svelte; NavBar gains pinTitle so "To review" always shows — cost if wrong: none; Task 15 reuses both.
+- Task 13: Ruling: pages inside Review and Settings hide the tab bar and Log button (inModal), and edge-swipe back is off on Review and Settings themselves (isModalRoot) — a slide-up page covers the tabs, and an edge swipe would fight the deck — cost if wrong: no tab bar on Settings sub-pages.
+- Task 13: Ruling: cards under the top one are solid (only the next carries content) — translucent cards bled through each other mid-drag — cost if wrong: none.
+- Task 14: Ruling: months with nothing logged are not data — averageOfComplete now skips zero months (tested), lists show them as "—, Nothing logged", envelope lines break there — the sample's empty May–August dragged the average to a third of real spending — cost if wrong: a genuinely zero-spend month leaves the average.
+- Task 14: Ruling: the Week and Month views needed per-day spending — dailySpending(txs, savingsIds, days) added to trends.ts (tested); trend page names validated by isTrendChart in src/lib/insights/charts.ts (tested) — cost if wrong: none.
+- Task 14: Ruling: the period figure, trend figures and the investments hero share Figure.svelte (label, rolling number, pill, sub) — cost if wrong: none.
+- Task 14: Ruling: axe measured the green/red pills at 4.1–4.2:1 on the grey page — one .pill / .pill-good / .pill-bad in app.css: 12% tint, light-mode text a step darker (#1f6340 / #9a2f1f, 5.1:1 at worst); Home's hero and savings-rate pills use it too — cost if wrong: two hexes.
+- Task 14: Ruling: the summary strip shows whole dollars (three figures share a phone's width; Net was cut off) — cost if wrong: cents only on the trend pages.
+- Task 14: Ruling: trend cards drop their small chart below 360 px (they overflowed at 320) — cost if wrong: no sparkline on the smallest phones.
+- Task 14: Ruling: the fresh-profile smoke step resets the main profile at the very end of the run (then confirms the currency prompt) and also checks SVG attributes for NaN; trend pages joined the axe and 320 px routes — cost if wrong: none.
+- Task 14: Ruling: Sparkline guarded against an all-empty line series (Math.min of nothing gave Infinity) — cost if wrong: none.
+- Task 15: Ruling: Capture rules is always a row (with "None yet" and an empty page) instead of appearing only once a rule exists — a row that comes and goes is hard to find — cost if wrong: one row.
+- Task 15: Ruling: /settings/capture outside the Android app shows a short note instead of the capture controls, and /settings/sync in a build without sync goes back to /settings — both pages are reachable by URL — cost if wrong: none.
+- Task 15: Ruling: CloseButton takes a label ("Done" on Settings); page titles added for the trend pages and Settings sub-pages (the fallback named them "bdgt") — cost if wrong: none.
+- Task 15: Ruling: import and reset on Settings also reload the Home layout — the layout lives in the same settings table they replace — cost if wrong: none.
+- Task 16: Ruling: success / warning / danger stay as the meaning colour names (used everywhere, including new code); the unused good / warn / bad duplicates and every other older name (primary, muted, *-dark, border, rule, tile-*, font-display, .display, unused title classes) are gone — a production build fails on any @apply that names a removed colour, and it passed — cost if wrong: none.
+- Task 16: Ruling: the spec's "hover actions on rows" for desktop — Activity rows show Move and Delete buttons on hover or keyboard focus, hidden on touch (hover: none) — cost if wrong: two buttons per row on desktop.
+- Task 16: Ruling: the a11y run gained a reduced-motion pass (sheet, page push, deck approve, period switch) that allows fades of opacity or colour only; it found the deck's card sliding under reduced motion, now a fade — cost if wrong: none.
+- Task 16: Ruling: feature table walk — every row is present; "Approve all suggested" sits above the deck rather than in the header (the header holds Close, the title and the count), and the update banner kept its layout with the new colours — cost if wrong: one button's position.
+- Task 16: Ruling: ui:shots opened the Income sheet from Home (it moved to Budget in Task 8) — now from Budget, plus the Edit Home sheet — cost if wrong: none.
+
+### Task results
+
+- Task 1: complete (commits 34a0677..5d5ddb3, tests: npm run ui:smoke → no page errors)
+- Task 2: complete (commits 5d5ddb3..058eb06, tests: npm run ui:smoke → no page errors)
+- Task 3: complete (commits 058eb06..ce1b27b, tests: npx vitest run →    Duration  6.82s (transform 5.05s, setup 0ms, import 9.10s, tests 16.10s, environment 47.21s))
+- Task 4: complete (commits ce1b27b..943d096, tests: npx vitest run →    Duration  6.76s (transform 4.64s, setup 0ms, import 8.63s, tests 17.26s, environment 45.81s))
+- Task 5: complete (commits 943d096..88535be, tests: npx vitest run tests/lib/ui →    Duration  700ms (transform 135ms, setup 0ms, import 194ms, tests 64ms, environment 2.42s))
+- Task 6: complete (commits 88535be..49275a9, tests: npm run ui:smoke → no page errors)
+- Task 7: complete (commits 49275a9..a3bcb5f, tests: npx vitest run tests/lib/charts tests/lib/insights →    Duration  718ms (transform 244ms, setup 0ms, import 357ms, tests 26ms, environment 3.17s))
+- Task 8: complete (commits a3bcb5f..979bcb2, tests: npx vitest run →    Duration  7.36s (transform 4.41s, setup 0ms, import 8.69s, tests 20.02s, environment 49.62s))
+- Task 9: complete (commits 979bcb2..336e2a4, tests: npm run ui:smoke → no page errors)
+- Task 10: complete (commits 336e2a4..25cbe0a, tests: npm run ui:smoke → no page errors)
+- Task 11: complete (commits 25cbe0a..9afab2d, tests: npx vitest run →    Duration  7.31s (transform 4.92s, setup 0ms, import 9.41s, tests 17.44s, environment 50.59s))
+- Task 12: complete (commits 9afab2d..5f27990, tests: npx vitest run →    Duration  8.07s (transform 4.70s, setup 0ms, import 9.57s, tests 21.10s, environment 55.98s))
+- Task 13: complete (commits 5f27990..e4b39f0, tests: npx vitest run →    Duration  8.86s (transform 5.52s, setup 0ms, import 10.66s, tests 18.11s, environment 65.65s))
+- Task 14: complete (commits e4b39f0..efba3f1, tests: npx vitest run →    Duration  8.22s (transform 5.12s, setup 0ms, import 10.68s, tests 19.99s, environment 57.16s))
+- Task 15: complete (commits efba3f1..558b01d, tests: npm run ui:smoke → no page errors)
+- Task 16: complete (commits 558b01d..681a7e5, tests: npx vitest run →    Duration  8.95s (transform 4.79s, setup 0ms, import 9.26s, tests 19.75s, environment 65.01s))
+
+### Final review
+
+- Final review: self-review (agents are spawned only on the owner's request). Passes: data paths (undo of delete / move / approve, Unsorted recreation, Home layout sync through the settings table), Log keyboard routing, modal ids against mounted sheets (inert stage), Android back and Close on direct opens, Review Focus 1–5. No Critical or Important findings.
+- Final: minor (deferred): the deck resets a flown card one tick after dispatch; a very slow save could let it start sliding back before it disappears (not reproduced at 8× CPU).
+- Final: minor (deferred): Edit Home drag that ends without a click leaves `moved` set; the next tap on that handle is ignored once.
+- Final: minor (deferred): Settings' Sync row status time is read once per render.
+- Final: pushed 681a7e5; android-preview rebuilt at 681a7e5 (2026-10-24T00:50Z); android-latest unchanged at ced24f0.
