@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fitText } from '$lib/ui/fit';
   import { bucketStatuses, currentMonthIncome, unallocated, totalPercentage } from '$lib/stores/budgetStore';
   import { openModal } from '$lib/stores/uiStore';
   import { formatCurrency } from '$lib/utils/currency';
@@ -25,8 +26,8 @@
   </div>
 
   <div class="flex items-end justify-between gap-3">
-    <div>
-      <p class="figure amt text-[28px] {left < 0 ? 'text-danger' : left === 0 ? 'text-success' : 'text-label'}">
+    <div class="min-w-0 flex-1">
+      <p class="figure amt text-[28px] {left < 0 ? 'text-danger' : left === 0 ? 'text-success' : 'text-label'}" use:fitText={{ text: left === 0 && $currentMonthIncome > 0 ? 'All assigned' : formatCurrency(Math.abs(left)), max: 28, min: 18 }}>
         {left === 0 && $currentMonthIncome > 0 ? 'All assigned' : formatCurrency(Math.abs(left))}
       </p>
       <p class="mt-1 text-[13px] text-label-2">

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fitText } from '$lib/ui/fit';
   import RollingNumber from '$lib/components/ui/RollingNumber.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { formatCurrency, splitFraction } from '$lib/utils/currency';
@@ -19,8 +20,8 @@
     <span>{label}</span>
     <slot name="info" />
   </p>
-  <p class="figure amt mt-1.5 text-[60px] text-label" style="letter-spacing: -0.04em">
-    <RollingNumber text={whole} /><span class="text-[30px]"><RollingNumber text={cents} /></span>
+  <p class="figure amt mt-1.5 text-[60px] text-label" style="letter-spacing: -0.04em" use:fitText={{ text: whole + cents, max: 60, min: 32 }}>
+    <RollingNumber text={whole} /><span class="text-[0.5em]"><RollingNumber text={cents} /></span>
   </p>
   <p class="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] text-label-2">
     {#if pill}

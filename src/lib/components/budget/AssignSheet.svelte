@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fitText } from '$lib/ui/fit';
   import { tick } from 'svelte';
   import Modal from '$lib/components/shared/Modal.svelte';
   import { bucketStatuses, buckets, currentMonthIncome, setAllocations, getCarryForwardAllocations } from '$lib/stores/budgetStore';
@@ -93,7 +94,7 @@
   <button slot="trailing" type="button" class="min-h-[44px] px-2 text-[17px] font-semibold text-tint disabled:opacity-40" disabled={saving || total === null} on:click={save}>Done</button>
 
   <div class="pb-2 pt-3 text-center" aria-live="polite">
-    <p class="figure amt text-[44px] {left === null ? 'text-label-2' : left < 0 ? 'text-danger' : left === 0 ? 'text-success' : 'text-label'}">
+    <p class="figure amt text-[44px] {left === null ? 'text-label-2' : left < 0 ? 'text-danger' : left === 0 ? 'text-success' : 'text-label'}" use:fitText={{ text: left === null ? '—' : formatCurrency(Math.abs(left)), max: 44, min: 24 }}>
       {left === null ? '—' : formatCurrency(Math.abs(left))}
     </p>
     <p class="mt-1.5 text-[14px] text-label-2">

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fitText } from '$lib/ui/fit';
   import { base } from '$app/paths';
   import { bucketStatuses } from '$lib/stores/budgetStore';
   import { groupEnvelopes } from '$lib/budget/groups';
@@ -26,7 +27,7 @@
           <span class="flex h-9 w-9 items-center justify-center rounded-[11px] text-white" style="background:{s.bucket.color}"><Icon name={envelopeIcon(s.bucket.name)} size={19} strokeWidth={2.2} /></span>
           <span>
             <span class="block truncate text-[14px] font-medium text-label">{s.bucket.name}</span>
-            <span class="figure amt block text-[20px] {s.remaining < 0 ? 'text-danger' : 'text-label'}" style="line-height: 1.2">{s.remaining < 0 ? '−' : ''}{whole(Math.abs(s.remaining))}</span>
+            <span class="figure amt block text-[20px] {s.remaining < 0 ? 'text-danger' : 'text-label'}" style="line-height: 1.2" use:fitText={{ text: (s.remaining < 0 ? '−' : '') + whole(Math.abs(s.remaining)), max: 20, min: 13 }}>{s.remaining < 0 ? '−' : ''}{whole(Math.abs(s.remaining))}</span>
             <span class="amt block text-[12px] text-label-2">{s.remaining < 0 ? 'over' : `left of ${whole(available)}`}</span>
           </span>
           <span class="block h-1 overflow-hidden rounded-full bg-fill" aria-hidden="true"><span class="block h-full rounded-full" style="width:{frac * 100}%; background:{s.bucket.color}"></span></span>

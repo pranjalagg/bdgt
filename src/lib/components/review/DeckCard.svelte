@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fitText } from '$lib/ui/fit';
   import { createEventDispatcher } from 'svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { HINT_TEXT } from '$lib/capture/queue';
@@ -31,7 +32,7 @@
   </div>
 
   <div>
-    <p class="figure amt text-[44px] leading-none text-label">{formatMoney(capture.amount, capture.currency)}</p>
+    <p class="figure amt text-[44px] leading-none text-label" use:fitText={{ text: formatMoney(capture.amount, capture.currency), max: 44, min: 24 }}>{formatMoney(capture.amount, capture.currency)}</p>
     {#if estimate}<p class="money amt mt-1.5 text-[15px] text-label-2">{estimate}</p>{/if}
   </div>
 

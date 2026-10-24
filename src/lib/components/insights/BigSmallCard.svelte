@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fitText } from '$lib/ui/fit';
   import { segmentedPill } from '$lib/actions/segmentedPill';
   import Donut from '$lib/components/charts/Donut.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
@@ -28,7 +29,8 @@
   $: if (view || threshold) hidden = new Set();
   $: shownTotal = group.filter((g) => !hidden.has(g.id)).reduce((s, g) => s + g.cents, 0);
   const pct = (part: number, whole: number, digits = 0) => (whole > 0 ? ((part / whole) * 100).toFixed(digits) : (0).toFixed(digits));
-  const whole = (c: number) => formatCurrency(c).replace(/\.00$/, '');
+  // Whole dollars where space is short: the split key and the donut's middle.
+  const whole = (c: number) => formatCurrency(Math.round(c / 100) * 100).replace(/\.00$/, '');
 
   function toggle(id: string) {
     const next = new Set(hidden);
@@ -43,7 +45,7 @@
   <div class="flex items-center justify-between gap-3">
     <span class="text-[15px] text-label-2">Big means</span>
     <button type="button" class="flex h-9 items-center gap-1 rounded-full bg-fill px-3 text-[15px] font-semibold text-label focus:outline-none focus-visible:ring-2 focus-visible:ring-tint" on:click={() => openModal('threshold')}>
-      <span class="amt">{whole(threshold)} or more</span><Icon name="chevron-down" size={14} strokeWidth={2.4} />
+      <span class="amt">{formatCurrency(threshold).replace(/\.00$/, '')} or more</span><Icon name="chevron-down" size={14} strokeWidth={2.4} />
     </button>
   </div>
 
@@ -63,7 +65,7 @@
 
   {#if group.length}
     <Donut slices={group.map((g) => ({ id: g.id, color: g.bucket.color, value: g.cents, hidden: hidden.has(g.id) }))} label="{view === 'big' ? 'Big' : 'Small'} purchases by envelope, {whole(shownTotal)} shown">
-      <span class="money amt text-[24px] font-bold tracking-tight text-label">{whole(shownTotal)}</span>
+      <span class="money amt text-[24px] font-bold tracking-tight text-label" use:fitText={{ text: whole(shownTotal), max: 24, min: 13, width: 96 }}>{whole(shownTotal)}</span>
       <span class="text-[13px] text-label-2">{view} purchases</span>
     </Donut>
     <div class="-mx-4 -mb-4">

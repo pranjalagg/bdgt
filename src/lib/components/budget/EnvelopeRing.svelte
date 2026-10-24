@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fitText } from '$lib/ui/fit';
   import { onMount } from 'svelte';
   import { formatCurrency } from '$lib/utils/currency';
   import type { BucketStatus } from '$lib/types';
@@ -25,10 +26,10 @@
   </svg>
   <div class="absolute inset-0 grid place-content-center gap-0.5 text-center">
     {#if bucket.isSavings}
-      <span class="figure amt text-[36px] text-success">{whole(spent)}</span>
+      <span class="figure amt text-[36px] text-success" use:fitText={{ text: whole(spent), max: 36, min: 18, width: 150 }}>{whole(spent)}</span>
       <span class="text-[13px] text-label-2">set aside this month</span>
     {:else}
-      <span class="figure amt text-[36px] {remaining < 0 ? 'text-danger' : 'text-label'}">{whole(Math.abs(remaining))}</span>
+      <span class="figure amt text-[36px] {remaining < 0 ? 'text-danger' : 'text-label'}" use:fitText={{ text: whole(Math.abs(remaining)), max: 36, min: 18, width: 150 }}>{whole(Math.abs(remaining))}</span>
       <span class="text-[13px] {remaining < 0 ? 'text-danger' : 'text-label-2'}">{remaining < 0 ? 'over this month' : 'left this month'}</span>
     {/if}
   </div>
