@@ -60,7 +60,7 @@
   $: titleRoom = Math.max(0, rowWidth - 2 * (Math.max(leadWidth, trailWidth) + 12) - 20);
 </script>
 
-<header bind:this={bar} class="navbar sticky z-20 -mx-4 -mt-4 sm:-mx-6 md:-mt-8" class:scrolled>
+<header bind:this={bar} class="navbar sticky z-20 -mx-5 -mt-4 sm:-mx-6 md:-mt-8" class:scrolled>
   <div class="relative flex h-[52px] items-center justify-between gap-2 px-2.5 sm:px-4" bind:clientWidth={rowWidth}>
     <div class="flex min-w-0 flex-1 items-center">
       <div class="flex min-w-0 items-center gap-1.5" bind:clientWidth={leadWidth}>

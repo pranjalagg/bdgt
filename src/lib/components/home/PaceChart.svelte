@@ -33,7 +33,7 @@
 </script>
 
 <div
-  class="pace relative -mx-4 sm:-mx-6"
+  class="pace relative -mx-5 sm:-mx-6"
   bind:clientWidth={width}
   style:height="{H}px"
   role="img"

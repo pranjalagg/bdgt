@@ -1,5 +1,8 @@
 <script lang="ts">
-	import '@fontsource-variable/inter/opsz.css';
+	// Manrope, bundled with the app (no network font). To go back to the
+	// system font, import '@fontsource-variable/inter/opsz.css' here and
+	// point --font-sans in app.css back at -apple-system and Inter.
+	import '@fontsource-variable/manrope';
 	// Fonts ship with the app (no Google Fonts request), so it looks the same
 	// offline and inside the Android app.
 	import '../app.css';

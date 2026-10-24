@@ -1,12 +1,12 @@
 name: Android test build
 
-# Runs only for the Android branch and the UI preview branch (and by hand);
-# the live site is deployed separately and never from here. The UI branch
-# builds "bdgt preview", a separate app published as android-preview; only
-# the Android branch publishes android-latest.
+# Runs only for the Android branch and the UI preview branches (and by
+# hand); the live site is deployed separately and never from here. The UI
+# branches build "bdgt preview", a separate app published as
+# android-preview; only the Android branch publishes android-latest.
 on:
   push:
-    branches: [claude/intelligent-davinci-7qblqz, claude/native-ui]
+    branches: [claude/intelligent-davinci-7qblqz, claude/native-ui, claude/minimal-ui]
   workflow_dispatch:
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
     permissions:
       contents: write # publishes the build as the release android-latest (or android-preview)
     env:
-      PREVIEW: ${{ github.ref_name == 'claude/native-ui' && '1' || '' }}
+      PREVIEW: ${{ (github.ref_name == 'claude/native-ui' || github.ref_name == 'claude/minimal-ui') && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -122,10 +122,10 @@ jobs:
           gh release create android-latest bdgt.apk -R "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
             --title "Android test build ${{ github.run_number }}" \
             --notes "Built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. On the phone: download bdgt.apk and open it; it installs over the earlier build and keeps your data."
-      # The UI branch's builds go to their own release, so the real app never
-      # sees them as an update.
+      # The UI branches' builds go to their own release, so the real app
+      # never sees them as an update. Whichever UI branch pushed last owns it.
       - name: Publish as the latest preview build
-        if: github.ref_name == 'claude/native-ui'
+        if: env.PREVIEW == '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

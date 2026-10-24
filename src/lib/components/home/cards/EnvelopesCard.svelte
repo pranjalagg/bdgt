@@ -19,7 +19,7 @@
       <h2 id="home-envelopes" class="text-[21px] font-bold tracking-tight text-label">Envelopes</h2>
       <a href="{base}/budget" class="text-[15px] font-medium text-tint">See all</a>
     </div>
-    <div class="scroll-row -mx-4 snap-x snap-mandatory px-4 pb-1 sm:-mx-6 sm:px-6" style="scroll-padding: 16px">
+    <div class="scroll-row -mx-5 snap-x snap-mandatory px-5 pb-1 sm:-mx-6 sm:px-6" style="scroll-padding: 20px">
       {#each everyday as s (s.bucket.id)}
         {@const available = s.allocated + s.rollover}
         {@const frac = available > 0 ? Math.max(0, Math.min(1, s.remaining / available)) : 0}

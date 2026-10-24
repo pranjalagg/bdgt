@@ -32,7 +32,7 @@
   onMount(() => row?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' }));
 </script>
 
-<div bind:this={row} class="scroll-row -mx-4 gap-2 px-4 py-1 sm:-mx-6 sm:px-6 md:flex-wrap md:overflow-visible" role="group" aria-label="Filter">
+<div bind:this={row} class="scroll-row -mx-5 gap-2 px-5 py-1 sm:-mx-6 sm:px-6 md:flex-wrap md:overflow-visible" role="group" aria-label="Filter">
   {#each options as o (o.id)}
     <button type="button" class="chip" aria-pressed={selected === o.id} on:click={() => pick(o.id)}>
       {#if o.color}<span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{o.color}" aria-hidden="true"></span>{/if}

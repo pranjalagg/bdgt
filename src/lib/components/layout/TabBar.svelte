@@ -65,12 +65,12 @@
       href={tab.href === '/' ? base || '/' : base + tab.href}
       aria-current={current === tab.href ? 'page' : undefined}
       aria-label={tab.href === '/activity' && $pendingCaptures.length > 0 ? `${tab.label}, ${$pendingCaptures.length} to review` : undefined}
-      class="tab relative flex min-w-0 flex-1 flex-col items-center justify-center gap-[3px] rounded-[28px] text-[10.5px] font-semibold
+      class="tab relative flex min-w-0 flex-1 flex-col items-center justify-center gap-[2px] rounded-[24px] text-[10.5px] font-semibold
              focus:outline-none focus-visible:ring-2 focus-visible:ring-tint"
       on:click={(e) => tap(e, tab.href)}
     >
       <span class="relative">
-        <Icon name={tab.icon} size={24} strokeWidth={current === tab.href ? 2.2 : 1.9} />
+        <Icon name={tab.icon} size={22} strokeWidth={current === tab.href ? 2.1 : 1.75} />
         {#if tab.href === '/activity' && $pendingCaptures.length > 0}
           <span
             class="badge absolute -right-2.5 -top-1.5 min-w-[18px] rounded-full bg-danger px-1 text-center text-[11px] font-bold leading-[18px] text-white dark:text-black"
@@ -85,11 +85,11 @@
 
 <style>
   .tabbar {
-    left: 14px;
-    right: 90px;
+    left: 20px;
+    right: 88px;
     bottom: calc(14px + var(--safe-bottom));
-    height: 64px;
-    border-radius: 32px;
+    height: 56px;
+    border-radius: 28px;
   }
 
   .lens {
@@ -97,7 +97,7 @@
     top: 4px;
     bottom: 4px;
     left: 0;
-    border-radius: 28px;
+    border-radius: 24px;
     background: rgb(var(--c-label) / 0.07);
     transition: transform var(--ms-bouncy, 450ms) var(--ease-bouncy, ease-out), width var(--ms-bouncy, 450ms) var(--ease-bouncy, ease-out);
   }

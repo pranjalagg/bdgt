@@ -17,16 +17,16 @@
     openLog();
   }}
 >
-  <Icon name="plus" size={28} strokeWidth={2.4} />
+  <Icon name="plus" size={26} strokeWidth={2.2} />
 </button>
 
 <style>
   .log-button {
-    right: 14px;
+    right: 20px;
     bottom: calc(14px + var(--safe-bottom));
-    width: 64px;
-    height: 64px;
-    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 10px 26px rgb(var(--c-tint) / 0.45);
+    width: 56px;
+    height: 56px;
+    box-shadow: 0 8px 22px -6px rgb(var(--c-tint) / 0.5);
     transition: transform 160ms ease-out;
   }
 

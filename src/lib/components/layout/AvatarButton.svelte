@@ -10,7 +10,7 @@
 
 <a
   href="{base}/settings"
-  class="relative flex h-10 w-10 items-center justify-center rounded-full bg-tint text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-tint focus-visible:ring-offset-2"
+  class="relative flex h-10 w-10 items-center justify-center rounded-full bg-fill text-label focus:outline-none focus-visible:ring-2 focus-visible:ring-tint focus-visible:ring-offset-2"
   aria-label={$attention ? 'Settings (sync needs attention)' : 'Settings'}
 >
   <Icon name="settings" size={20} />

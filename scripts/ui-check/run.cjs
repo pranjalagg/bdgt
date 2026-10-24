@@ -134,7 +134,18 @@ async function smoke(browser, errors) {
   const page = await newPage(browser, cfg, errors);
   const results = [];
   const text = (t) => page.getByText(t, { exact: false }).first();
+  const fontHosts = [];
+  page.on('request', (r) => { if (/fonts\.(googleapis|gstatic)\.com/.test(r.url())) fontHosts.push(r.url()); });
   await step(results, 'import sample backup', async () => { await seed(page); });
+  await step(results, 'fonts load from the app, Manrope is used', async () => {
+    await page.goto(BASE + '/'); await page.waitForLoadState('networkidle');
+    await page.evaluate(() => document.fonts.ready);
+    const family = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    if (!/Manrope/.test(family)) throw new Error('body font is ' + family);
+    const loaded = await page.evaluate(() => document.fonts.check('600 16px "Manrope Variable"'));
+    if (!loaded) throw new Error('Manrope did not load');
+    if (fontHosts.length) throw new Error('fonts requested from ' + fontHosts[0]);
+  });
   const heroFigure = () => page.locator('section[aria-label="Safe to spend"] [role=img]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')).join(''));
   const homeHeadings = () => page.locator('main h2').allTextContents();
   await step(results, 'Home shows safe to spend $234.47 and the plan pill', async () => {

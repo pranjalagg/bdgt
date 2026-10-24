@@ -30,14 +30,14 @@ export default {
         tint: 'rgb(var(--c-tint-text) / <alpha-value>)',
       },
       fontFamily: {
-        // San Francisco on Apple devices, Inter everywhere else.
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"Inter Variable"', 'Inter', 'system-ui', '"Segoe UI"', 'sans-serif'],
+        // One token (app.css --font-sans), so the face is one line to change.
+        sans: ['var(--font-sans)'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       borderRadius: {
         'xl': '1.25rem', // cards
         '2xl': '1.75rem', // sheets, dialogs, tiles
-        card: '22px', // cards and grouped lists
+        card: '24px', // cards and grouped lists
         sheet: '30px', // sheet top corners
       },
     },

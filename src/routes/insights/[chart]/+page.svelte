@@ -123,7 +123,7 @@
   <Figure label={fig.label} cents={fig.cents ?? null} text={fig.text ?? null} pill={fig.pill ?? null} sub={fig.sub ?? ''} />
 
   {#if kind === 'envelopes'}
-    <div class="scroll-row -mx-4 gap-2 px-4 py-1 sm:-mx-6 sm:px-6 md:flex-wrap md:overflow-visible" role="group" aria-label="Envelopes">
+    <div class="scroll-row -mx-5 gap-2 px-5 py-1 sm:-mx-6 sm:px-6 md:flex-wrap md:overflow-visible" role="group" aria-label="Envelopes">
       {#each envelopeSeries as s (s.bucketId)}
         <button type="button" class="chip" aria-pressed={!hiddenIds.has(s.bucketId)} on:click={() => toggle(s.bucketId)}>
           <span class="h-2.5 w-2.5 flex-none rounded-full" style="background:{s.color}" aria-hidden="true"></span>{s.label}

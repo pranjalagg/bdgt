@@ -122,7 +122,7 @@
   <!-- The app draws under the status bar: each page's navigation bar
        reaches up under it (see NavBar), so nothing else pads the top. -->
   <main bind:this={main} use:edgeSwipeBack={!isTabRoot(path) && !isModalRoot(path) && edgeBack} class="relative flex-1 overflow-auto overscroll-contain">
-    <div class="mx-auto max-w-5xl px-4 pb-[calc(110px+var(--safe-bottom))] pt-4 sm:px-6 md:pb-24 md:pt-8">
+    <div class="mx-auto max-w-5xl px-5 pb-[calc(110px+var(--safe-bottom))] pt-4 sm:px-6 md:pb-24 md:pt-8" style="--gutter: 20px">
       <slot />
     </div>
   </main>
